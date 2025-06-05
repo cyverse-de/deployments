@@ -1,0 +1,47 @@
+---
+- delegate_to: localhost
+  block:
+    - name: create the portal database
+      community.postgresql.postgresql_db:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        name: "{{ portal_db_name }}"
+        owner: "{{ dbms_connection_user }}"
+        encoding: "{{ encoding }}"
+        lc_collate: "{{ lc_collate }}"
+        lc_ctype: "{{ lc_ctype }}"
+        template: "{{ template }}"
+      when: create_dbs is defined and create_dbs and portal is defined and portal
+
+    - name: install extensions for the portal database
+      when: install_exts is defined and install_exts and portal is defined and portal
+      community.postgresql.postgresql_ext:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        db: "{{ portal_db_name }}"
+        name: "{{item}}"
+      loop:
+        - moddatetime
+        - btree_gist
+        - insert_username
+
+    - name: checkout the portal repo for its migrations
+      ansible.builtin.git:
+        repo: "https://gitlab.com/cyverse/portal2"
+        dest: "{{ dbs_dir.path }}/portal2"
+        clone: yes
+        update: yes
+        force: yes
+        version: "{{ portal_version }}"
+
+    - name: run portal repo migrations
+      ansible.builtin.command: >
+        {{migrate_installed.stdout}}
+        -database "postgresql://{{dbms_connection_user}}:{{dbms_connection_pass}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
+        -path "{{ dbs_dir.path }}/portal2/migrations"
+        up
+      when: migrate is defined and migrate
