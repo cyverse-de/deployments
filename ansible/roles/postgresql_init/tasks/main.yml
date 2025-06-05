@@ -3,6 +3,7 @@
 - ansible.builtin.include_tasks: de.yml
 - ansible.builtin.include_tasks: grouper.yml
 - ansible.builtin.include_tasks: qms.yml
+- ansible.builtin.include_tasks: portal.yml
 - ansible.builtin.include_tasks: unleash.yml
 - ansible.builtin.include_tasks: harbor.yml
 - ansible.builtin.include_tasks: keycloak.yml
