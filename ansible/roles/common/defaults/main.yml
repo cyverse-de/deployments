@@ -169,6 +169,10 @@ gocd_enabled: false
 gocd_external_domain: replace_me
 gocd_skaffold_url: https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
 
+# Grid Institutions CSV settings
+grid_csv_repo: replace_me
+grid_csv_version: main
+
 # QA-specific settings
 qa_ceph_password: replace_me
 qa_ceph_username: replace_me
