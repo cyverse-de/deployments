@@ -1,6 +1,17 @@
 ---
 - delegate_to: localhost
   block:
+    - name: create the portal reader database user
+      community.postgresql.postgresql_user:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        db: "{{ pg_db }}"
+        name: "{{ portal_database_user }}"
+        password: "{{ portal_database_password }}"
+      when: create_user is defined and create_user
+
     - name: create the portal database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
@@ -8,7 +19,7 @@
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         name: "{{ portal_db_name }}"
-        owner: "{{ dbms_connection_user }}"
+        owner: "{{ portal_database_user }}"
         encoding: "{{ encoding }}"
         lc_collate: "{{ lc_collate }}"
         lc_ctype: "{{ lc_ctype }}"
@@ -45,3 +56,18 @@
         -path "{{ dbs_dir.path }}/portal2/migrations"
         up
       when: migrate is defined and migrate
+
+    - name: check out the grid csv files
+      ansible.builtin.git:
+        repo: "{{grid_csv_repo}}"
+        dest: "{{dbs_dir.path}}/grid_institutions"
+        clone: yes
+        update: yes
+        force: yes
+        version: "{{grid_csv_version}}"
+
+    - name: run the grid institutions import script
+      ansible.builtin.shell: >
+        python
+        {{dbs_dir.path}}/portal2/src/scripts/import_grid_institutions.py
+        {{dbs_dir.path}}/grid_institutions/grid.csv
