@@ -290,7 +290,9 @@ metadata_db_name: metadata
 permissions_db_name: de
 qms_db_name: qms
 portal_db_name: portal
-portal_database_user: portal_db_reader
+portal_db_reader_user: portal_db_reader
+portal_db_reader_password: replace_me
+portal_database_user: portal
 portal_database_password: replace_me
 qms_automigrate: false
 qms_reinitialize: false
