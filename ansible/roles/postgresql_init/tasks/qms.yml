@@ -1,5 +1,5 @@
 ---
-- delegate_to:
+- delegate_to: localhost
   block:
     - name: create qms database
       community.postgresql.postgresql_db:
@@ -13,10 +13,10 @@
         lc_collate: "{{ lc_collate }}"
         lc_ctype: "{{ lc_ctype }}"
         template: "{{ template }}"
-      when: create_dbs is defined and create_dbs and qms is defined and qms
+      when: create_dbs is defined and create_dbs
 
     - name: install extensions for the qms database
-      when: install_exts is defined and install_exts and qms is defined and qms
+      when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"

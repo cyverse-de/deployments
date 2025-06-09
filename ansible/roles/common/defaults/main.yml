@@ -283,13 +283,15 @@ notifications_db_version: main
 metadata_db_version: main
 mgmt_version: main
 qms_version: main
-portal_version: main
+portal_version: master
 de_db_name: de
 notifications_db_name: notifications
 metadata_db_name: metadata
 permissions_db_name: de
 qms_db_name: qms
 portal_db_name: portal
+portal_database_user: portal_db_reader
+portal_database_password: replace_me
 qms_automigrate: false
 qms_reinitialize: false
 pg_login_user: postgres
@@ -314,6 +316,8 @@ unleash: true
 grouper: true
 qms: true
 portal: true
+harbor: true
+keycloak: true
 install_exts: true
 migrate_release_version: v4.17.0
 migrate_tarball_name: migrate.linux-amd64.tar.gz # or migrate.darwin-amd64.tar.gz

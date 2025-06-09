@@ -1,10 +1,33 @@
 ---
-- ansible.builtin.include_tasks: prepare.yml
-- ansible.builtin.include_tasks: de.yml
-- ansible.builtin.include_tasks: grouper.yml
-- ansible.builtin.include_tasks: qms.yml
-- ansible.builtin.include_tasks: portal.yml
-- ansible.builtin.include_tasks: unleash.yml
-- ansible.builtin.include_tasks: harbor.yml
-- ansible.builtin.include_tasks: keycloak.yml
-- ansible.builtin.include_tasks: cleanup.yml
+- name: prepare for database work
+  ansible.builtin.include_tasks: prepare.yml
+
+- name: setup and migrate de databases
+  ansible.builtin.include_tasks: de.yml
+
+- name: setup and migrate grouper database
+  when: grouper
+  ansible.builtin.include_tasks: grouper.yml
+
+- name: setup and migrate qms database
+  when: qms
+  ansible.builtin.include_tasks: qms.yml
+
+- name: setup and migrate portal database
+  when: portal
+  ansible.builtin.include_tasks: portal.yml
+
+- name: setup and migrate unleash database
+  when: unleash
+  ansible.builtin.include_tasks: unleash.yml
+
+- name: setup and migrate harbor databases
+  when: harbor
+  ansible.builtin.include_tasks: harbor.yml
+
+- name: setup and migrate keycloak databases
+  when: keycloak
+  ansible.builtin.include_tasks: keycloak.yml
+
+- name: clean up database work
+  ansible.builtin.include_tasks: cleanup.yml
