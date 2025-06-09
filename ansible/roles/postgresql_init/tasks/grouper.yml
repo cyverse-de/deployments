@@ -10,7 +10,7 @@
         db: "{{ pg_db }}"
         name: "{{ grouper_connection_user }}"
         password: "{{ grouper_connection_pass }}"
-      when: create_user is defined and create_user and grouper is defined and grouper
+      when: create_user is defined and create_user
 
     - name: create grouper database
       community.postgresql.postgresql_db:
@@ -24,4 +24,4 @@
         lc_collate: "{{ lc_collate }}"
         lc_ctype: "{{ lc_ctype }}"
         template: "{{ template }}"
-      when: create_dbs is defined and create_dbs and grouper is defined and grouper
+      when: create_dbs is defined and create_dbs

@@ -24,10 +24,23 @@
         lc_collate: "{{ lc_collate }}"
         lc_ctype: "{{ lc_ctype }}"
         template: "{{ template }}"
-      when: create_dbs is defined and create_dbs and portal is defined and portal
+      when: create_dbs is defined and create_dbs
+
+    - name: grant privileges
+      community.postgresql.postgresql_privs:
+        login_host: "{{groups['dbms'][0]}}"
+        port: "{{pg_listen_port}}"
+        login_user: "{{pg_login_user}}"
+        login_password: "{{pg_login_password}}"
+        login_db: "{{portal_db_name}}"
+        grant_option: true
+        privs: ALL
+        type: schema
+        objs: public
+        role: "{{portal_database_user}}"
 
     - name: install extensions for the portal database
-      when: install_exts is defined and install_exts and portal is defined and portal
+      when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -52,7 +65,7 @@
     - name: run portal repo migrations
       ansible.builtin.command: >
         {{migrate_installed.stdout}}
-        -database "postgresql://{{dbms_connection_user}}:{{dbms_connection_pass}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
+        -database "postgresql://{{portal_database_user}}:{{portal_database_password}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
         -path "{{ dbs_dir.path }}/portal2/migrations"
         up
       when: migrate is defined and migrate
@@ -66,8 +79,57 @@
         force: yes
         version: "{{grid_csv_version}}"
 
-    - name: run the grid institutions import script
-      ansible.builtin.shell: >
-        python
-        {{dbs_dir.path}}/portal2/src/scripts/import_grid_institutions.py
-        {{dbs_dir.path}}/grid_institutions/grid.csv
+    - name: check for the 'Other' record in account_institution_grid
+      community.postgresql.postgresql_query:
+        login_host: "{{groups['dbms'][0]}}"
+        login_port: "{{pg_listen_port}}"
+        login_user: "{{portal_database_user}}"
+        login_password: "{{portal_database_password}}"
+        login_db: "{{portal_db_name}}"
+        query: SELECT grid_id FROM account_institution_grid WHERE name = 'Other'
+      register: other_result
+
+    - debug:
+        msg: "{{other_result}}"
+
+    - name: insert the Other field into the account_institution_grid table
+      when: other_result.rowcount == 0
+      community.postgresql.postgresql_query:
+        login_host: "{{groups['dbms'][0]}}"
+        login_port: "{{pg_listen_port}}"
+        login_user: "{{portal_database_user}}"
+        login_password: "{{portal_database_password}}"
+        login_db: "{{portal_db_name}}"
+        query: INSERT INTO account_institution_grid (grid_id,name,city,state,country) VALUES ('', 'Other','','','') ON CONFLICT (grid_id) DO NOTHING
+
+    - name: check for records in account_institution_grid
+      community.postgresql.postgresql_query:
+        login_host: "{{groups['dbms'][0]}}"
+        login_port: "{{pg_listen_port}}"
+        login_user: "{{portal_database_user}}"
+        login_password: "{{portal_database_password}}"
+        login_db: "{{portal_db_name}}"
+        query: SELECT COUNT(*) AS record_count FROM account_institution_grid
+      register: records_result
+
+    - debug:
+        msg: "{{records_result}}"
+
+    - name: copy grid.csv data into the account_institution_grid table
+      when: records_result["query_result"][0]["record_count"] <= 1
+      community.postgresql.postgresql_copy:
+        login_host: "{{groups['dbms'][0]}}"
+        login_port: "{{pg_listen_port}}"
+        login_user: "{{portal_database_user}}"
+        login_password: "{{portal_database_password}}"
+        login_db: "{{portal_db_name}}"
+        copy_from: "{{dbs_dir.path}}/grid_institutions/grid.csv"
+        dst: account_institution_grid
+        columns: grid_id,name,city,state,country
+        options:
+          format: csv
+          header: True
+      register: copy_result
+
+    - debug:
+        msg: "{{copy_result}}"
