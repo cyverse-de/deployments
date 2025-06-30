@@ -1,0 +1,12 @@
+---
+- ansible.builtin.include_role:
+    name: db_staging
+    tasks_from: prepare.yml
+
+- ansible.builtin.include_role:
+    name: postgresql_init
+    tasks_from: portal.yml
+
+- ansible.builtin.include_role:
+    name: db_staging
+    tasks_from: cleanup.yml

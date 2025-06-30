@@ -1,6 +1,8 @@
 ---
 - name: prepare for database work
-  ansible.builtin.include_tasks: prepare.yml
+  ansible.builtin.include_role:
+    name: db_staging
+    tasks_from: prepare.yml
 
 - name: setup and migrate de databases
   ansible.builtin.include_tasks: de.yml
@@ -30,4 +32,6 @@
   ansible.builtin.include_tasks: keycloak.yml
 
 - name: clean up database work
-  ansible.builtin.include_tasks: cleanup.yml
+  ansible.builtin.include_role:
+    name: db_staging
+    tasks_from: cleanup.yml
