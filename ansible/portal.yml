@@ -1,12 +1,13 @@
 ---
-- ansible.builtin.include_role:
-    name: db_staging
-    tasks_from: prepare.yml
+- hosts: dbms
+  become: false
+  connection: local
+  roles:
+    - role: db_staging
+      tasks_from: prepare.yml
 
-- ansible.builtin.include_role:
-    name: postgresql_init
-    tasks_from: portal.yml
+    - role: postgresql_init
+      tasks_from: portal.yml
 
-- ansible.builtin.include_role:
-    name: db_staging
-    tasks_from: cleanup.yml
+    - role: db_staging
+      tasks_from: cleanup.yml
