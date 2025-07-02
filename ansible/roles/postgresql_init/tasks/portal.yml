@@ -82,7 +82,7 @@
         login_password: "{{pg_login_password}}"
         login_db: "{{portal_db_name}}"
         privs: SELECT
-        type: tables
+        type: table
         objs: ALL_IN_SCHEMA
         schema: public
         role: "{{portal_db_reader_user}}"

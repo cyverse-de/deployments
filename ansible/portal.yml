@@ -2,12 +2,15 @@
 - hosts: dbms
   become: false
   connection: local
-  roles:
-    - role: db_staging
-      tasks_from: prepare.yml
+  tasks:
+    - ansible.builtin.import_role:
+        name: db_staging
+        tasks_from: prepare.yml
 
-    - role: postgresql_init
-      tasks_from: portal.yml
+    - ansible.builtin.import_role:
+        name: postgresql_init
+        tasks_from: portal.yml
 
-    - role: db_staging
-      tasks_from: cleanup.yml
+    - ansible.builtin.import_role:
+        name: db_staging
+        tasks_from: cleanup.yml
