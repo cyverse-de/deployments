@@ -425,7 +425,7 @@ portal_db_port: "5432"
 portal_db_name: portal
 portal_db_user: portal
 portal_db_password: replace_me
-portal_session_secret: "So foul and fair a day I have not seen"
+portal_session_secret: "replace_me"
 portal_session_secure_cookie: "true"
 portal_keycloak_realm: replace_me
 portal_keycloak_auth_url: https://kc.cyverse.org/auth/
