@@ -463,6 +463,7 @@ portal_profile_update_period: "365"
 portal_profile_warning_period: "30"
 portal_profile_update_text: "We request that you update your profile information on an annual basis. Please do so now in order to proceed to the application."
 portal_profile_warning_text: "This is a reminder to update your profile information, please do so now."
+portal_support_email: "replace_me@replace_me.org"
 
 # VICE settings
 vice_base_uri: https://cyverse.run
