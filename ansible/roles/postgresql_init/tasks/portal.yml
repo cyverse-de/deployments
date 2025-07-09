@@ -1,17 +1,6 @@
 ---
 - delegate_to: localhost
   block:
-    - name: create the portal reader database user
-      community.postgresql.postgresql_user:
-        login_host: "{{ groups['dbms'][0] }}"
-        port: "{{ pg_listen_port }}"
-        login_user: "{{ pg_login_user }}"
-        login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
-        name: "{{ portal_db_reader_user }}"
-        password: "{{ portal_db_reader_password }}"
-      when: create_user is defined and create_user
-
     - name: create the portal db user
       community.postgresql.postgresql_user:
         login_host: "{{ groups['dbms'][0] }}"
@@ -19,8 +8,8 @@
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         db: "{{ pg_db }}"
-        name: "{{ portal_database_user }}"
-        password: "{{ portal_database_password }}"
+        name: "{{ portal_db_user }}"
+        password: "{{ portal_db_password }}"
       when: create_user is defined and create_user
 
     - name: create the portal database
@@ -30,7 +19,7 @@
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         name: "{{ portal_db_name }}"
-        owner: "{{ portal_database_user }}"
+        owner: "{{ portal_db_user }}"
         encoding: "{{ encoding }}"
         lc_collate: "{{ lc_collate }}"
         lc_ctype: "{{ lc_ctype }}"
@@ -48,57 +37,7 @@
         privs: ALL
         type: schema
         objs: public
-        role: "{{portal_database_user}}"
-
-    - name: grant connect privileges to the portal_db_reader user
-      community.postgresql.postgresql_privs:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{pg_login_user}}"
-        login_password: "{{pg_login_password}}"
-        login_db: "{{portal_db_name}}"
-        privs: CONNECT
-        type: database
-        objs: "{{portal_db_name}}"
-        role: "{{portal_db_reader_user}}"
-
-    - name: grant USAGE privileges to the portal_db_reader user
-      community.postgresql.postgresql_privs:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{pg_login_user}}"
-        login_password: "{{pg_login_password}}"
-        login_db: "{{portal_db_name}}"
-        privs: USAGE
-        type: schema
-        objs: public
-        role: "{{portal_db_reader_user}}"
-
-    - name: grant read-only privileges to the portal_db_reader user
-      community.postgresql.postgresql_privs:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{pg_login_user}}"
-        login_password: "{{pg_login_password}}"
-        login_db: "{{portal_db_name}}"
-        privs: SELECT
-        type: table
-        objs: ALL_IN_SCHEMA
-        schema: public
-        role: "{{portal_db_reader_user}}"
-
-    - name: allow access to future tables to portal_db_reader user
-      community.postgresql.postgresql_privs:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{pg_login_user}}"
-        login_password: "{{pg_login_password}}"
-        login_db: "{{portal_db_name}}"
-        privs: SELECT
-        type: default_privs
-        objs: tables
-        schema: public
-        role: "{{portal_db_reader_user}}"
+        role: "{{portal_db_user}}"
 
     - name: install extensions for the portal database
       when: install_exts is defined and install_exts
@@ -126,7 +65,7 @@
     - name: run portal repo migrations
       ansible.builtin.command: >
         {{migrate_installed.stdout}}
-        -database "postgresql://{{portal_database_user}}:{{portal_database_password}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
+        -database "postgresql://{{portal_db_user}}:{{portal_db_password}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
         -path "{{ dbs_dir.path }}/portal2/migrations"
         up
       when: migrate is defined and migrate
@@ -144,8 +83,8 @@
       community.postgresql.postgresql_query:
         login_host: "{{groups['dbms'][0]}}"
         login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_database_user}}"
-        login_password: "{{portal_database_password}}"
+        login_user: "{{portal_db_user}}"
+        login_password: "{{portal_db_password}}"
         login_db: "{{portal_db_name}}"
         query: SELECT grid_id FROM account_institution_grid WHERE name = 'Other'
       register: other_result
@@ -158,8 +97,8 @@
       community.postgresql.postgresql_query:
         login_host: "{{groups['dbms'][0]}}"
         login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_database_user}}"
-        login_password: "{{portal_database_password}}"
+        login_user: "{{portal_db_user}}"
+        login_password: "{{portal_db_password}}"
         login_db: "{{portal_db_name}}"
         query: INSERT INTO account_institution_grid (grid_id,name,city,state,country) VALUES ('', 'Other','','','') ON CONFLICT (grid_id) DO NOTHING
 
@@ -167,8 +106,8 @@
       community.postgresql.postgresql_query:
         login_host: "{{groups['dbms'][0]}}"
         login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_database_user}}"
-        login_password: "{{portal_database_password}}"
+        login_user: "{{portal_db_user}}"
+        login_password: "{{portal_db_password}}"
         login_db: "{{portal_db_name}}"
         query: SELECT COUNT(*) AS record_count FROM account_institution_grid
       register: records_result
@@ -181,8 +120,8 @@
       community.postgresql.postgresql_copy:
         login_host: "{{groups['dbms'][0]}}"
         login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_database_user}}"
-        login_password: "{{portal_database_password}}"
+        login_user: "{{portal_db_user}}"
+        login_password: "{{portal_db_password}}"
         login_db: "{{portal_db_name}}"
         copy_from: "{{dbs_dir.path}}/grid_institutions/grid.csv"
         dst: account_institution_grid
