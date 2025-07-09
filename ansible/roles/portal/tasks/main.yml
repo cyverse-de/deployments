@@ -78,4 +78,20 @@
             SMTP_FROM: "{{ portal_smtp_from }}"
             SUPPORT_EMAIL: "{{ portal_support_email }}"
 
-    - name: deploy the portal
+    - name: builds dir
+      ansible.builtin.debug:
+        msg: "{{ build_json_dir }}"
+
+    - name: read the build JSON file
+      set_fact:
+        build_json: "{{ lookup('file', build_json_dir +'/portal2.json') | from_json }}"
+
+    - name: image tag
+      ansible.builtin.debug:
+        msg: "{{ build_json.builds[0].tag }}"
+
+    - name: run skaffold deploy
+      run_once: true
+      ansible.builtin.command:
+        chdir: "{{ de_releases_dir }}/services/portal2"
+        cmd: skaffold deploy --namespace "{{ portal_namespace }}" --build-artifacts "../../builds/portal2.json" --force --kubeconfig "{{ lookup('env', 'KUBECONFIG') }}"

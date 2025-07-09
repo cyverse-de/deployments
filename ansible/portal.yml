@@ -2,7 +2,7 @@
 - hosts: dbms
   become: false
   connection: local
-  tasks:
+  pre_tasks:
     - ansible.builtin.import_role:
         name: db_staging
         tasks_from: prepare.yml
@@ -14,3 +14,6 @@
     - ansible.builtin.import_role:
         name: db_staging
         tasks_from: cleanup.yml
+
+  roles:
+    - role: portal
