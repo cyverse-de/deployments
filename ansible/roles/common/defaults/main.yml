@@ -289,11 +289,6 @@ notifications_db_name: notifications
 metadata_db_name: metadata
 permissions_db_name: de
 qms_db_name: qms
-portal_db_name: portal
-portal_db_reader_user: portal_db_reader
-portal_db_reader_password: replace_me
-portal_database_user: portal
-portal_database_password: replace_me
 qms_automigrate: false
 qms_reinitialize: false
 pg_login_user: postgres
@@ -349,6 +344,7 @@ irods_user: replace_me
 irods_zone: replace_me
 irods_password: replace_me
 irods_port: 1247
+irods_ipcservices_enabled: "true"
 irods_external_host: data.cyverse.rocks
 irods_webdav_anon_uri: https://data.cyverse.rocks/dav-anon
 irods_quota_root_resources: mainIngestRes,mainReplRes
@@ -413,6 +409,60 @@ unleash_db_password: replace_me
 
 # User Portal settings
 user_portal_base_uri: http://replace_me
+
+portal_namespace: cyverse-portal
+portal_secret: user-portal-config
+portal_ui_base_url: https://replace_me
+portal_api_base_url: https://replace_me/api
+portal_ws_base_url: wss://replace_me/ws
+portal_uid_number_offset: replace_me
+portal_hmac_key: "replace_me"
+portal_google_analytics_id: replace_me
+portal_sentry_dsn: https://replace_me
+portal_workflow_image_id: "replace_me"
+portal_db_host: localhost
+portal_db_port: "5432"
+portal_db_name: portal
+portal_db_user: portal
+portal_db_password: replace_me
+portal_session_secret: "So foul and fair a day I have not seen"
+portal_session_secure_cookie: "true"
+portal_keycloak_realm: replace_me
+portal_keycloak_auth_url: https://kc.cyverse.org/auth/
+portal_keycloak_client: replace_me
+portal_keycloak_secret: "replace_me"
+portal_ldap_host: ldap://replace_me
+portal_ldap_admin: "replace_me"
+portal_ldap_password: "replace_me"
+portal_ldap_base_dn: replace_me
+portal_ldap_everyone_group: replace_me
+portal_bcc_new_account_confirmation: replace_me@replace_me.org
+portal_bcc_password_change_request: replace_me@replace_me.org
+portal_bcc_service_access_granted: replace_me@replace_me.org
+portal_bcc_workshop_enrollment_request: replace_me@replace_me.org
+portal_intercom_enabled: "false"
+portal_intercom_app_id: replace_me
+portal_intercom_token: replace_me
+portal_intercom_company_id: replace_me
+portal_intercom_admin_user_portal_bot_id: "replace_me"
+portal_intercom_admin_tier1_atmosphere_id: "replace_me"
+portal_intercom_admin_tier1_science_team_id: "replace_me"
+portal_intercom_admin_tier1_data_watch_id: "replace_me"
+portal_mailman_enabled: "false"
+portal_mailman_url: "https://replace_me"
+portal_password: "replace_me"
+portal_bisque_url: "https://replace_me"
+portal_bisque_user: replace_me
+portal_bisque_password: "replace_me"
+portal_smtp_host: localhost
+portal_smtp_port: "25"
+portal_terrain_url: "https://de.cyverse.org/terrain"
+portal_terrain_user: replace_me
+portal_terrain_password: replace_me
+portal_profile_update_period: "365"
+portal_profile_warning_period: "30"
+portal_profile_update_text: "We request that you update your profile information on an annual basis. Please do so now in order to proceed to the application."
+portal_profile_warning_text: "This is a reminder to update your profile information, please do so now."
 
 # VICE settings
 vice_base_uri: https://cyverse.run
