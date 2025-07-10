@@ -20,7 +20,7 @@
           metadata:
             name: "{{ portal_secret }}"
             namespace: "{{ portal_namespace }}"
-          data:
+          stringData:
             UI_BASE_URL: "{{ portal_ui_base_url }}"
             API_BASE_URL: "{{ portal_api_base_url }}"
             WS_BASE_URL: "{{ portal_ws_base_url }}"
@@ -42,14 +42,14 @@
             KEYCLOAK_REALM: "{{ portal_keycloak_realm }}"
             KEYCLOAK_AUTH_URL: "{{ portal_keycloak_auth_url }}"
             KEYCLOAK_CLIENT: "{{ portal_keycloak_client }}"
-            KEYCLOAK_SECRET: "{{ portal_keycloak_keycloak_secret }}"
+            KEYCLOAK_SECRET: "{{ portal_keycloak_secret }}"
             LDAP_HOST: "{{ portal_ldap_host }}"
             LDAP_ADMIN: "{{ portal_ldap_admin }}"
             LDAP_PASSWORD: "{{ portal_ldap_password }}"
             LDAP_BASE_DN: "{{ portal_ldap_base_dn }}"
             LDAP_EVERYONE_GROUP: "{{ portal_ldap_everyone_group }}"
             BCC_NEW_ACCOUNT_CONFIRMATION: "{{ portal_bcc_new_account_confirmation }}"
-            BCC_PASSWORD_CHANGE_REQUEST: "{{ portal_bcc_new_password_change_request }}"
+            BCC_PASSWORD_CHANGE_REQUEST: "{{ portal_bcc_password_change_request }}"
             BCC_SERVICE_ACCESS_GRANTED: "{{ portal_bcc_service_access_granted }}"
             BCC_WORKSHOP_ENROLLMENT_REQUEST: "{{ portal_bcc_workshop_enrollment_request }}"
             INTERCOM_ENABLED: "{{ portal_intercom_enabled }}"

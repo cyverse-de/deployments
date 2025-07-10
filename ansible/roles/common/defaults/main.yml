@@ -453,6 +453,7 @@ portal_intercom_admin_tier1_science_team_id: "replace_me"
 portal_intercom_admin_tier1_data_watch_id: "replace_me"
 portal_mailman_enabled: "false"
 portal_mailman_url: "https://replace_me"
+portal_mailman_password: replace_me
 portal_password: "replace_me"
 portal_bisque_url: "https://replace_me"
 portal_bisque_user: replace_me
