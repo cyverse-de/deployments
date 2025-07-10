@@ -95,3 +95,37 @@
       ansible.builtin.command:
         chdir: "{{ de_releases_dir }}/services/portal2"
         cmd: skaffold deploy --namespace "{{ portal_namespace }}" --build-artifacts "../../builds/portal2.json" --force --kubeconfig "{{ lookup('env', 'KUBECONFIG') }}"
+
+    - name: set up the portal ingress
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: portal-ingress
+            namespace: "{{ portal_namespace }}"
+            annotations:
+              nginx.ingress.kubernetes.io/server-snippets: |
+                location / {
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_http_version 1.1;
+                  proxy_set_header X-Forwarded-Host $http_host;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_set_header X-Forwarded-For $remote_addr;
+                  proxy_set_header Host $host;
+                  proxy_set_header Connection "upgrade";
+                  proxy_cache_bypass $http_upgrade;
+                }
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: "{{ portal_hostname }}"
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: user-portal
+                          port: 3000
