@@ -412,6 +412,9 @@ unleash_db_password: replace_me
 
 # User Portal settings
 user_portal_base_uri: http://replace_me
+portal_exim_smarthost: replace_me
+portal_exim_password: replace_me
+portal_exim_allowed_senders: replace_me
 portal_hostname: user.cyverse.org
 portal_namespace: cyverse-portal
 portal_secret: user-portal-config
