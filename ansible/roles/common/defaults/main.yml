@@ -464,7 +464,7 @@ portal_password: "replace_me"
 portal_bisque_url: "https://replace_me"
 portal_bisque_user: replace_me
 portal_bisque_password: "replace_me"
-portal_smtp_host: localhost
+portal_smtp_host: exim
 portal_smtp_port: "25"
 portal_terrain_url: "https://de.cyverse.org/terrain"
 portal_terrain_user: replace_me
