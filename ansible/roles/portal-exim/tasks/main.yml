@@ -1,0 +1,61 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: deploy exim4
+      kubernetes.core.k8s:
+        state: present
+        force: true
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: exim
+            namespace: "{{ portal_namespace }}"
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: exim
+            template:
+              metadata:
+                labels:
+                  app: exim
+              spec:
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - labelSelector:
+                          matchExpressions:
+                            - key: app
+                              operator: In
+                              values:
+                                - exim
+                        topologyKey: kubernetes.io/hostname
+                restartPolicy: Always
+                hostNetwork: true
+                dnsPolicy: ClusterFirstWithHostNet
+                volumes:
+                  - name: localtime
+                    hostPath:
+                      path: /etc/localtime
+                  - name: timezone
+                    configMap:
+                      name: timezone
+                      items:
+                        - key: timezone
+                          path: timezone
+                containers:
+                  - name: exim
+                    image: imixs/exim4:latest
+                    ports:
+                      - containerPort: 25
+                    imagePullPolicy: Always
+                    env:
+                      - name: EXIM_SMARTHOST
+                        value: "{{exim_smarthost}}"
+                      - name: EXIM_PASSWORD
+                        value: "{{exim_password}}"
+                      - name: EXIM_ALLOWED_SENDERS
+                        value: "{{k8s_pods_cidr}}:{{k8s_services_cidr}}:{{exim_allowed_senders}}"
