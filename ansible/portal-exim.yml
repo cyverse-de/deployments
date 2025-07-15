@@ -1,0 +1,6 @@
+---
+- hosts: dbms
+  become: false
+  connection: local
+  roles:
+    - role: portal-exim

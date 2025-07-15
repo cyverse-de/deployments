@@ -208,6 +208,9 @@ email_src: replace_me@replace_me.replace_me
 email_dest: replace_me@replace_me.replace_me
 email_perm_id_request_dest: example@example.example
 email_support_dest: example@example.example
+exim_smarthost: "127.0.0.1:25"
+exim_password: "127.0.0.1"
+exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
 
 # QMS settings
 qms_enabled: true
