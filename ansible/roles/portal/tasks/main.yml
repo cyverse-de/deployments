@@ -21,9 +21,6 @@
             name: "{{ portal_secret }}"
             namespace: "{{ portal_namespace }}"
           stringData:
-            EXIM_SMARTHOST: "{{ portal_exim_smarthost }}"
-            EXIM_PASSWORD: "{{ portal_exim_password }}"
-            EXIM_ALLOWED_SENDERS: "{{ portal_exim_allowed_senders }}"
             UI_BASE_URL: "{{ portal_ui_base_url }}"
             API_BASE_URL: "{{ portal_api_base_url }}"
             WS_BASE_URL: "{{ portal_ws_base_url }}"
