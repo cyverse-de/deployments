@@ -29,8 +29,11 @@
             GOOGLE_ANALYTICS_ID: "{{ portal_google_analytics_id }}"
             SENTRY_DSN: "{{ portal_sentry_dsn }}"
             IRODS_HOST: "{{ irods_host }}"
+            IRODS_PORT: "{{ irods_port }}"
             IRODS_ZONE_NAME: "{{ irods_zone }}"
+            IRODS_USER_NAME: "{{ irods_user }}"
             IRODS_PASSWORD: "{{ irods_password }}"
+            IRODS_HOME_DIR: "/{{ irods_zone }}/home/"
             IRODS_IPCSERVICES_ENABLED: "{{ irods_ipcservices_enabled }}"
             DB_HOST: "{{ portal_db_host }}"
             DB_PORT: "{{ portal_db_port }}"
@@ -128,4 +131,5 @@
                       backend:
                         service:
                           name: user-portal
-                          port: 3000
+                          port:
+                            number: 3000

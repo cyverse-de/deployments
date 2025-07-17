@@ -349,7 +349,7 @@ irods_host: data.cyverse.rocks
 irods_user: replace_me
 irods_zone: replace_me
 irods_password: replace_me
-irods_port: 1247
+irods_port: "1247"
 irods_ipcservices_enabled: "true"
 irods_external_host: data.cyverse.rocks
 irods_webdav_anon_uri: https://data.cyverse.rocks/dav-anon
