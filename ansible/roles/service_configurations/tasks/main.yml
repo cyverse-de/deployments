@@ -86,6 +86,10 @@
             NATS_CREDS_PATH: "/etc/nats/creds/services.creds"
             NATS_RECONNECTS_MAX: "10"
             NATS_RECONNECTS_WAIT: "1"
+            LDAP_URL: "{{ portal_ldap_host }}"
+            LDAP_USER: "{{ portal_ldap_admin }}"
+            LDAP_PASSWORD: "{{ portal_ldap_password }}"
+            LDAP_BASE_DN: "{{ portal_ldap_base_dn }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - name: create the timezone configmap
