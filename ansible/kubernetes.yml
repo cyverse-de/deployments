@@ -233,6 +233,9 @@
         - dashboard-aggregator
         - terrain
         - sonora
+        - portal-ldap
+        - portal-datastore
+        - portal-conductor
 
 - name: set up UI haproxy
   become: true
