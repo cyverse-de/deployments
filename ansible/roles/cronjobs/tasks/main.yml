@@ -83,3 +83,33 @@
                     args: ["delete", "pods", "--field-selector", "status.phase=Failed"]
 
     
+- name: add cronjob to clean completed pods
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: cronjob-clean-completed-pods
+        namespace: "{{ ns }}"
+      spec:
+        schedule: "*/5 * * * *"
+        concurrencyPolicy: Forbid
+        failedJobHistoryLimit: 4
+        jobTemplate:
+          spec:
+            backoffLimit: 0
+            parallelism: 1
+            completions: 1
+            template:
+              spec:
+                serviceAccountName: pod-cleaner
+                restartPolicy: Never
+                containers:
+                  - name: clean-failed-jobs
+                    image: bitnami/kubectl:1.29.2
+                    imagePullPolicy: IfNotPresent
+                    args: ["delete", "pods", "--field-selector", "status.phase=Completed"]
