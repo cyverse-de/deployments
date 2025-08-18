@@ -91,6 +91,11 @@
             LDAP_USER: "{{ portal_ldap_admin }}"
             LDAP_PASSWORD: "{{ portal_ldap_password }}"
             LDAP_BASE_DN: "{{ portal_ldap_base_dn }}"
+            IRODS_HOST: "{{ irods_host }}"
+            IRODS_PORT: "{{ irods_port }}"
+            IRODS_USER: "{{ irods_user }}"
+            IRODS_PASSWORD: "{{ irods_password }}"
+            IRODS_ZONE: "{{ irods_zone }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - name: create the timezone configmap
