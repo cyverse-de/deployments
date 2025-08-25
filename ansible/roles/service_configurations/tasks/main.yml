@@ -97,8 +97,10 @@
             IRODS_PASSWORD: "{{ irods_password }}"
             IRODS_ZONE: "{{ irods_zone }}"
             LDAP_EVERYONE_GROUP: "{{ portal_ldap_everyone_group }}"
+            MAILMAN_ENABLED: "{{ portal_mailman_enabled }}"
             MAILMAN_URL: "{{ portal_mailman_url }}"
             MAILMAN_PASSWORD: "{{ portal_mailman_password }}"
+            TERRAIN_URL: "{{ portal_terrain_url}}"
             TERRAIN_USER: "{{ portal_terrain_user }}"
             TERRAIN_PASSWORD: "{{ portal_terrain_password }}"
       when: load_configs is undefined or (load_configs | bool)

@@ -280,6 +280,9 @@ irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
 nvidia_container_toolkit_runtime: containerd
 nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml
 
+portal_terrain_url: http://terrain/
+portal_mailman_enabled: "false"
+
 # DE Databases Variables
 dbms_connection_user: de
 dbms_connection_pass: Ch@ng3M3
