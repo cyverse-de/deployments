@@ -280,8 +280,6 @@ irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
 nvidia_container_toolkit_runtime: containerd
 nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml
 
-portal_terrain_url: http://terrain/
-portal_mailman_enabled: "false"
 
 # DE Databases Variables
 dbms_connection_user: de
@@ -477,6 +475,11 @@ portal_profile_warning_period: "30"
 portal_profile_update_text: "We request that you update your profile information on an annual basis. Please do so now in order to proceed to the application."
 portal_profile_warning_text: "This is a reminder to update your profile information, please do so now."
 portal_support_email: "replace_me@replace_me.org"
+portal_db_session_table: session
+portal_session_ttl: 86400
+portal_bcc_intercom:
+portal_honeypot_divisor: "7"
+portal_conductor_url: http://portal_conductor
 
 # VICE settings
 vice_base_uri: https://cyverse.run
