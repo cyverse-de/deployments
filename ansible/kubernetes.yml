@@ -236,6 +236,7 @@
         - portal-ldap
         - portal-datastore
         - portal-conductor
+        - portal2
 
 - name: set up UI haproxy
   become: true

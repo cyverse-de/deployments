@@ -319,7 +319,7 @@ create_dbs: true
 unleash: true
 grouper: true
 qms: true
-portal: true
+portal: false
 harbor: true
 keycloak: true
 install_exts: true
@@ -476,7 +476,7 @@ portal_profile_update_text: "We request that you update your profile information
 portal_profile_warning_text: "This is a reminder to update your profile information, please do so now."
 portal_support_email: "replace_me@replace_me.org"
 portal_db_session_table: session
-portal_session_ttl: 86400
+portal_session_ttl: "86400"
 portal_bcc_intercom:
 portal_honeypot_divisor: "7"
 portal_conductor_url: http://portal_conductor

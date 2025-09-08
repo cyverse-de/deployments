@@ -31,6 +31,10 @@
   when: keycloak
   ansible.builtin.include_tasks: keycloak.yml
 
+- name: setup and migrate the portal database
+  when: portal
+  ansible.builtin.include_tasks: portal.yml
+
 - name: clean up database work
   ansible.builtin.include_role:
     name: db_staging

@@ -12,6 +12,9 @@ frontend http2-ssl
 {% if gocd_enabled %}
     acl gocd hdr(host) -i {{ gocd_external_domain }}
 {% endif %}
+{% if portal %}
+    acl portal hdr(host) -i {{ portal_hostname}}
+{% endif %}
     acl de hdr(host) -i {{ de_hostname }}
 
     # HSTS (63072000 seconds)
@@ -21,6 +24,9 @@ frontend http2-ssl
 {% endif %}
 {% if harbor_enabled %}
     use_backend harbor if harbor
+{% endif %}
+{% if portal %}
+    use_backend discoenv if portal
 {% endif %}
     use_backend discoenv if de
     default_backend discoenv
