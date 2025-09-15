@@ -91,11 +91,18 @@
             LDAP_USER: "{{ portal_ldap_admin }}"
             LDAP_PASSWORD: "{{ portal_ldap_password }}"
             LDAP_BASE_DN: "{{ portal_ldap_base_dn }}"
+            LDAP_EVERYONE_GROUP: "{{ portal_ldap_everyone_group }}"
+            TERRAIN_URL: "{{ portal_terrain_url }}"
+            TERRAIN_USER: "{{ portal_terrain_user }}"
+            TERRAIN_PASSWORD: "{{ portal_terrain_password }}"
             IRODS_HOST: "{{ irods_host }}"
             IRODS_PORT: "{{ irods_port }}"
             IRODS_USER: "{{ irods_user }}"
             IRODS_PASSWORD: "{{ irods_password }}"
             IRODS_ZONE: "{{ irods_zone }}"
+            MAILMAN_ENABLED: "{{ portal_mailman_enabled }}"
+            MAILMAN_URL: "{{ portal_mailman_url }}"
+            MAILMAN_PASSWORD: "{{ portal_mailman_password }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - name: create the timezone configmap
