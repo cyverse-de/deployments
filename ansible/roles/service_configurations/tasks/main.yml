@@ -105,6 +105,32 @@
             MAILMAN_PASSWORD: "{{ portal_mailman_password }}"
       when: load_configs is undefined or (load_configs | bool)
 
+    - name: create portal-conductor SSL certificate
+      run_once: True
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: portal-conductor-ssl
+            namespace: "{{ ns }}"
+          spec:
+            secretName: portal-conductor-ssl
+            issuerRef:
+              name: default-cluster-issuer
+              kind: ClusterIssuer
+            dnsNames:
+            - localhost
+            - portal-conductor
+            - "portal-conductor.{{ ns }}"
+            - "portal-conductor.{{ ns }}.svc"
+            - "portal-conductor.{{ ns }}.svc.cluster.local"
+            ipAddresses:
+            - 127.0.0.1
+            - ::1
+      when: load_configs is undefined or (load_configs | bool)
+
     - name: create the timezone configmap
       run_once: True
       kubernetes.core.k8s:

@@ -481,6 +481,10 @@ portal_bcc_intercom:
 portal_honeypot_divisor: "7"
 portal_conductor_url: http://portal-conductor
 
+# Portal-conductor authentication
+portal_conductor_auth_username: admin
+portal_conductor_auth_password: "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0kB.z8.6X2"  # Default password: admin
+
 # VICE settings
 vice_base_uri: https://cyverse.run
 vice_file_transfers_image: harbor.cyverse.org/de/vice-file-transfers
