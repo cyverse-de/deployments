@@ -55,7 +55,7 @@
 
     - name: checkout the portal repo for its migrations
       ansible.builtin.git:
-        repo: "https://gitlab.com/cyverse/portal2"
+        repo: "https://github.com/cyverse-de/portal2"
         dest: "{{ dbs_dir.path }}/portal2"
         clone: yes
         update: yes
