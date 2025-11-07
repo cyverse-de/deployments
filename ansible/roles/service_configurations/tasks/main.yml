@@ -116,6 +116,17 @@
             name: portal-conductor-ssl
             namespace: "{{ ns }}"
           spec:
+            subject:
+              organizations:
+                - University of Arizona
+              countries:
+                - US
+              organizationalUnits:
+                - AI2S
+              localities:
+                - Tucson
+              provinces:
+                - Arizona
             secretName: portal-conductor-ssl
             issuerRef:
               name: default-cluster-issuer
