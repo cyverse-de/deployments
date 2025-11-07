@@ -167,6 +167,13 @@ es_index: replace_me
 es_enabled: true
 es_server_urls: https://abby.cyverse.org:31450
 
+formation_keycloak_server_uri: replace_me
+formation_keycloak_realm_name: replace_me
+formation_keycloak_client_id: replace_me
+formation_keycloak_client_secret: replace_me
+formation_user_deletion_app_name: portal-delete-user
+formation_verify_ssl: "false"
+
 # GoCD settings
 gocd_enabled: false
 gocd_external_domain: replace_me
