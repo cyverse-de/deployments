@@ -15,10 +15,6 @@
   when: qms
   ansible.builtin.include_tasks: qms.yml
 
-#- name: setup and migrate portal database
-#  when: portal
-#  ansible.builtin.include_tasks: portal.yml
-
 - name: setup and migrate unleash database
   when: unleash
   ansible.builtin.include_tasks: unleash.yml
@@ -31,9 +27,9 @@
   when: keycloak
   ansible.builtin.include_tasks: keycloak.yml
 
-#- name: setup and migrate the portal database
-#  when: portal
-#  ansible.builtin.include_tasks: portal.yml
+- name: setup and migrate portal database
+  when: portal
+  ansible.builtin.include_tasks: portal.yml
 
 - name: clean up database work
   ansible.builtin.include_role:
