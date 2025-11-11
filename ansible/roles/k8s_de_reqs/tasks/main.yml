@@ -203,7 +203,7 @@
             name: admin
             apiGroup: rbac.authorization.k8s.io
 
-    - name: create the exim-sender deployment
+    - name: create the local-exim deployment
       kubernetes.core.k8s:
         state: present
         definition:
@@ -235,7 +235,7 @@
                 restartPolicy: Always
                 containers:
                   - name: local-exim
-                    image: "discoenv/exim-sender@sha256:af3543b26caba4407a3c6255721ca1cc02da63cd0886025262a6d8d11f6a1d96"
+                    image: "imixs/exim4:latest"
                     resources:
                       requests:
                         cpu: "5m"
@@ -249,25 +249,17 @@
                           configMapKeyRef:
                             name: timezone
                             key: timezone
-                      - name: DE_ENV
-                        value: "{{ ns }}"
-                      - name: PRIMARY_HOST
-                        value: cyverse.org
-                      - name: ALLOWED_HOSTS
-                        value: "*"
-                      - name: SERVICE_25_NAME
-                        value: exim-sender
-                      - name: SERVICE_25_TAGS
-                        value: "{{ ns }}"
-                      - name: SERVICE_25_CHECK_TCP
-                        value: "true"
-                      - name: SERVICE_25_CHECK_INTERVAL
-                        value: 10s
+                      - name: EXIM_SMARTHOST
+                        value: "{{exim_smarthost}}"
+                      - name: EXIM_PASSWORD
+                        value: "{{exim_password}}"
+                      - name: EXIM_ALLOWED_SENDERS
+                        value: "{{exim_allowed_senders}}"
                     ports:
                       - name: listen-port
                         containerPort: 25
 
-    - name: create exim-sender service
+    - name: create local-exim service
       run_once: True
       kubernetes.core.k8s:
         state: present
