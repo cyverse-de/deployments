@@ -4,6 +4,17 @@
   tags:
     - install
   block:
+    - name: make /dev/dri/ world writable
+      ansible.builtin.copy:
+        dest: /etc/udev/rules.d/99-dri-permissions.rules
+        content: |
+          SUBSYSTEM=="drm", KERNEL=="card*", MODE="0666"
+          SUBSYSTEM=="drm", KERNEL=="renderD*", MODE="0666"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload udev rules
+
     - name: install required command-line utils
       ansible.builtin.package:
         name: "{{ item }}"
