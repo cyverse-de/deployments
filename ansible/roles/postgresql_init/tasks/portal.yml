@@ -39,15 +39,6 @@
         objs: public
         role: "{{portal_db_user}}"
 
-    - name: grant the pg_read_server_files privilege to the portal user
-      community.postgresql.postgresql_query:
-        login_host: "{{groups['dbms'][0]}}"
-        port: "{{pg_listen_port}}"
-        login_user: "{{pg_login_user}}"
-        login_password: "{{pg_login_password}}"
-        login_db: "{{portal_db_name}}"
-        query: "GRANT pg_read_server_files TO {{portal_db_user}}"
-
     - name: install extensions for the portal database
       when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
