@@ -8,7 +8,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        name: "{{ de_db_name }}"
+        name: "{{ item }}"
         owner: "{{ dbms_connection_user }}"
         encoding: "{{ encoding }}"
         # lc_collate: "{{ lc_collate }}"
