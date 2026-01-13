@@ -418,6 +418,7 @@ perm_id_datacite_doi_prefix: replace_me
 unleash_base_url: http://unleash:4242
 unleash_api_path: /api
 unleash_api_token: replace_me
+unleash_db_ssl_enabled: "false"
 unleash_db_name: unleash
 unleash_maintenance_flag: DE-Maintenance
 unleash_db_user: replace_me

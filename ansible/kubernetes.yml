@@ -71,7 +71,8 @@
     - firewall
 
 # Add a playbook/role to call 'k0sctl apply --config <path>'
-- hosts: k8s_controllers[0]
+- name: set up the k0s cluster
+  hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
   become: false
@@ -190,6 +191,7 @@
         - deploy
       when: "not 'deploy-single-service' in ansible_run_tags"
       with_items:
+        - unleash
         - analyses
         - app-exposer
         - apply-labels
