@@ -1,0 +1,185 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the namespaces for the services
+      kubernetes.core.k8s:
+        name: "{{ item }}"
+        state: present
+        kind: namespace
+        api_version: v1
+      loop:
+        - "{{ ns }}"
+        - "{{ vice_ns }}"
+
+    - name: create the default deny (except for DNS) egress network policy for the vice namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: default-deny-egress
+            namespace: "{{ vice_ns }}"
+          spec:
+            podSelector: {}
+            policyTypes:
+              - Egress
+            egress:
+              - to:
+                ports:
+                  - protocol: TCP
+                    port: 53
+                  - protocol: UDP
+                    port: 53
+
+    - name: create the egress-any network policy for the vice namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: egress-any
+            namespace: "{{ vice_ns }}"
+          spec:
+            podSelector: {}
+            policyTypes:
+              - Egress
+            egress:
+              - to:
+                  - ipBlock:
+                      cidr: 0.0.0.0/0
+                      except:
+                        - 10.43.0.0/8
+                        - 128.196.254.64/32
+                        - 131.153.56.98/32
+              - to:
+                  - namespaceSelector: {}
+                    podSelector:
+                      matchLabels:
+                        de-app: app-exposer
+              - to:
+                  - namespaceSelector: {}
+                    podSelector:
+                      matchLabels:
+                        de-app: check-resource-access
+              - to:
+                  - namespaceSelector: {}
+                    podSelector:
+                      matchLabels:
+                        de-app: get-analysis-id
+
+    - name: create the vice-app-runner ServiceAccount
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: vice-app-runner
+            namespace: "{{ vice_ns }}"
+          automountServiceAccountToken: true
+
+    - name: create the configurator service account
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: configurator
+            namespace: "{{ ns }}"
+          automountServiceAccountToken: true
+
+    - name: create the app-exposer service account
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: app-exposer
+            namespace: "{{ ns }}"
+          automountServiceAccountToken: true
+
+    - name: create the vice-apps Role
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          metadata:
+            namespace: "{{ vice_ns }}"
+            name: vice-apps
+          rules:
+            - apiGroups: [""]
+              resources: [""]
+              verbs: [""]
+
+    - name: create the pod-reader role
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          metadata:
+            namespace: "{{ ns }}"
+            name: pod-reader
+          rules:
+            - apiGroups: [""]
+              resources: ["pods"]
+              verbs: ["get", "watch", "list"]
+
+    - name: create the configurator role RoleBinding
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          metadata:
+            name: read-pods
+            namespace: "{{ ns }}"
+          subjects:
+            - kind: ServiceAccount
+              name: configurator
+              namespace: "{{ ns }}"
+          roleRef:
+            kind: Role
+            name: pod-reader
+            apiGroup: rbac.authorization.k8s.io
+
+    - name: create the app-exposer persistent volume provisioner cluster role binding
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          metadata:
+            name: app-exposer-persistent-volume-provisioner
+          subjects:
+            - kind: ServiceAccount
+              namespace: "{{ ns }}"
+              name: app-exposer
+          roleRef:
+            kind: ClusterRole
+            name: system:persistent-volume-provisioner
+            apiGroup: rbac.authorization.k8s.io
+
+    - name: create the app-exposer cluster role binding
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          metadata:
+            name: app-exposer
+          subjects:
+            - kind: ServiceAccount
+              namespace: "{{ ns }}"
+              name: app-exposer
+          roleRef:
+            kind: ClusterRole
+            name: admin
+            apiGroup: rbac.authorization.k8s.io

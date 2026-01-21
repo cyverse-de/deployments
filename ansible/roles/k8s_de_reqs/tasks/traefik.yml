@@ -1,0 +1,46 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: install traefik repo
+      kubernetes.core.helm_repository:
+        name: traefik
+        repo_url: https://traefik.github.io/charts
+
+    - name: install traefik
+      kubernetes.core.helm:
+        name: traefik
+        chart_ref: traefik/traefik
+        release_namespace: traefik
+        create_namespace: true
+        values:
+          gateway:
+            listeners:
+              web:
+                namespacePolicy:
+                  from: "All"
+          ingressRoute:
+            dashboard:
+              enabled: true
+              matchRule: "Host(`dashboard.localhost`)"
+              entryPoints:
+                - "web"
+          ports:
+            web:
+              port: 8000
+              exposedPort: 80
+              nodePort: 31380
+            websecure:
+              port: 8443
+              exposedPort: 443
+              nodePort: 31383
+            traefik:
+              port: 9000
+              exposedPort: 9000
+              nodePort: 31390
+          providers:
+            kubernetesGateway:
+              enabled: true
+          service:
+            type: NodePort
