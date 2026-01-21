@@ -44,3 +44,8 @@
               enabled: true
           service:
             type: NodePort
+
+    - name: install Gateway API CRDs
+      kubernetes.core.k8s:
+        state: present
+        src: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
