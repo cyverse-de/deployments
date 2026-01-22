@@ -96,8 +96,8 @@
         - configure-services
         - secrets
 
-    - role: kubernetes_ingresses
-      tags: ingresses
+    - role: kubernetes_ingress
+      tags: ingress
 
     - role: kubernetes_networking
       tags:
