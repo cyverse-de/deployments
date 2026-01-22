@@ -1,0 +1,110 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: define the gateway
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: discoenv
+            namespace: qa
+          spec:
+            gatewayClassName: traefik
+            listeners:
+              - hostname: qa.cyverse.org
+                name: discoenv-http
+                port: 80
+                protocol: HTTP
+
+    - name: define the CORS middleware
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: traefik.io/v1alpha1
+          kind: Middleware
+          metadata:
+            name: discoenv-cors-headers
+            namespace: qa
+          spec:
+            headers:
+              accessControlAllowOriginList:
+                - "*"
+              accessControlAllowMethods:
+                - "GET"
+                - "POST"
+                - "OPTIONS"
+              accessControlAllowHeaders:
+                - "Authorization"
+                - "DNT"
+                - "Keep-Alive"
+                - "User-Agent"
+                - "X-Requested-With"
+                - "If-Modified-Since"
+                - "Cache-Control"
+                - "Content-Type"
+                - "Content-Range"
+                - "Range"
+              accessControlAllowCredentials: true
+              accessControolMasAge: 86400
+
+    - name: define the routes
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: discoenv-routes
+            namespace: qa
+          spec:
+            hostnames:
+              - qa.cyverse.org
+            parentRefs:
+              - name: discoenv
+            rules:
+              - backendRefs:
+                  - name: kifshare
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /anon-files
+              - backendRefs:
+                  - name: kifshare
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /dl
+              - backendRefs:
+                  - name: terrain
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /terrain
+              - backendRefs:
+                  - name: job-status-listener
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /job
+              - backendRefs:
+                  - name: formation
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /formation
+              - backendRefs:
+                  - name: sonora
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /
