@@ -68,35 +68,6 @@
                       port:
                         number: 80
 
-- name: Add agave-callback ingress
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: networking.k8s.io/v1
-      kind: Ingress
-      metadata:
-        name: agave-callback
-        namespace: "{{ ns }}"
-        annotations:
-          # traefik.ingress.kubernetes.io/router.entrypoints: web
-          nginx.ingress.kubernetes.io/rewrite-target: /callbacks/agave-job
-      spec:
-        ingressClassName: nginx
-        rules:
-          - host: "{{ de_hostname }}"
-            http:
-              paths:
-                - path: /de/agave-cb
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: apps
-                      port:
-                        number: 80
-
 - name: set up the portal ingress
   kubernetes.core.k8s:
     state: present
