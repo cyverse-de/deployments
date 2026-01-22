@@ -118,7 +118,7 @@
                 - "Content-Range"
                 - "Range"
               accessControlAllowCredentials: true
-              accessControolMasAge: 86400
+              accessControlMaxAge: 86400
 
     - name: define the routes for the DE
       kubernetes.core.k8s:

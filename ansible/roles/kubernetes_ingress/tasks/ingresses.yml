@@ -13,6 +13,9 @@
         namespace: "{{ ns }}"
 
 - name: remove the portal ingress
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   kubernetes.core.k8s:
     state: absent
     definition:
