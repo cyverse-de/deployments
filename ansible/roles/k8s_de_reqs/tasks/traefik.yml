@@ -98,14 +98,14 @@
             web:
               http:
                 encodedCharacters:
-                  allowEncodedSlash: true
+                  allowEncodedSlash: true # Required for VICE loading page
               port: 8000
               exposedPort: 80
               nodePort: 31380
             websecure:
               http:
                 encodedCharacters:
-                  allowEncodedSlash: true
+                  allowEncodedSlash: true # Required for VICE loading page
               port: 8443
               exposedPort: 443
               nodePort: 31383
