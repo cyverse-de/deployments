@@ -3,6 +3,66 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
+    - name: define the self-siged CA certificate for the DE
+      kubernetes.core.k8s:
+        name: "{{ de_tls_ca_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ de_tls_ca_name }}"
+          spec:
+            isCA: true
+            commonName: "{{ de_tls_ca_name }}"
+            secretName: "{{ de_tls_ca_name }}"
+            duration: "{{ de_tls_ca_duration }}"
+            renewBefore: "{{ de_tls_ca_renew_before }}"
+            privateKey:
+              algorithm: ECDSA
+              size: 256
+            issuerRef:
+              name: default-cluster-issuer
+              kind: ClusterIssuer
+              group: cert-manager.io
+
+    - name: create the certificate issuer for the DE
+      kubernetes.core.k8s:
+        name: "{{ de_tls_issuer_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Issuer
+          metadata:
+            name: "{{ de_tls_issuer_name }}"
+          spec:
+            ca:
+              secretName: "{{ de_tls_ca_name }}"
+
+    - name: create the TLS certificate for traefik
+      kubernetes.core.k8s:
+        name: "{{ de_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ de_tls_cert_name }}"
+          spec:
+            secretName: "{{ de_tls_cert_name }}"
+            duration: "{{ de_tls_cert_duration }}"
+            renewBefore: "{{ de_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ de_tls_issuer_name }}"
+              kind: Issuer
+            commonName: "*.{{ ns }}.svc.cluster.local"
+            dnsNames:
+              - localhost
+              - "{{ ui_wildcard_fqdn }}"
+
     - name: define the gateway
       kubernetes.core.k8s:
         state: present
@@ -11,14 +71,23 @@
           kind: Gateway
           metadata:
             name: discoenv
-            namespace: qa
+            namespace: "{{ ns }}"
           spec:
             gatewayClassName: traefik
             listeners:
               - hostname: qa.cyverse.org
                 name: discoenv-http
-                port: 80
+                port: 8000
                 protocol: HTTP
+              - hostname: qa.cyverse.org
+                name: discoenv-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ de_tls_cert_name }}"
 
     - name: define the CORS middleware
       kubernetes.core.k8s:
@@ -28,7 +97,7 @@
           kind: Middleware
           metadata:
             name: discoenv-cors-headers
-            namespace: qa
+            namespace: "{{ ns }}"
           spec:
             headers:
               accessControlAllowOriginList:
@@ -59,7 +128,7 @@
           kind: HTTPRoute
           metadata:
             name: discoenv-routes
-            namespace: qa
+            namespace: "{{ ns }}"
           spec:
             hostnames:
               - qa.cyverse.org
