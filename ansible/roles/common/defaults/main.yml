@@ -523,6 +523,10 @@ vice_default_cas_url: https://auth.cyverse.org/cas5
 vice_default_cas_validate: validate
 vice_use_case_chars_min: 60
 vice_default_backend_loading_page_template_string: 'https://qa.cyverse.org/vice/\{\{.URL\}\}'
+vice_namespace_egress_disallow:
+  - 10.43.0.0/8
+  - 128.196.254.64/32
+  - 131.153.56.98/32
 
 # Admin settings
 admin_groups: core-services,dev,staff
