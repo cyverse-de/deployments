@@ -41,7 +41,7 @@
             ca:
               secretName: "{{ de_tls_ca_name }}"
 
-    - name: create the TLS certificate for traefik
+    - name: create the TLS certificate for the DE
       kubernetes.core.k8s:
         name: "{{ de_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -63,7 +63,7 @@
               - localhost
               - "{{ ui_wildcard_fqdn }}"
 
-    - name: define the gateway
+    - name: define the gateway for the DE
       kubernetes.core.k8s:
         state: present
         definition:
@@ -75,11 +75,11 @@
           spec:
             gatewayClassName: traefik
             listeners:
-              - hostname: qa.cyverse.org
+              - hostname: "{{ de_hostname }}"
                 name: discoenv-http
                 port: 8000
                 protocol: HTTP
-              - hostname: qa.cyverse.org
+              - hostname: "{{ de_hostname }}"
                 name: discoenv-https
                 port: 8443
                 protocol: HTTPS
@@ -120,7 +120,7 @@
               accessControlAllowCredentials: true
               accessControolMasAge: 86400
 
-    - name: define the routes
+    - name: define the routes for the DE
       kubernetes.core.k8s:
         state: present
         definition:
@@ -131,7 +131,7 @@
             namespace: "{{ ns }}"
           spec:
             hostnames:
-              - qa.cyverse.org
+              - "{{ de_hostname }}"
             parentRefs:
               - name: discoenv
             rules:
@@ -177,3 +177,48 @@
                   - path:
                       type: PathPrefix
                       value: /
+
+    - name: define the gateway for the user portal
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: portal
+            namespace: "{{ ns }}"
+          spec:
+            gatewayClassName: traefik
+            listeners:
+              - hostname: "{{ portal_hostname }}"
+                name: portal-http
+                port: 8000
+                protocol: HTTP
+              - hostname: "{{ portal_hostname }}"
+                name: portal-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ de_tls_cert_name }}"
+
+    - name: define the routes for the user portal
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: portal-routes
+            namespace: "{{ ns }}"
+          spec:
+            hostnames:
+              - "{{ portal_hostname }}"
+            parentRefs:
+              - name: portal
+            rules:
+              - backendRefs:
+                  - name: user-portal
+                    port: 3000
