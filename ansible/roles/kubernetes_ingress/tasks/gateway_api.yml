@@ -142,6 +142,9 @@
                   - path:
                       type: PathPrefix
                       value: /anon-files
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
               - backendRefs:
                   - name: kifshare
                     port: 80
@@ -149,6 +152,9 @@
                   - path:
                       type: PathPrefix
                       value: /dl
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
               - backendRefs:
                   - name: terrain
                     port: 80
@@ -156,6 +162,9 @@
                   - path:
                       type: PathPrefix
                       value: /terrain
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
               - backendRefs:
                   - name: job-status-listener
                     port: 80
@@ -177,6 +186,9 @@
                   - path:
                       type: PathPrefix
                       value: /
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
 
     - name: define the gateway for the user portal
       kubernetes.core.k8s:
