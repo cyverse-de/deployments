@@ -94,11 +94,16 @@
               matchRule: "Host(`dashboard.localhost`)"
               entryPoints:
                 - "web"
+                - "websecure"
           ports:
             web:
               http:
                 encodedCharacters:
                   allowEncodedSlash: true # Required for VICE loading page
+              transport:
+                respondingTimeouts:
+                  readTimeout: "24h"
+                  writeTimeout: "24h"
               port: 8000
               exposedPort: 80
               nodePort: 31380
@@ -106,6 +111,10 @@
               http:
                 encodedCharacters:
                   allowEncodedSlash: true # Required for VICE loading page
+              transport:
+                respondingTimeouts:
+                  readTimeout: "24h"
+                  writeTimeout: "24h"
               port: 8443
               exposedPort: 443
               nodePort: 31383
