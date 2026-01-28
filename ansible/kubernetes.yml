@@ -82,6 +82,9 @@
         - create-cluster
         - add-nodes
 
+    - role: cert-manager
+      tags: cert-manager
+
     - role: k8s_de_reqs
       tags: de-reqs
 
@@ -93,16 +96,13 @@
         - configure-services
         - secrets
 
-    - role: kubernetes_ingresses
-      tags: ingresses
+    - role: kubernetes_ingress
+      tags: ingress
 
     - role: kubernetes_networking
       tags:
         - networking
         - nodeports
-
-    - role: cert-manager
-      tags: cert-manager
 
     - role: nats
       tags: nats

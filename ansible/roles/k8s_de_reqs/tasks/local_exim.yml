@@ -1,0 +1,78 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the local-exim deployment
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: local-exim
+            namespace: "{{ ns }}"
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                de-app: local-exim
+            template:
+              metadata:
+                labels:
+                  de-app: local-exim
+              spec:
+                affinity:
+                  podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      - labelSelector:
+                          matchExpressions:
+                            - key: de-app
+                              operator: In
+                              values:
+                                - local-exim
+                        topologyKey: kubernetes.io/hostname
+                restartPolicy: Always
+                containers:
+                  - name: local-exim
+                    image: "imixs/exim4:latest"
+                    resources:
+                      requests:
+                        cpu: "5m"
+                        memory: "128Mi"
+                      limits:
+                        cpu: "100m"
+                        memory: "256Mi"
+                    env:
+                      - name: TZ
+                        valueFrom:
+                          configMapKeyRef:
+                            name: timezone
+                            key: timezone
+                      - name: EXIM_SMARTHOST
+                        value: "{{exim_smarthost}}"
+                      - name: EXIM_PASSWORD
+                        value: "{{exim_password}}"
+                      - name: EXIM_ALLOWED_SENDERS
+                        value: "{{exim_allowed_senders}}"
+                    ports:
+                      - name: listen-port
+                        containerPort: 25
+
+    - name: create local-exim service
+      run_once: True
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: local-exim
+            namespace: "{{ ns }}"
+          spec:
+            selector:
+              de-app: local-exim
+            ports:
+              - protocol: TCP
+                port: 25
+                targetPort: listen-port

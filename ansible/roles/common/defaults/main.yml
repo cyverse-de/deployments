@@ -151,6 +151,15 @@ de_tools_admin_max_disk_limit: 1099511627776
 de_tools_admin_max_cpu_limit: 24
 de_tools_admin_max_memory_limit: 75161927680
 
+# Discovery Environment TLS settings
+de_tls_ca_name: "de-selfsigned-ca"
+de_tls_ca_duration: "8766h"
+de_tls_ca_renew_before: "240h"
+de_tls_issuer_name: "de-ca-issuer"
+de_tls_cert_name: "de-tls"
+de_tls_cert_duration: "2160h"
+de_tls_cert_renew_before: "240h"
+
 # Docker related settings
 docker_tag: latest
 docker_trusted_registries:
@@ -514,6 +523,10 @@ vice_default_cas_url: https://auth.cyverse.org/cas5
 vice_default_cas_validate: validate
 vice_use_case_chars_min: 60
 vice_default_backend_loading_page_template_string: 'https://qa.cyverse.org/vice/\{\{.URL\}\}'
+vice_namespace_egress_disallow:
+  - 10.43.0.0/8
+  - 128.196.254.64/32
+  - 131.153.56.98/32
 
 # Admin settings
 admin_groups: core-services,dev,staff
@@ -614,6 +627,16 @@ keycloak_ephemeral_storage_request: "2Gi"
 keycloak_cpu_limit: "200m"
 keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
+
+# Traefik configuration
+traefik_namespace: "traefik"
+traefik_ca_name: "traefik-selfsigned-ca"
+traefik_ca_duration: "8766h"
+traefik_ca_renew_before: "240h"
+traefik_issuer_name: "traefik-ca-issuer"
+traefik_cert_name: "traefik-tls"
+traefik_cert_duration: "2160h"
+traefik_cert_renew_before: "240h"
 
 secrets_loader_base_dir: "secrets" # The directory in the repo containing the inventory
 secrets_loader_ui_secret: "ui-nginx-tls"

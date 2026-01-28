@@ -1,0 +1,236 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: define the self-siged CA certificate for the DE
+      kubernetes.core.k8s:
+        name: "{{ de_tls_ca_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ de_tls_ca_name }}"
+          spec:
+            isCA: true
+            commonName: "{{ de_tls_ca_name }}"
+            secretName: "{{ de_tls_ca_name }}"
+            duration: "{{ de_tls_ca_duration }}"
+            renewBefore: "{{ de_tls_ca_renew_before }}"
+            privateKey:
+              algorithm: ECDSA
+              size: 256
+            issuerRef:
+              name: default-cluster-issuer
+              kind: ClusterIssuer
+              group: cert-manager.io
+
+    - name: create the certificate issuer for the DE
+      kubernetes.core.k8s:
+        name: "{{ de_tls_issuer_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Issuer
+          metadata:
+            name: "{{ de_tls_issuer_name }}"
+          spec:
+            ca:
+              secretName: "{{ de_tls_ca_name }}"
+
+    - name: create the TLS certificate for the DE
+      kubernetes.core.k8s:
+        name: "{{ de_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ de_tls_cert_name }}"
+          spec:
+            secretName: "{{ de_tls_cert_name }}"
+            duration: "{{ de_tls_cert_duration }}"
+            renewBefore: "{{ de_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ de_tls_issuer_name }}"
+              kind: Issuer
+            commonName: "*.{{ ns }}.svc.cluster.local"
+            dnsNames:
+              - localhost
+              - "{{ ui_wildcard_fqdn }}"
+
+    - name: define the gateway for the DE
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: discoenv
+            namespace: "{{ ns }}"
+          spec:
+            gatewayClassName: traefik
+            listeners:
+              - hostname: "{{ de_hostname }}"
+                name: discoenv-http
+                port: 8000
+                protocol: HTTP
+              - hostname: "{{ de_hostname }}"
+                name: discoenv-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ de_tls_cert_name }}"
+
+    - name: define the CORS middleware
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: traefik.io/v1alpha1
+          kind: Middleware
+          metadata:
+            name: discoenv-cors-headers
+            namespace: "{{ ns }}"
+          spec:
+            headers:
+              accessControlAllowOriginList:
+                - "*"
+              accessControlAllowMethods:
+                - "GET"
+                - "POST"
+                - "OPTIONS"
+              accessControlAllowHeaders:
+                - "Authorization"
+                - "DNT"
+                - "Keep-Alive"
+                - "User-Agent"
+                - "X-Requested-With"
+                - "If-Modified-Since"
+                - "Cache-Control"
+                - "Content-Type"
+                - "Content-Range"
+                - "Range"
+              accessControlAllowCredentials: true
+              accessControlMaxAge: 86400
+
+    - name: define the routes for the DE
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: discoenv-routes
+            namespace: "{{ ns }}"
+          spec:
+            hostnames:
+              - "{{ de_hostname }}"
+            parentRefs:
+              - name: discoenv
+            rules:
+              - backendRefs:
+                  - name: kifshare
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /anon-files
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+              - backendRefs:
+                  - name: kifshare
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /dl
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+              - backendRefs:
+                  - name: terrain
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /terrain
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+              - backendRefs:
+                  - name: job-status-listener
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /job
+              - backendRefs:
+                  - name: formation
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /formation
+              - backendRefs:
+                  - name: sonora
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+
+    - name: define the gateway for the user portal
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: portal
+            namespace: "{{ ns }}"
+          spec:
+            gatewayClassName: traefik
+            listeners:
+              - hostname: "{{ portal_hostname }}"
+                name: portal-http
+                port: 8000
+                protocol: HTTP
+              - hostname: "{{ portal_hostname }}"
+                name: portal-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ de_tls_cert_name }}"
+
+    - name: define the routes for the user portal
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: portal-routes
+            namespace: "{{ ns }}"
+          spec:
+            hostnames:
+              - "{{ portal_hostname }}"
+            parentRefs:
+              - name: portal
+            rules:
+              - backendRefs:
+                  - name: user-portal
+                    port: 3000
