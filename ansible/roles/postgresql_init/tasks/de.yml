@@ -11,8 +11,8 @@
         name: "{{ item }}"
         owner: "{{ dbms_connection_user }}"
         encoding: "{{ encoding }}"
-        # lc_collate: "{{ lc_collate }}"
-        lc_ctype: "{{ lc_ctype }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
         template: "{{ template }}"
       loop:
         - "{{de_db_name}}"

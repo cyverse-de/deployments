@@ -308,7 +308,7 @@ notifications_db_version: main
 metadata_db_version: main
 mgmt_version: main
 qms_version: main
-portal_version: master
+portal_version: main
 de_db_name: de
 notifications_db_name: notifications
 metadata_db_name: metadata
@@ -327,8 +327,7 @@ dbms_allowed_local_addresses:
   - "192.168.0.0/16"
 dbms_allowed_remote_addresses: []
 encoding: UTF8
-lc_collate: C.UTF-8
-lc_ctype: C.UTF-8
+icu_locale: en-US
 template: template0
 cleanup: true
 migrate: true
