@@ -23,8 +23,8 @@
         name: "{{ harbor_core_db_name }}"
         owner: "{{ harbor_database_user }}"
         encoding: "{{ encoding }}"
-        lc_collate: "{{ lc_collate }}"
-        lc_ctype: "{{ lc_ctype }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
@@ -37,8 +37,8 @@
         name: "{{ harbor_clair_db_name }}"
         owner: "{{ harbor_database_user }}"
         encoding: "{{ encoding }}"
-        lc_collate: "{{ lc_collate }}"
-        lc_ctype: "{{ lc_ctype }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
@@ -51,8 +51,8 @@
         name: "{{ harbor_notary_server_db_name }}"
         owner: "{{ harbor_database_user }}"
         encoding: "{{ encoding }}"
-        lc_collate: "{{ lc_collate }}"
-        lc_ctype: "{{ lc_ctype }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
@@ -65,7 +65,7 @@
         name: "{{ harbor_notary_signer_db_name }}"
         owner: "{{ harbor_database_user }}"
         encoding: "{{ encoding }}"
-        lc_collate: "{{ lc_collate }}"
-        lc_ctype: "{{ lc_ctype }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
