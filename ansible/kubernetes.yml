@@ -209,7 +209,6 @@
         - email-requests
         - event-recorder
         - get-analysis-id
-        - group-propagator
         - info-typer
         - infosquito2
         - iplant-groups
@@ -235,6 +234,7 @@
         - dashboard-aggregator
         - terrain
         - sonora
+        - group-propagator
         - portal-conductor
         - portal2
         - formation
