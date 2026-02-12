@@ -19,5 +19,5 @@
             service:
               type: NodePort
               nodePorts:
-                http: "31343"
-                https: "31344"
+                http: "{{ ingress_nginx_http_port }}"
+                https: "{{ ingress_nginx_https_port }}"
