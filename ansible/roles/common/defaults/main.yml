@@ -698,3 +698,6 @@ vice_cache_images:
   - harbor.cyverse.org/legacy/guacamole:latest
   - reetututeja/rstudio-snapatac:latest
   - cyverse/sequenceserver:2.0
+
+ingress_nginx_http_port: 31343
+ingress_nginx_https_port: 31344
