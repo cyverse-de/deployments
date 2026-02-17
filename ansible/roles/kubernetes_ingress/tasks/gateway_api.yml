@@ -138,6 +138,12 @@
               - backendRefs:
                   - name: kifshare
                     port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
                 matches:
                   - path:
                       type: PathPrefix
@@ -148,6 +154,12 @@
               - backendRefs:
                   - name: kifshare
                     port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
                 matches:
                   - path:
                       type: PathPrefix
@@ -158,6 +170,12 @@
               - backendRefs:
                   - name: terrain
                     port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
                 matches:
                   - path:
                       type: PathPrefix
@@ -168,6 +186,12 @@
               - backendRefs:
                   - name: job-status-listener
                     port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
                 matches:
                   - path:
                       type: PathPrefix
@@ -175,6 +199,12 @@
               - backendRefs:
                   - name: formation
                     port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
                 matches:
                   - path:
                       type: PathPrefix
@@ -182,6 +212,12 @@
               - backendRefs:
                   - name: sonora
                     port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
                 matches:
                   - path:
                       type: PathPrefix
