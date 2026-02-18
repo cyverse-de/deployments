@@ -3,12 +3,16 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the namespaces for the services
+    - name: create the namespaces for the DE and VICE
       kubernetes.core.k8s:
-        name: "{{ item }}"
-        state: present
-        kind: namespace
         api_version: v1
+        state: present
+        definition:
+          kind: Namespace
+          metadata:
+            name: "{{ item }}"
+            labels:
+              has-vice-routes: "true"
       loop:
         - "{{ ns }}"
         - "{{ vice_ns }}"
