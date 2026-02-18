@@ -645,6 +645,9 @@ keycloak_cpu_limit: "200m"
 keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
 
+# Gateway provider configuration
+gateway_provider: "traefik"
+
 # Traefik configuration
 traefik_namespace: "traefik"
 traefik_ca_name: "traefik-selfsigned-ca"
