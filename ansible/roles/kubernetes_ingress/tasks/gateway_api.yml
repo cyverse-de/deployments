@@ -258,7 +258,6 @@
                 timeouts:
                   request: "24h"
                   backendRequest: "24h"
-      register: discoenv_routes_defined
       when: gateway_provider == "traefik"
 
     - name: define the routes for the DE when provider-specific customizations aren't needed.
@@ -330,7 +329,8 @@
                 timeouts:
                   request: "24h"
                   backendRequest: "24h"
-      when: not discoenv_routes_defined
+      # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
+      when: gateway_provider not in ["traefik"]
 
     - name: define the gateway for the user portal
       kubernetes.core.k8s:
