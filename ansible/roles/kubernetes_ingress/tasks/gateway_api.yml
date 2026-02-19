@@ -73,7 +73,7 @@
             name: discoenv
             namespace: "{{ ns }}"
           spec:
-            gatewayClassName: traefik
+            gatewayClassName: "{{ gateway_class_name }}"
             listeners:
               - hostname: "{{ de_hostname }}"
                 name: discoenv-http
@@ -119,6 +119,7 @@
                 - "Range"
               accessControlAllowCredentials: true
               accessControlMaxAge: 86400
+      when: gateway_provider == "traefik"
 
     - name: define the CORS middleware for VICE
       kubernetes.core.k8s:
@@ -150,8 +151,9 @@
                 - "Range"
               accessControlAllowCredentials: true
               accessControlMaxAge: 86400
+      when: gateway_provider == "traefik"
 
-    - name: define the routes for the DE
+    - name: define the routes for the DE when the gateway provider is Traefik
       kubernetes.core.k8s:
         state: present
         definition:
@@ -256,6 +258,79 @@
                 timeouts:
                   request: "24h"
                   backendRequest: "24h"
+      register: discoenv_routes_defined
+      when: gateway_provider == "traefik"
+
+    - name: define the routes for the DE when provider-specific customizations aren't needed.
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: discoenv-routes
+            namespace: "{{ ns }}"
+          spec:
+            hostnames:
+              - "{{ de_hostname }}"
+            parentRefs:
+              - name: discoenv
+            rules:
+              - backendRefs:
+                  - name: kifshare
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /anon-files
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+              - backendRefs:
+                  - name: kifshare
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /dl
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+              - backendRefs:
+                  - name: terrain
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /terrain
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+              - backendRefs:
+                  - name: job-status-listener
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /job
+              - backendRefs:
+                  - name: formation
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /formation
+              - backendRefs:
+                  - name: sonora
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /
+                timeouts:
+                  request: "24h"
+                  backendRequest: "24h"
+      when: not discoenv_routes_defined
 
     - name: define the gateway for the user portal
       kubernetes.core.k8s:
@@ -267,7 +342,7 @@
             name: portal
             namespace: "{{ ns }}"
           spec:
-            gatewayClassName: traefik
+            gatewayClassName: "{{ gateway_class_name }}"
             listeners:
               - hostname: "{{ portal_hostname }}"
                 name: portal-http
@@ -372,7 +447,7 @@
             name: vice
             namespace: "{{ ns }}"
           spec:
-            gatewayClassName: traefik
+            gatewayClassName: "{{ gateway_class_name }}"
             listeners:
               - allowedRoutes:
                   namespaces:
