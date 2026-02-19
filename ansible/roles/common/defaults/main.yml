@@ -647,6 +647,7 @@ keycloak_ephemeral_storage_limit: "2Gi"
 
 # Gateway provider configuration
 gateway_provider: "traefik"
+gateway_class_name: "traefik"
 
 # Traefik configuration
 traefik_namespace: "traefik"

@@ -1,5 +1,6 @@
 ---
 - ansible.builtin.include_tasks: traefik.yml
+  when: gateway_provider == "traefik"
 - ansible.builtin.include_tasks: ingress_nginx.yml
 - ansible.builtin.include_tasks: de_namespaces.yml
 - ansible.builtin.include_tasks: local_exim.yml
