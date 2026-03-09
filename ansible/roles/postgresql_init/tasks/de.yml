@@ -11,7 +11,7 @@
         name: "{{ de_db_name }}"
         owner: "{{ dbms_connection_user }}"
         encoding: "{{ encoding }}"
-        lc_collate: "{{ lc_collate }}"
+        # lc_collate: "{{ lc_collate }}"
         lc_ctype: "{{ lc_ctype }}"
         template: "{{ template }}"
       loop:
