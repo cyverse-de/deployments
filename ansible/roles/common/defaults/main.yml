@@ -160,6 +160,15 @@ de_tls_cert_name: "de-tls"
 de_tls_cert_duration: "2160h"
 de_tls_cert_renew_before: "240h"
 
+# VICE TLS settings
+vice_tls_ca_name: "vice-selfsigned-ca"
+vice_tls_ca_duration: "8766h"
+vice_tls_ca_renew_before: "240h"
+vice_tls_issuer_name: "vice-ca-issuer"
+vice_tls_cert_name: "vice-tls"
+vice_tls_cert_duration: "2160h"
+vice_tls_cert_renew_before: "240h"
+
 # Docker related settings
 docker_tag: latest
 docker_trusted_registries:
@@ -626,6 +635,10 @@ keycloak_ephemeral_storage_request: "2Gi"
 keycloak_cpu_limit: "200m"
 keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
+
+# Gateway provider configuration
+gateway_provider: "traefik"
+gateway_class_name: "traefik"
 
 # Traefik configuration
 traefik_namespace: "traefik"

@@ -3,12 +3,16 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the namespaces for the services
+    - name: create the namespaces for the DE and VICE
       kubernetes.core.k8s:
-        name: "{{ item }}"
-        state: present
-        kind: namespace
         api_version: v1
+        state: present
+        definition:
+          kind: Namespace
+          metadata:
+            name: "{{ item }}"
+            labels:
+              has-vice-routes: "true"
       loop:
         - "{{ ns }}"
         - "{{ vice_ns }}"
@@ -179,4 +183,43 @@
           roleRef:
             kind: ClusterRole
             name: admin
+            apiGroup: rbac.authorization.k8s.io
+
+    - name: create the httproute-admin cluster role
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: httproute-admin
+          rules:
+            - apiGroups:
+                - gateway.networking.k8s.io
+              resources:
+                - httproutes
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+
+    - name: create the app-exposer httproute admin cluster role binding
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: app-exposer-httproute-admin
+          subjects:
+            - kind: ServiceAccount
+              namespace: "{{ ns }}"
+              name: app-exposer
+          roleRef:
+            kind: ClusterRole
+            name: httproute-admin
             apiGroup: rbac.authorization.k8s.io
