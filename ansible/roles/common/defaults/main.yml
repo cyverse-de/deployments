@@ -650,6 +650,9 @@ traefik_cert_name: "traefik-tls"
 traefik_cert_duration: "2160h"
 traefik_cert_renew_before: "240h"
 
+traefik_http_port: 31380
+traefik_https_port: 31383
+
 secrets_loader_base_dir: "secrets" # The directory in the repo containing the inventory
 secrets_loader_ui_secret: "ui-nginx-tls"
 secrets_loader_load_ui_secret: true
