@@ -106,7 +106,7 @@
                   writeTimeout: "24h"
               port: 8000
               exposedPort: 80
-              nodePort: 31380
+              nodePort: "{{ traefik_http_port }}"
             websecure:
               http:
                 encodedCharacters:
@@ -117,7 +117,7 @@
                   writeTimeout: "24h"
               port: 8443
               exposedPort: 443
-              nodePort: 31383
+              nodePort: "{{ traefik_https_port }}"
             traefik:
               port: 9000
               exposedPort: 9000
