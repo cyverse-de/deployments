@@ -625,8 +625,6 @@ keycloak_db_password: Ch@ng3M3
 keycloak_db_vendor: postgres
 keycloak_db_port: "5432"
 keycloak_db_name: keycloak
-keycloak_login_username: keycloak
-keycloak_login_password: Ch@ng3M3
 keycloak_namespace: keycloak
 keycloak_realm_name: CyVerseTest
 keycloak_client_id: replace_me
@@ -635,7 +633,6 @@ keycloak_vice_client_id: replace_me
 keycloak_vice_client_secret: replace_me
 keycloak_realm_display_name: CyVerse Test Realm connected to pollit.iplantcollaborative.org
 keycloak_realm_display_name_html: CyVerse Test (pollit)
-keycloak_vice_domain: cyverse.run
 keycloak_redirect_uris:
   - "https://qa.cyverse.org/*"
   - "https://sonora-qa.cyverse.org/*"
@@ -644,7 +641,6 @@ keycloak_web_origins:
   - "https://sonora-qa.cyverse.org/*"
 keycloak_portal_id: portal
 keycloak_portal_name: User Portal - development
-keycloak_portal_root_url: https://portaldev.cyverse.org
 keycloak_portal_redirect_uris:
   - "https://portaldev.cyverse.org/*"
 keycloak_portal_web_origins:
@@ -660,6 +656,9 @@ keycloak_http_nodeport: 31360
 keycloak_https_nodeport: 31361
 keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
+keycloak_admin_server_uri: https://keycloak.example.org/auth
+keycloak_admin_client_id: replace_me
+keycloak_admin_client_secret: replace_me
 keycloak_hostname_url: https://keycloak.example.org/
 keycloak_hostname_strict: "false"
 keycloak_hostname_strict_https: "false"
