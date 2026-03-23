@@ -152,8 +152,8 @@
         DB_NAME: "{{ keycloak_db_name }}"
         JDBC_PARAMS: "{{ keycloak_jdbc_params }}"
         JAVA_OPTS: "{{ keycloak_java_opts }}"
-        realms.json:  |
-          "{{ lookup('ansible.builtin.template', 'realms_config.json.j2') }}"
+        # realms.json:  |
+        #   "{{ lookup('ansible.builtin.template', 'realms_config.json.j2') }}"
 
 - name: install the keycloak deployment
   delegate_to: localhost
@@ -186,12 +186,12 @@
               - name: kc-keystore
                 emptyDir:
                   sizeLimit: "2Gi"
-              - name: keycloak-config
-                configMap:
-                  name: keycloak-config
-                  items:
-                    - key: realms.json
-                      path: realms.json
+              # - name: keycloak-config
+              #   configMap:
+              #     name: keycloak-config
+              #     items:
+              #       - key: realms.json
+              #         path: realms.json
             initContainers:
               - name: init-keystore
                 image: alpine/openssl
@@ -243,10 +243,10 @@
                     mountPath: "/etc/tls"
             containers:
               - name: keycloak
-                image: quay.io/keycloak/keycloak:21.1
+                image: quay.io/keycloak/keycloak:26.5.6
                 args:
                   - "start"
-                  - "--import-realm"
+                  # - "--import-realm"
                   - "--hostname-url=$KC_HOSTNAME_URL"
                   - "--hostname-admin-url=$KC_HOSTNAME_URL"
                   - "--log-level=$KEYCLOAK_LOGLEVEL"
