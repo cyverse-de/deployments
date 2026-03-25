@@ -652,14 +652,12 @@ keycloak_groups_dn:
 keycloak_bind_dn:
   - "uid=ldap_reader,ou=People,dc=iplantcollaborative,dc=org"
 keycloak_connection_url: "ldap://ldap.ldap:389"
-keycloak_http_nodeport: 31360
-keycloak_https_nodeport: 31361
 keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
 keycloak_admin_server_uri: https://keycloak.example.org/auth
 keycloak_admin_client_id: replace_me
 keycloak_admin_client_secret: replace_me
-keycloak_hostname_url: https://keycloak.example.org/
+keycloak_hostname: keycloak.example.org
 keycloak_hostname_strict: "false"
 keycloak_log_level: "info"
 keycloak_jdbc_params: connectTimeout=21600
