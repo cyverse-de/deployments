@@ -661,9 +661,7 @@ keycloak_admin_client_id: replace_me
 keycloak_admin_client_secret: replace_me
 keycloak_hostname_url: https://keycloak.example.org/
 keycloak_hostname_strict: "false"
-keycloak_hostname_strict_https: "false"
-keycloak_log_level: INFO
-keycloak_proxy: passthrough
+keycloak_log_level: "info"
 keycloak_jdbc_params: connectTimeout=21600
 keycloak_java_opts: "-server -Xms1024m -Xmx2048m -XX:MetaspaceSize=96m -XX:MaxMetaspaceSize=256m -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true -Dkeycloak.profile.feature.token_exchange=enabled -Djava.security.egd=file:/dev/urandom"
 keycloak_cert_duration: "8766h" # 1 year
@@ -674,6 +672,8 @@ keycloak_ephemeral_storage_request: "2Gi"
 keycloak_cpu_limit: "200m"
 keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
+keycloak_proxy_headers: "forwarded"
+keycloak_http_enabled: "true"
 
 # Gateway provider configuration
 gateway_provider: "traefik"
