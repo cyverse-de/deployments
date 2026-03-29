@@ -4,6 +4,7 @@
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
     - name: define the self-siged CA certificate for the DE
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_ca_name }}"
         namespace: "{{ ns }}"
@@ -27,7 +28,8 @@
               kind: ClusterIssuer
               group: cert-manager.io
 
-    - name: create the certificate issuer for the DE
+    - name: create the local certificate issuer for the DE
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_issuer_name }}"
         namespace: "{{ ns }}"
@@ -41,7 +43,8 @@
             ca:
               secretName: "{{ de_tls_ca_name }}"
 
-    - name: create the TLS certificate for the DE
+    - name: create the locally signed TLS certificate for the DE
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -61,6 +64,28 @@
             commonName: "*.{{ ns }}.svc.cluster.local"
             dnsNames:
               - localhost
+              - "{{ ui_wildcard_fqdn }}"
+
+    - name: create the TLS certificate for the DE using letsencrypt
+      when: cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ de_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ de_tls_cert_name }}"
+          spec:
+            secretName: "{{ de_tls_cert_name }}"
+            duration: "{{ de_tls_cert_duration }}"
+            renewBefore: "{{ de_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ ui_wildcard_fqdn }}"
+            dnsNames:
               - "{{ ui_wildcard_fqdn }}"
 
     - name: define the gateway for the DE
@@ -378,6 +403,7 @@
                     port: 3000
 
     - name: define the self-signed CA certificate for VICE
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_ca_name }}"
         namespace: "{{ ns }}"
@@ -401,7 +427,8 @@
               kind: ClusterIssuer
               group: cert-manager.io
 
-    - name: create the certificate issuer for VICE
+    - name: create the locally signed certificate issuer for VICE
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_issuer_name }}"
         namespace: "{{ ns }}"
@@ -415,7 +442,8 @@
             ca:
               secretName: "{{ vice_tls_ca_name }}"
 
-    - name: create the TLS certificate for VICE
+    - name: create the locally signed TLS certificate for VICE
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -435,6 +463,28 @@
             commonName: "*.{{ ns }}.svc.cluster.local"
             dnsNames:
               - localhost
+              - "{{ vice_wildcard_fqdn }}"
+
+    - name: create the TLS certificate for VICE using letsencrypt
+      when: cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ vice_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ vice_tls_cert_name }}"
+          spec:
+            secretName: "{{ vice_tls_cert_name }}"
+            duration: "{{ vice_tls_cert_duration }}"
+            renewBefore: "{{ vice_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ vice_wildcard_fqdn }}"
+            dnsNames:
               - "{{ vice_wildcard_fqdn }}"
 
     - name: define the gateway for VICE
