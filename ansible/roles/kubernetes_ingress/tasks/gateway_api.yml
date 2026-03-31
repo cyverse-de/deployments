@@ -61,10 +61,10 @@
             issuerRef:
               name: "{{ de_tls_issuer_name }}"
               kind: Issuer
-            commonName: "*.{{ ns }}.svc.cluster.local"
+            commonName: "{{ de_hostname }}"
             dnsNames:
               - localhost
-              - "{{ ui_wildcard_fqdn }}"
+              - "{{ de_hostname }}"
 
     - name: create the TLS certificate for the DE using letsencrypt
       when: cert_manager_use_letsencrypt
@@ -84,9 +84,9 @@
             issuerRef:
               name: "{{ cert_manager_le_issuer_name }}"
               kind: ClusterIssuer
-            commonName: "{{ ui_wildcard_fqdn }}"
+            commonName: "{{ de_hostname }}"
             dnsNames:
-              - "{{ ui_wildcard_fqdn }}"
+              - "{{ de_hostname }}"
 
     - name: define the gateway for the DE
       kubernetes.core.k8s:
@@ -357,6 +357,51 @@
       # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
       when: gateway_provider not in ["traefik"]
 
+    - name: create the locally signed TLS certificate for the user portal
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ user_portal_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ user_portal_tls_cert_name }}"
+          spec:
+            secretName: "{{ user_portal_tls_cert_name }}"
+            duration: "{{ user_portal_tls_cert_duration }}"
+            renewBefore: "{{ user_portal_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ de_tls_issuer_name }}"
+              kind: Issuer
+            commonName: "{{ portal_hostname }}"
+            dnsNames:
+              - localhost
+              - "{{ portal_hostname }}"
+
+    - name: create the TLS certificate for the DE using letsencrypt
+      when: cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ user_portal_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ user_portal_tls_cert_name }}"
+          spec:
+            secretName: "{{ user_portal_tls_cert_name }}"
+            duration: "{{ user_portal_tls_cert_duration }}"
+            renewBefore: "{{ user_portal_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ portal_hostname }}"
+            dnsNames:
+              - "{{ portal_hostname }}"
+
     - name: define the gateway for the user portal
       kubernetes.core.k8s:
         state: present
@@ -381,7 +426,7 @@
                   certificateRefs:
                     - kind: Secret
                       group: ""
-                      name: "{{ de_tls_cert_name }}"
+                      name: "{{ user_portal_tls_cert_name }}"
 
     - name: define the routes for the user portal
       kubernetes.core.k8s:

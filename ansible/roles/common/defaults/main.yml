@@ -136,7 +136,7 @@ cas_terrain_client_secret: replace_me
 cert_manager_use_letsencrypt: false
 cert_manager_le_aws_access_key_id: replace_me
 cert_manager_le_aws_secret_access_key: replace_me
-cert_manager_le_aws_creds_secret_name: cert-manager
+cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
 
 # The certificate issuer details. Let's Encrypt uses different ACME servers for production and staging:
 # staging: https://acme-staging-v02.api.letsencrypt.org/directory
@@ -177,6 +177,11 @@ de_tls_issuer_name: "de-ca-issuer"
 de_tls_cert_name: "de-tls"
 de_tls_cert_duration: "2160h"
 de_tls_cert_renew_before: "240h"
+
+# User Portal TLS settings
+user_portal_tls_cert_name: "user-portal-tls"
+user_portal_tls_cert_duration: "2160h"
+user_portal_tls_cert_renew_before: "240h"
 
 # VICE TLS settings
 vice_tls_ca_name: "vice-selfsigned-ca"
