@@ -39,7 +39,7 @@
           kind: Secret
           metadata:
             name: "{{ cert_manager_le_aws_creds_secret_name }}"
-            namespace: "{{ ns }}"
+            namespace: cert-manager
           type: Opaque
           data:
             access-key-id: "{{ cert_manager_le_aws_access_key_id | b64encode }}"
@@ -62,6 +62,7 @@
                 name: "{{ cert_manager_le_issuer_acme_secret_name }}"
               solvers:
                 - dns01:
+                    cnameStrategy: Follow
                     route53:
                       region: us-east-1
                       accessKeyIDSecretRef:
