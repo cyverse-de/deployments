@@ -214,9 +214,6 @@
                         cpu: "{{ keycloak_cpu_limit }}"
                         memory: "{{ keycloak_memory_limit }}"
                         ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
-                    volumeMounts:
-                      - name: kc-keystore
-                        mountPath: "/etc/tls"
                     ports:
                       - name: http
                         containerPort: 8080
@@ -256,13 +253,9 @@
                 name: http
                 port: 80
                 targetPort: http
-              - protocol: TCP
-                name: https
-                port: 443
-                targetPort: https
             selector:
               app: keycloak
-            type: NodePort
+            type: ClusterIP
 
     - name: create the gateway for Keycloak
       kubernetes.core.k8s:
@@ -276,10 +269,6 @@
           spec:
             gatewayClassName: "{{ gateway_class_name }}"
             listeners:
-              - hostname: "{{ keycloak_hostname }}"
-                name: keycloak-http
-                port: 8000
-                protocol: HTTP
               - hostname: "{{ keycloak_hostname }}"
                 name: keycloak-https
                 port: 8443
@@ -339,38 +328,38 @@
             rules:
               - backendRefs:
                   - name: keycloak
-                    port: 443
+                    port: 80
                 filters:
                   - type: ExtensionRef
                     extensionRef:
                       group: traefik.io
                       kind: Middleware
-                      name: discoenv-cors-headers
+                      name: keycloak-cors-headers
       when: gateway_provider == "traefik"
 
-    - name: define the routes for the DE when provider-specific customizations aren't needed.
+    - name: define the routes for Keycloak when provider-specific customizations aren't needed.
       kubernetes.core.k8s:
         state: present
         definition:
           apiVersion: gateway.networking.k8s.io/v1
           kind: HTTPRoute
           metadata:
-            name: discoenv-routes
+            name: keycloak-routes
             namespace: "{{ keycloak_namespace }}"
           spec:
             hostnames:
               - "{{ de_hostname }}"
             parentRefs:
-              - name: discoenv
+              - name: keycloak
             rules:
               - backendRefs:
                   - name: keycloak
-                    port: 443
+                    port: 80
                 filters:
                   - type: ExtensionRef
                     extensionRef:
                       group: traefik.io
                       kind: Middleware
-                      name: discoenv-cors-headers
+                      name: keycloak-cors-headers
       # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
       when: gateway_provider not in ["traefik"]
