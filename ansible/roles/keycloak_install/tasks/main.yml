@@ -43,6 +43,7 @@
             password: "{{ keycloak_admin_password | b64encode}}"
 
     - name: create the kc-selfsigned-ca secret
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-selfsigned-ca
         namespace: "{{ keycloak_namespace }}"
@@ -67,6 +68,7 @@
               group: cert-manager.io
 
     - name: create the kc-ca-issuer issuer
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-ca-issuer
         namespace: "{{ keycloak_namespace }}"
@@ -80,7 +82,8 @@
             ca:
               secretName: kc-selfsigned-ca
 
-    - name: create the kc-tls certificate
+    - name: create the locally signed kc-tls certificate
+      when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-tls
         namespace: "{{ keycloak_namespace }}"
@@ -110,6 +113,28 @@
               - keycloak.{{ keycloak_namespace }}
               - keycloak
 
+    - name: create the kc-tls certificate signed by Let's Encrypt
+      when: cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: kc-tls
+        namespace: "{{ keycloak_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: kc-tls
+          spec:
+            secretName: kc-tls
+            duration: "{{ keycloak_cert_duration }}"
+            renewBefore: "{{ keycloak_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ keycloak_hostname }}"
+            dnsNames:
+              - "{{ keycloak_hostname }}"
+
     - name: install the keycloak deployment
       kubernetes.core.k8s:
         state: present
@@ -131,62 +156,6 @@
                 labels:
                   app: keycloak
               spec:
-                volumes:
-                  - name: kc-tls
-                    secret:
-                      secretName: kc-tls
-                  - name: kc-keystore
-                    emptyDir:
-                      sizeLimit: "2Gi"
-                initContainers:
-                  - name: init-keystore
-                    image: alpine/openssl
-                    command:
-                      - "openssl"
-                      - "pkcs12"
-                      - "-export"
-                      - "-in"
-                      - "/etc/tls/tls.crt"
-                      - "-inkey"
-                      - "/etc/tls/tls.key"
-                      - "-out"
-                      - "/etc/keystore/tls.p12"
-                      - "-name"
-                      - "certificate"
-                      - "-passout"
-                      - "pass:password"
-                    resources:
-                      requests:
-                        cpu: "{{ keycloak_cpu_request }}"
-                        memory: "{{ keycloak_memory_request }}"
-                        ephemeral-storage: "{{ keycloak_ephemeral_storage_request }}"
-                      limits:
-                        cpu: "{{ keycloak_cpu_limit }}"
-                        memory: "{{ keycloak_memory_limit }}"
-                        ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
-                    volumeMounts:
-                      - name: kc-tls
-                        mountPath: "/etc/tls"
-                      - name: kc-keystore
-                        mountPath: "/etc/keystore"
-                  - name: fix-keystore-perms
-                    image: alpine/openssl
-                    command:
-                      - "chmod"
-                      - "0644"
-                      - "/etc/tls/tls.p12"
-                    resources:
-                      requests:
-                        cpu: "{{ keycloak_cpu_request }}"
-                        memory: "{{ keycloak_memory_request }}"
-                        ephemeral-storage: "{{ keycloak_ephemeral_storage_request }}"
-                      limits:
-                        cpu: "{{ keycloak_cpu_limit }}"
-                        memory: "{{ keycloak_memory_limit }}"
-                        ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
-                    volumeMounts:
-                      - name: kc-keystore
-                        mountPath: "/etc/tls"
                 containers:
                   - name: keycloak
                     image: harbor.cyverse.org/de/keycloak:26.5
@@ -251,8 +220,6 @@
                     ports:
                       - name: http
                         containerPort: 8080
-                      - name: https
-                        containerPort: 8443
                     startupProbe:
                       httpGet:
                         path: /health/live
@@ -296,29 +263,6 @@
             selector:
               app: keycloak
             type: NodePort
-
-    - name: Create the backend TLS policy for the keycloak service
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: gateway.networking.k8s.io/v1
-          kind: BackendTLSPolicy
-          metadata:
-            name: tls-upstream-keycloak
-            namespace: "{{ keycloak_namespace }}"
-            labels:
-              app: keycloak
-          spec:
-            targetRefs:
-              - kind: Service
-                name: keycloak
-                group: ""
-            validation:
-              caCertificateRefs:
-                - kind: ConfigMap
-                  name: kc-tls
-                  group: ""
-              hostname: "{{ keycloak_hostname }}"
 
     - name: create the gateway for Keycloak
       kubernetes.core.k8s:
@@ -412,7 +356,7 @@
           kind: HTTPRoute
           metadata:
             name: discoenv-routes
-            namespace: "{{ ns }}"
+            namespace: "{{ keycloak_namespace }}"
           spec:
             hostnames:
               - "{{ de_hostname }}"
