@@ -1,0 +1,22 @@
+---
+- name: install the vice-operator
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: render the template
+      ansible.builtin.template:
+        src: vice_operator.yml.j2
+        dest: /tmp/vice_operator.yml
+    
+    - name: deploy the vice-operator
+      ansible.builtin.shell:
+        cmd: kubectl apply -f /tmp/vice_operator.yml
+      register: deployed
+    
+    - name: remove rendered template
+      ansible.builtin.file:
+        path: /tmp/vice_operator.yml
+        state: absent
+      when: deployed.changed
+  
