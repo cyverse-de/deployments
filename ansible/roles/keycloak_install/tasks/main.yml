@@ -150,9 +150,9 @@
                       - "--optimized"
                     env:
                       - name: KC_BOOTSTRAP_ADMIN_USERNAME
-                        value: "admin"
+                        value: "{{ keycloak_temp_admin_username }}"
                       - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-                        value: "admin"
+                        value: "{{ keycloak_temp_admin_password }}"
                       - name: KC_PROXY_HEADERS
                         value: "{{ keycloak_proxy_headers }}"
                       - name: KC_HTTP_ENABLED
@@ -259,39 +259,7 @@
                       group: ""
                       name: kc-tls
 
-    - name: define the CORS middleware for Keycloak
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: traefik.io/v1alpha1
-          kind: Middleware
-          metadata:
-            name: keycloak-cors-headers
-            namespace: "{{ keycloak_namespace }}"
-          spec:
-            headers:
-              accessControlAllowOriginList:
-                - "*"
-              accessControlAllowMethods:
-                - "GET"
-                - "POST"
-                - "OPTIONS"
-              accessControlAllowHeaders:
-                - "Authorization"
-                - "DNT"
-                - "Keep-Alive"
-                - "User-Agent"
-                - "X-Requested-With"
-                - "If-Modified-Since"
-                - "Cache-Control"
-                - "Content-Type"
-                - "Content-Range"
-                - "Range"
-              accessControlAllowCredentials: true
-              accessControlMaxAge: 86400
-      when: gateway_provider == "traefik"
-
-    - name: define the routes for Keycloak when the gateway provider is Traefik
+    - name: define the routes for Keycloak
       kubernetes.core.k8s:
         state: present
         definition:
@@ -309,40 +277,6 @@
               - backendRefs:
                   - name: keycloak
                     port: 80
-                filters:
-                  - type: ExtensionRef
-                    extensionRef:
-                      group: traefik.io
-                      kind: Middleware
-                      name: keycloak-cors-headers
-      when: gateway_provider == "traefik"
-
-    - name: define the routes for Keycloak when provider-specific customizations aren't needed.
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: gateway.networking.k8s.io/v1
-          kind: HTTPRoute
-          metadata:
-            name: keycloak-routes
-            namespace: "{{ keycloak_namespace }}"
-          spec:
-            hostnames:
-              - "{{ de_hostname }}"
-            parentRefs:
-              - name: keycloak
-            rules:
-              - backendRefs:
-                  - name: keycloak
-                    port: 80
-                filters:
-                  - type: ExtensionRef
-                    extensionRef:
-                      group: traefik.io
-                      kind: Middleware
-                      name: keycloak-cors-headers
-      # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
-      when: gateway_provider not in ["traefik"]
 
     - name: create the kcadmin secret
       kubernetes.core.k8s:
