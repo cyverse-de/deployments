@@ -620,6 +620,7 @@ keycloak_vice_client_id: replace_me
 keycloak_vice_client_secret: replace_me
 keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
+keycloak_admin_email: kcadmin@example.org
 keycloak_admin_server_uri: https://keycloak.example.org/auth
 keycloak_admin_client_id: replace_me
 keycloak_admin_client_secret: replace_me
