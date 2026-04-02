@@ -26,22 +26,6 @@
             username: "{{ keycloak_db_username | b64encode }}"
             password: "{{ keycloak_db_password | b64encode }}"
 
-    - name: create the kcadmin secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: kcadmin
-            namespace: "{{ keycloak_namespace }}"
-            labels:
-              app: keycloak
-          type: Opaque
-          data:
-            username: "{{ keycloak_admin_username | b64encode}}"
-            password: "{{ keycloak_admin_password | b64encode}}"
-
     - name: create the kc-selfsigned-ca secret
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
@@ -164,15 +148,9 @@
                       - "--optimized"
                     env:
                       - name: KC_BOOTSTRAP_ADMIN_USERNAME
-                        valueFrom:
-                          secretKeyRef:
-                            name: kcadmin
-                            key: username
+                        value: "admin"
                       - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-                        valueFrom:
-                          secretKeyRef:
-                            name: kcadmin
-                            key: password
+                        value: "admin"
                       - name: KC_PROXY_HEADERS
                         value: "{{ keycloak_proxy_headers }}"
                       - name: KC_HTTP_ENABLED
@@ -363,3 +341,78 @@
                       name: keycloak-cors-headers
       # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
       when: gateway_provider not in ["traefik"]
+
+    - name: create the kcadmin secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: kcadmin
+            namespace: "{{ keycloak_namespace }}"
+            labels:
+              app: keycloak
+          type: Opaque
+          data:
+            username: "{{ keycloak_admin_username | b64encode}}"
+            password: "{{ keycloak_admin_password | b64encode}}"
+            email: "{{ keycloak_admin_email | b64encode}}"
+
+    - name: create the permanent admin user
+      kubernetes.core.k8s:
+        state: present
+        wait: true
+        wait_condition:
+          type: Complete
+          status: "True"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: kc-create-admin-user
+            namespace: "{{ keycloak_namespace }}"
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: kc
+                    image: harbor.cyverse.org/de/keycloak:26.5
+                    command:
+                      - create-kc-admin.sh
+                    env:
+                      - name: KC_ADMIN_URL
+                        value: "http://keycloak"
+                      - name: KC_ADMIN_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: kcadmin
+                            key: username
+                      - name: KC_ADMIN_PASS
+                        valueFrom:
+                          secretKeyRef:
+                            name: kcadmin
+                            key: password
+                      - name: KC_ADMIN_EMAIL
+                        valueFrom:
+                          secretKeyRef:
+                            name: kcadmin
+                            key: email
+                restartPolicy: Never
+            backoffLimit: 4
+
+    - name: delete the permanent admin user creation jobs
+      kubernetes.core.k8s:
+        state: absent
+        api_version: batch/v1
+        kind: Job
+        name: kc-create-admin-user
+        namespace: "{{ keycloak_namespace }}"
+
+    - name: delete the kcadmin secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: kcadmin
+        namespace: "{{ keycloak_namespace }}"
