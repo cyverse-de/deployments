@@ -64,7 +64,7 @@
                 - dns01:
                     cnameStrategy: Follow
                     route53:
-                      region: us-east-1
+                      region: "{{ cert_manager_le_aws_region }}"
                       accessKeyIDSecretRef:
                         name: "{{ cert_manager_le_aws_creds_secret_name }}"
                         key: access-key-id

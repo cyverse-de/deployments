@@ -380,7 +380,7 @@
               - localhost
               - "{{ portal_hostname }}"
 
-    - name: create the TLS certificate for the DE using letsencrypt
+    - name: create the TLS certificate for the user portal using letsencrypt
       when: cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ user_portal_tls_cert_name }}"

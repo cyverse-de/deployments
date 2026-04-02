@@ -133,7 +133,11 @@ cas_terrain_client_secret: replace_me
 # cert-manager settings for Let's Encrypt and Route53. We currently support only Route53, although additional DNS APIs
 # may be added in the future. We also currently support only long-term tokens. Please see
 # https://cert-manager.io/docs/configuration/acme/dns01/route53/#iam-user-with-long-term-access-key for more details.
+# The playbooks still create a self-signed default issuer and a self-signed default cluster issuer when Let's Encrypt is
+# enabled in case they're needed for communication within the cluster. For example, the certificate used by NATS and the
+# default certificate used by Traefik both use certificate chains that include one of these issuers.
 cert_manager_use_letsencrypt: false
+cert_manager_le_aws_region: us-east-1
 cert_manager_le_aws_access_key_id: replace_me
 cert_manager_le_aws_secret_access_key: replace_me
 cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
