@@ -631,6 +631,8 @@ keycloak_client_id: replace_me
 keycloak_client_secret: replace_me
 keycloak_vice_client_id: replace_me
 keycloak_vice_client_secret: replace_me
+keycloak_temp_admin_username: admin
+keycloak_temp_admin_password: admin
 keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
 keycloak_admin_email: kcadmin@example.org
