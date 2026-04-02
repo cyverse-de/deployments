@@ -122,6 +122,8 @@
     - name: install the keycloak deployment
       kubernetes.core.k8s:
         state: present
+        wait: true
+        wait_timeout: 1800
         definition:
           apiVersion: apps/v1
           kind: Deployment
@@ -373,11 +375,13 @@
             name: kc-create-admin-user
             namespace: "{{ keycloak_namespace }}"
           spec:
+            ttlSecondsAfterFinished: 3600
             template:
               spec:
                 containers:
                   - name: kc
                     image: harbor.cyverse.org/de/keycloak:26.5
+                    imagePullPolicy: Always
                     command:
                       - create-kc-admin.sh
                     env:
