@@ -130,6 +130,28 @@ cas_base_uri: http://replace_me
 cas_terrain_client_id: replace_me
 cas_terrain_client_secret: replace_me
 
+# cert-manager settings for Let's Encrypt and Route53. We currently support only Route53, although additional DNS APIs
+# may be added in the future. We also currently support only long-term tokens. Please see
+# https://cert-manager.io/docs/configuration/acme/dns01/route53/#iam-user-with-long-term-access-key for more details.
+# The playbooks still create a self-signed default issuer and a self-signed default cluster issuer when Let's Encrypt is
+# enabled in case they're needed for communication within the cluster. For example, the certificate used by NATS and the
+# default certificate used by Traefik both use certificate chains that include one of these issuers.
+cert_manager_use_letsencrypt: false
+cert_manager_le_aws_region: us-east-1
+cert_manager_le_aws_access_key_id: replace_me
+cert_manager_le_aws_secret_access_key: replace_me
+cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
+
+# The certificate issuer details. Let's Encrypt uses different ACME servers for production and staging:
+# staging: https://acme-staging-v02.api.letsencrypt.org/directory
+# production: https://acme-v02.api.letsencrypt.org/directory
+# Please see https://letsencrypt.org/docs/staging-environment/ for information on when to use the staging
+# environment.
+cert_manager_le_issuer_name: letsencrypt
+cert_manager_le_issuer_email: someone@example.org
+cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
+cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
+
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
 dashboard_aggregator_website_url: https://cyverse.org
@@ -159,6 +181,11 @@ de_tls_issuer_name: "de-ca-issuer"
 de_tls_cert_name: "de-tls"
 de_tls_cert_duration: "2160h"
 de_tls_cert_renew_before: "240h"
+
+# User Portal TLS settings
+user_portal_tls_cert_name: "user-portal-tls"
+user_portal_tls_cert_duration: "2160h"
+user_portal_tls_cert_renew_before: "240h"
 
 # VICE TLS settings
 vice_tls_ca_name: "vice-selfsigned-ca"
