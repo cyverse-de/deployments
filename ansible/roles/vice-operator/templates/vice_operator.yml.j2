@@ -70,6 +70,11 @@ spec:
             - "--max-analyses={{ vice_operator_max_analyses }}"
             - "--gpu-vendor={{ vice_operator_gpu_vendor }}"
             - "--vice-base-url={{ vice_operator_base_url }}"
+{% if vice_operator_skip_gateway_creation %}
+            - "--gateway-skip-creation"
+            - "--gateway-name={{ vice_operator_gateway_name }}"
+            - "--gateway-namespace={{ vice_operator_gateway_namespace }}"
+{% endif %}
 {% if vice_operator_disable_internet_access %}
             - "--disable-internet-access"
 {% endif %}
