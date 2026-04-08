@@ -1,3 +1,5 @@
+_This repository has been archived and is now being maintained in a Git repository maintained by CyVerse._
+
 # deployments
 
 Tools for deploying the CyVerse Discovery Environment (DE)
