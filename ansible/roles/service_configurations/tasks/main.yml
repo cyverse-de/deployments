@@ -67,6 +67,8 @@
             namespace: "{{ ns }}"
           type: Opaque
           stringData:
+            BASIC_AUTH_USERNAME: "{{ basic_auth_username }}"
+            BASIC_AUTH_PASSWORD: "{{ basic_auth_password }}"
             DE_ENV: "{{ ns }}"
             USER_SUFFIX: "{{ uid_domain }}"
             QMS_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ qms_db_name }}?sslmode=disable"
