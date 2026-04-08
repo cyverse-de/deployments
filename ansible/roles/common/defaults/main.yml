@@ -125,6 +125,9 @@ baseurls_search: http://search
 baseurls_terrain: http://terrain
 baseurls_user_info: http://user-info
 
+basic_auth_username: replace_me
+basic_auth_password: replace_me
+
 # CAS settings
 cas_base_uri: http://replace_me
 cas_terrain_client_id: replace_me
