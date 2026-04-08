@@ -125,10 +125,35 @@ baseurls_search: http://search
 baseurls_terrain: http://terrain
 baseurls_user_info: http://user-info
 
+basic_auth_username: replace_me
+basic_auth_password: replace_me
+
 # CAS settings
 cas_base_uri: http://replace_me
 cas_terrain_client_id: replace_me
 cas_terrain_client_secret: replace_me
+
+# cert-manager settings for Let's Encrypt and Route53. We currently support only Route53, although additional DNS APIs
+# may be added in the future. We also currently support only long-term tokens. Please see
+# https://cert-manager.io/docs/configuration/acme/dns01/route53/#iam-user-with-long-term-access-key for more details.
+# The playbooks still create a self-signed default issuer and a self-signed default cluster issuer when Let's Encrypt is
+# enabled in case they're needed for communication within the cluster. For example, the certificate used by NATS and the
+# default certificate used by Traefik both use certificate chains that include one of these issuers.
+cert_manager_use_letsencrypt: false
+cert_manager_le_aws_region: us-east-1
+cert_manager_le_aws_access_key_id: replace_me
+cert_manager_le_aws_secret_access_key: replace_me
+cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
+
+# The certificate issuer details. Let's Encrypt uses different ACME servers for production and staging:
+# staging: https://acme-staging-v02.api.letsencrypt.org/directory
+# production: https://acme-v02.api.letsencrypt.org/directory
+# Please see https://letsencrypt.org/docs/staging-environment/ for information on when to use the staging
+# environment.
+cert_manager_le_issuer_name: letsencrypt
+cert_manager_le_issuer_email: someone@example.org
+cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
+cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
 
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
@@ -150,6 +175,29 @@ de_queries_concurrency_limit: 8
 de_tools_admin_max_disk_limit: 1099511627776
 de_tools_admin_max_cpu_limit: 24
 de_tools_admin_max_memory_limit: 75161927680
+
+# Discovery Environment TLS settings
+de_tls_ca_name: "de-selfsigned-ca"
+de_tls_ca_duration: "8766h"
+de_tls_ca_renew_before: "240h"
+de_tls_issuer_name: "de-ca-issuer"
+de_tls_cert_name: "de-tls"
+de_tls_cert_duration: "2160h"
+de_tls_cert_renew_before: "240h"
+
+# User Portal TLS settings
+user_portal_tls_cert_name: "user-portal-tls"
+user_portal_tls_cert_duration: "2160h"
+user_portal_tls_cert_renew_before: "240h"
+
+# VICE TLS settings
+vice_tls_ca_name: "vice-selfsigned-ca"
+vice_tls_ca_duration: "8766h"
+vice_tls_ca_renew_before: "240h"
+vice_tls_issuer_name: "vice-ca-issuer"
+vice_tls_cert_name: "vice-tls"
+vice_tls_cert_duration: "2160h"
+vice_tls_cert_renew_before: "240h"
 
 # Docker related settings
 docker_tag: latest
@@ -299,7 +347,7 @@ notifications_db_version: main
 metadata_db_version: main
 mgmt_version: main
 qms_version: main
-portal_version: master
+portal_version: main
 de_db_name: de
 notifications_db_name: notifications
 metadata_db_name: metadata
@@ -318,8 +366,7 @@ dbms_allowed_local_addresses:
   - "192.168.0.0/16"
 dbms_allowed_remote_addresses: []
 encoding: UTF8
-lc_collate: C.UTF-8
-lc_ctype: C.UTF-8
+icu_locale: en-US
 template: template0
 cleanup: true
 migrate: true
@@ -418,6 +465,7 @@ perm_id_datacite_doi_prefix: replace_me
 unleash_base_url: http://unleash:4242
 unleash_api_path: /api
 unleash_api_token: replace_me
+unleash_db_ssl_enabled: "false"
 unleash_db_name: unleash
 unleash_maintenance_flag: DE-Maintenance
 unleash_db_user: replace_me
@@ -474,8 +522,9 @@ portal_password: "replace_me"
 portal_bisque_url: "https://replace_me"
 portal_bisque_user: replace_me
 portal_bisque_password: "replace_me"
-portal_smtp_host: localhost
+portal_smtp_host: local-exim
 portal_smtp_port: "25"
+portal_smtp_from: "replace_me@replace_me.org"
 portal_terrain_url: "https://de.cyverse.org/terrain"
 portal_terrain_user: replace_me
 portal_terrain_password: replace_me
@@ -521,6 +570,10 @@ vice_default_cas_url: https://auth.cyverse.org/cas5
 vice_default_cas_validate: validate
 vice_use_case_chars_min: 60
 vice_default_backend_loading_page_template_string: 'https://qa.cyverse.org/vice/\{\{.URL\}\}'
+vice_namespace_egress_disallow:
+  - 10.43.0.0/8
+  - 128.196.254.64/32
+  - 131.153.56.98/32
 
 # Admin settings
 admin_groups: core-services,dev,staff
@@ -622,6 +675,23 @@ keycloak_cpu_limit: "200m"
 keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
 
+# Gateway provider configuration
+gateway_provider: "traefik"
+gateway_class_name: "traefik"
+
+# Traefik configuration
+traefik_namespace: "traefik"
+traefik_ca_name: "traefik-selfsigned-ca"
+traefik_ca_duration: "8766h"
+traefik_ca_renew_before: "240h"
+traefik_issuer_name: "traefik-ca-issuer"
+traefik_cert_name: "traefik-tls"
+traefik_cert_duration: "2160h"
+traefik_cert_renew_before: "240h"
+
+traefik_http_port: 31380
+traefik_https_port: 31383
+
 secrets_loader_base_dir: "secrets" # The directory in the repo containing the inventory
 secrets_loader_ui_secret: "ui-nginx-tls"
 secrets_loader_load_ui_secret: true
@@ -674,3 +744,6 @@ vice_cache_images:
   - harbor.cyverse.org/legacy/guacamole:latest
   - reetututeja/rstudio-snapatac:latest
   - cyverse/sequenceserver:2.0
+
+ingress_nginx_http_port: 31343
+ingress_nginx_https_port: 31344

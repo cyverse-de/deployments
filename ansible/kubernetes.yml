@@ -71,7 +71,8 @@
     - firewall
 
 # Add a playbook/role to call 'k0sctl apply --config <path>'
-- hosts: k8s_controllers[0]
+- name: set up the k0s cluster
+  hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
   become: false
@@ -80,6 +81,9 @@
       tags:
         - create-cluster
         - add-nodes
+
+    - role: cert-manager
+      tags: cert-manager
 
     - role: k8s_de_reqs
       tags: de-reqs
@@ -92,16 +96,13 @@
         - configure-services
         - secrets
 
-    - role: kubernetes_ingresses
-      tags: ingresses
+    - role: kubernetes_ingress
+      tags: ingress
 
     - role: kubernetes_networking
       tags:
         - networking
         - nodeports
-
-    - role: cert-manager
-      tags: cert-manager
 
     - role: nats
       tags: nats
@@ -190,6 +191,7 @@
         - deploy
       when: "not 'deploy-single-service' in ansible_run_tags"
       with_items:
+        - unleash
         - analyses
         - app-exposer
         - apply-labels
@@ -207,7 +209,6 @@
         - email-requests
         - event-recorder
         - get-analysis-id
-        - group-propagator
         - info-typer
         - infosquito2
         - iplant-groups
@@ -233,6 +234,7 @@
         - dashboard-aggregator
         - terrain
         - sonora
+        - group-propagator
         - portal-conductor
         - portal2
         - formation

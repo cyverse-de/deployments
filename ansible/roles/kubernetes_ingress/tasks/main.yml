@@ -1,0 +1,3 @@
+---
+- ansible.builtin.include_tasks: gateway_api.yml
+- ansible.builtin.include_tasks: ingresses.yml
