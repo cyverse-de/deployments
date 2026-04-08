@@ -58,13 +58,6 @@ spec:
         app: vice-operator
     spec:
       serviceAccountName: vice-operator
-      tolerations:
-        - key: "gpu"
-          operator: "Equal"
-          value: "true"
-          effect: "NoSchedule"
-        - key: "analysis"
-          operator: "Exists"
       containers:
         - name: vice-operator
           image: {{ vice_operator_image }}
@@ -104,27 +97,27 @@ spec:
 {% for egress_host_exception in vice_operator_egress_host_exceptions %}
             - "--egress-host-exception={{ egress_host_exception }}"
 {% endfor %}
-        ports:
-          - containerPort: {{ vice_operator_port }} 
-            name: http
-          - containerPort: {{ vice_operator_loading_port}}
-            name: loading   
-        livenessProbe:
-          httpGet:
-            path: /
-            port: http
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: http
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 256Mi
+          ports:
+            - containerPort: {{ vice_operator_port }}
+              name: http
+            - containerPort: {{ vice_operator_loading_port}}
+              name: loading
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
