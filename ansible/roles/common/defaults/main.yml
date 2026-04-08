@@ -654,6 +654,9 @@ tapis_jobs_enabled: false
 
 vice_operators_values: []
 vice_operator_image: harbor.cyverse.org/de/app-exposer:latest
+vice_operator_skip_gateway_creation: false
+vice_operator_gateway_name: vice
+vice_operator_gateway_namespace: vice-apps
 vice_operator_port: 10000
 vice_operator_loading_port: 8080
 vice_operator_max_analyses: 0
