@@ -653,6 +653,7 @@ tapis_enabled: false
 tapis_jobs_enabled: false
 
 vice_operators_values: []
+vice_operator_image: harbor.cyverse.org/de/app-exposer:latest
 vice_operator_port: 10000
 vice_operator_loading_port: 8080
 vice_operator_max_analyses: 0
@@ -667,7 +668,7 @@ vice_operator_api_service_name: vice-operator
 vice_operator_basic_auth: true
 vice_operator_basic_auth_username: replace_me
 vice_operator_basic_auth_password: replace_me
-vice_operator_disable_proxy_auth: false
+vice_operator_disable_vice_proxy_auth: false
 vice_operator_keycloak_base_url: https://replace_me
 vice_operator_keycloak_client_id: replace_me
 vice_operator_keycloak_client_secret: replace_me
