@@ -668,9 +668,7 @@ vice_operator_registry_username: replace_me
 vice_operator_registry_password: replace_me
 vice_operator_pod_selector: app=vice-operator
 vice_operator_api_service_name: vice-operator
-vice_operator_basic_auth: true
-vice_operator_basic_auth_username: replace_me
-vice_operator_basic_auth_password: replace_me
+vice_operator_api_auth_issuer_url: replace_me
 vice_operator_disable_vice_proxy_auth: false
 vice_operator_keycloak_base_url: https://replace_me
 vice_operator_keycloak_client_id: replace_me
