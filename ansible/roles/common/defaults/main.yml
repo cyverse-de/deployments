@@ -222,8 +222,6 @@ formation_keycloak_client_secret: replace_me
 formation_user_deletion_app_name: portal-delete-user
 formation_verify_ssl: "false"
 
-gateway_provider: traefik
-
 # GoCD settings
 gocd_enabled: false
 gocd_external_domain: replace_me
