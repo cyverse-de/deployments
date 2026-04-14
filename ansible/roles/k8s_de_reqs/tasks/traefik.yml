@@ -1,0 +1,138 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create traefik namespace
+      kubernetes.core.k8s:
+        name: "{{ traefik_namespace }}"
+        state: present
+        kind: namespace
+        api_version: v1
+
+    - name: create the self-signed CA certificate for traefik
+      kubernetes.core.k8s:
+        name: "{{ traefik_ca_name }}"
+        namespace: "{{ traefik_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ traefik_ca_name }}"
+          spec:
+            isCA: true
+            commonName: "{{ traefik_ca_name }}"
+            secretName: "{{ traefik_ca_name }}"
+            duration: "{{ traefik_ca_duration }}"
+            renewBefore: "{{ traefik_ca_renew_before }}"
+            privateKey:
+              algorithm: ECDSA
+              size: 256
+            issuerRef:
+              name: default-cluster-issuer
+              kind: ClusterIssuer
+              group: cert-manager.io
+
+    - name: create the certificate issuer for traefik
+      kubernetes.core.k8s:
+        name: "{{ traefik_issuer_name }}"
+        namespace: "{{ traefik_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Issuer
+          metadata:
+            name: "{{ traefik_issuer_name }}"
+          spec:
+            ca:
+              secretName: "{{ traefik_ca_name }}"
+
+    - name: create the TLS certificate for traefik
+      kubernetes.core.k8s:
+        name: "{{ traefik_cert_name }}"
+        namespace: "{{ traefik_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ traefik_cert_name }}"
+          spec:
+            secretName: "{{ traefik_cert_name }}"
+            duration: "{{ traefik_cert_duration }}"
+            renewBefore: "{{ traefik_cert_renew_before }}"
+            issuerRef:
+              name: "{{ traefik_issuer_name }}"
+              kind: Issuer
+            commonName: "*.{{ traefik_namespace }}.svc.cluster.local"
+            dnsNames:
+              - localhost
+              - "{{ ui_wildcard_fqdn }}"
+              - "{{ vice_wildcard_fqdn }}"
+              - "{{ vice_base_domain }}"
+
+    - name: install traefik repo
+      kubernetes.core.helm_repository:
+        name: traefik
+        repo_url: https://traefik.github.io/charts
+
+    - name: install traefik
+      kubernetes.core.helm:
+        name: traefik
+        chart_ref: traefik/traefik
+        release_namespace: "{{ traefik_namespace }}"
+        values:
+          gateway:
+            listeners:
+              web:
+                namespacePolicy:
+                  from: "All"
+          ingressRoute:
+            dashboard:
+              enabled: true
+              matchRule: "Host(`dashboard.localhost`)"
+              entryPoints:
+                - "web"
+                - "websecure"
+          ports:
+            web:
+              http:
+                encodedCharacters:
+                  allowEncodedSlash: true # Required for VICE loading page
+              transport:
+                respondingTimeouts:
+                  readTimeout: "24h"
+                  writeTimeout: "24h"
+              port: 8000
+              exposedPort: 80
+              nodePort: "{{ traefik_http_port }}"
+            websecure:
+              http:
+                encodedCharacters:
+                  allowEncodedSlash: true # Required for VICE loading page
+              transport:
+                respondingTimeouts:
+                  readTimeout: "24h"
+                  writeTimeout: "24h"
+              port: 8443
+              exposedPort: 443
+              nodePort: "{{ traefik_https_port }}"
+            traefik:
+              port: 9000
+              exposedPort: 9000
+              nodePort: 31390
+          providers:
+            kubernetesGateway:
+              enabled: true
+          service:
+            type: NodePort
+          tlsStore:
+            default:
+              defaultCertificate:
+                secretName: "{{ traefik_cert_name }}"
+
+    - name: install Gateway API CRDs
+      kubernetes.core.k8s:
+        state: present
+        src: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml

@@ -109,3 +109,20 @@
             namespace: "{{ ns }}"
           data: "{{ ssl_data }}"
       when: secrets_loader_load_ssl_secret
+
+    - name: load unleash secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: unleash-secret
+            namespace: "{{ ns }}"
+          type: Opaque
+          stringData:
+            database_host: "{{ groups['dbms'][0] }}"
+            database_ssl: "{{ unleash_db_ssl_enabled }}"
+            database_name: "{{ unleash_db_name }}"
+            database_username: "{{ unleash_db_user }}"
+            database_password: "{{ unleash_db_password }}"

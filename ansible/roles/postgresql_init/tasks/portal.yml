@@ -21,8 +21,8 @@
         name: "{{ portal_db_name }}"
         owner: "{{ portal_db_user }}"
         encoding: "{{ encoding }}"
-        # lc_collate: "{{ lc_collate }}"
-        lc_ctype: "{{ lc_ctype }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
@@ -38,6 +38,15 @@
         type: schema
         objs: public
         role: "{{portal_db_user}}"
+
+    - name: grant the pg_read_server_files privilege to the portal user
+      community.postgresql.postgresql_query:
+        login_host: "{{groups['dbms'][0]}}"
+        port: "{{pg_listen_port}}"
+        login_user: "{{pg_login_user}}"
+        login_password: "{{pg_login_password}}"
+        login_db: "{{portal_db_name}}"
+        query: "GRANT pg_read_server_files TO {{portal_db_user}}"
 
     - name: install extensions for the portal database
       when: install_exts is defined and install_exts
@@ -115,21 +124,29 @@
     - debug:
         msg: "{{records_result}}"
 
+    - name: update pgpass so that we can use psql
+      ansible.builtin.lineinfile:
+        path: "{{user_home}}/.pgpass"
+        create: true
+        insertafter: "EOF"
+        mode: 0600
+        line: "{{groups['dbms'][0]}}:*:*:{{portal_db_user}}:{{portal_db_password}}"
+      vars:
+        user_home: "{{ lookup('env', 'HOME') }}"
+
     - name: copy grid.csv data into the account_institution_grid table
       when: records_result["query_result"][0]["record_count"] <= 1
-      community.postgresql.postgresql_copy:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_db_user}}"
-        login_password: "{{portal_db_password}}"
-        login_db: "{{portal_db_name}}"
-        copy_from: "{{dbs_dir.path}}/grid_institutions/grid.csv"
-        dst: account_institution_grid
-        columns: grid_id,name,city,state,country
-        options:
-          format: csv
-          header: True
-      register: copy_result
-
-    - debug:
-        msg: "{{copy_result}}"
+      ansible.builtin.command:
+        argv:
+          - "psql"
+          - "--host={{groups['dbms'][0]}}"
+          - "--port={{pg_listen_port}}"
+          - "--username={{portal_db_user}}"
+          - "--dbname={{portal_db_name}}"
+          - "--command={{cmd}}"
+      vars:
+        column_list: "grid_id,name,city,state,country"
+        grid_csv_path: "{{dbs_dir.path}}/grid_institutions/grid.csv"
+        table: "account_institution_grid"
+        options: "DELIMITER ',', FORMAT 'csv', NULL 'null'"
+        cmd: "\\copy {{table}} ({{column_list}}) from {{grid_csv_path}} WITH ({{options}})"
