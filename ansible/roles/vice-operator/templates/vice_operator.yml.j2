@@ -42,11 +42,21 @@ subjects:
     name: vice-operator
     namespace: {{ vice_ns}}
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vice-operator-secret
+  namespace: {{ vice_ns }}
+data:
+  REGISTRY_PASSWORD: "{{ vice_operator_registry_password | b64encode }}"
+  KEYCLOAK_CLIENT_SECRET: "{{ vice_operator_keycloak_client_secret | b64encode }}"
+  SWAGGER_CLIENT_SECRET: "{{ vice_operator_swagger_client_secret | b64encode }}"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vice-operator
-  namespace: vice-apps
+  namespace: {{ vice_ns }}
 spec:
   replicas: 1
   selector:
@@ -63,6 +73,22 @@ spec:
           image: {{ vice_operator_image }}
           imagePullPolicy: Always
           command: ["/vice-operator"]
+          env:
+          - name: REGISTRY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: REGISTRY_PASSWORD
+          - name: KEYCLOAK_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: KEYCLOAK_CLIENT_SECRET
+          - name: SWAGGER_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: SWAGGER_CLIENT_SECRET
           args:
             - "--namespace={{ vice_ns }}"
             - "--port={{ vice_operator_port }}"
@@ -80,17 +106,14 @@ spec:
 {% endif %}
             - "--registry-server={{ vice_operator_registry_server }}"
             - "--registry-username={{ vice_operator_registry_username }}"
-            - "--registry-password={{ vice_operator_registry_password }}"
             - "--operator-pod-selector={{ vice_operator_pod_selector }}"
             - "--api-service-name={{ vice_operator_api_service_name }}"
             - "--api-auth-issuer-url={{ vice_operator_api_auth_issuer_url }}"
             - "--api-auth-client-id={{ vice_operator_keycloak_client_id }}"
             - "--swagger-client-id={{ vice_operator_swagger_client_id }}"
-            - "--swagger-client-secret={{ vice_operator_swagger_client_secret }}"
 {% if not vice_operator_disable_vice_proxy_auth %}
             - "--keycloak-base-url={{ vice_operator_keycloak_base_url }}"
             - "--keycloak-client-id={{ vice_operator_keycloak_client_id }}"
-            - "--keycloak-client-secret={{ vice_operator_keycloak_client_secret }}"
             - "--keycloak-realm={{ vice_operator_keycloak_realm}}"
 {% else %}
             - "--disable-vice-proxy-auth"
