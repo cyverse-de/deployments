@@ -743,6 +743,8 @@ vice_operator_disable_vice_proxy_auth: false
 vice_operator_keycloak_base_url: https://replace_me
 vice_operator_keycloak_client_id: replace_me
 vice_operator_keycloak_client_secret: replace_me
+vice_operator_swagger_client_id: replace_me
+vice_operator_swagger_client_secret: replace_me
 vice_operator_keycloak_realm: replace_me
 vice_operator_ingress_pod_exceptions:
   - kubernetes.io/metadata.name=traefik,app.kubernetes.io/name=traefik
