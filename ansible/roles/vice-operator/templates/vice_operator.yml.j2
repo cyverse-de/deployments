@@ -85,6 +85,8 @@ spec:
             - "--api-service-name={{ vice_operator_api_service_name }}"
             - "--api-auth-issuer-url={{ vice_operator_api_auth_issuer_url }}"
             - "--api-auth-client-id={{ vice_operator_keycloak_client_id }}"
+            - "--swagger-client-id={{ vice_operator_swagger_client_id }}"
+            - "--swagger-client-secret={{ vice_operator_swagger_client_secret }}"
 {% if not vice_operator_disable_vice_proxy_auth %}
             - "--keycloak-base-url={{ vice_operator_keycloak_base_url }}"
             - "--keycloak-client-id={{ vice_operator_keycloak_client_id }}"
