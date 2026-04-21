@@ -574,6 +574,7 @@ vice_namespace_egress_disallow:
   - 10.43.0.0/8
   - 128.196.254.64/32
   - 131.153.56.98/32
+vice_default_time_limit_extension: "4h"
 
 # Admin settings
 admin_groups: core-services,dev,staff
