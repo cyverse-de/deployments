@@ -222,8 +222,6 @@ formation_keycloak_client_secret: replace_me
 formation_user_deletion_app_name: portal-delete-user
 formation_verify_ssl: "false"
 
-gateway_provider: traefik
-
 # GoCD settings
 gocd_enabled: false
 gocd_external_domain: replace_me
@@ -625,47 +623,23 @@ keycloak_db_password: Ch@ng3M3
 keycloak_db_vendor: postgres
 keycloak_db_port: "5432"
 keycloak_db_name: keycloak
-keycloak_login_username: keycloak
-keycloak_login_password: Ch@ng3M3
 keycloak_namespace: keycloak
 keycloak_realm_name: CyVerseTest
 keycloak_client_id: replace_me
 keycloak_client_secret: replace_me
 keycloak_vice_client_id: replace_me
 keycloak_vice_client_secret: replace_me
-keycloak_realm_display_name: CyVerse Test Realm connected to pollit.iplantcollaborative.org
-keycloak_realm_display_name_html: CyVerse Test (pollit)
-keycloak_vice_domain: cyverse.run
-keycloak_redirect_uris:
-  - "https://qa.cyverse.org/*"
-  - "https://sonora-qa.cyverse.org/*"
-keycloak_web_origins:
-  - "https://qa.cyverse.org"
-  - "https://sonora-qa.cyverse.org/*"
-keycloak_portal_id: portal
-keycloak_portal_name: User Portal - development
-keycloak_portal_root_url: https://portaldev.cyverse.org
-keycloak_portal_redirect_uris:
-  - "https://portaldev.cyverse.org/*"
-keycloak_portal_web_origins:
-  - "https://portaldev.cyverse.org"
-keycloak_use_theme: false
-keycloak_theme: cyverse
-keycloak_groups_dn:
-  - "ou=Groups,dc=iplantcollaborative,dc=org"
-keycloak_bind_dn:
-  - "uid=ldap_reader,ou=People,dc=iplantcollaborative,dc=org"
-keycloak_connection_url: "ldap://ldap.ldap:389"
-keycloak_http_nodeport: 31360
-keycloak_https_nodeport: 31361
+keycloak_temp_admin_username: admin
+keycloak_temp_admin_password: admin
 keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
-keycloak_hostname_url: https://keycloak.example.org/
+keycloak_admin_email: kcadmin@example.org
+keycloak_admin_server_uri: https://keycloak.example.org/auth
+keycloak_admin_client_id: replace_me
+keycloak_admin_client_secret: replace_me
+keycloak_hostname: keycloak.example.org
 keycloak_hostname_strict: "false"
-keycloak_hostname_strict_https: "false"
-keycloak_log_level: INFO
-keycloak_proxy: passthrough
-keycloak_jdbc_params: connectTimeout=21600
+keycloak_log_level: "info"
 keycloak_java_opts: "-server -Xms1024m -Xmx2048m -XX:MetaspaceSize=96m -XX:MaxMetaspaceSize=256m -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true -Dkeycloak.profile.feature.token_exchange=enabled -Djava.security.egd=file:/dev/urandom"
 keycloak_cert_duration: "8766h" # 1 year
 keycloak_cert_renew_before: "240h" # 10 days
@@ -675,6 +649,8 @@ keycloak_ephemeral_storage_request: "2Gi"
 keycloak_cpu_limit: "200m"
 keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
+keycloak_proxy_headers: "xforwarded"
+keycloak_http_enabled: "true"
 
 # Gateway provider configuration
 gateway_provider: "traefik"

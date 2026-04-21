@@ -1,360 +1,356 @@
 ---
-- name: create the keycloak namespace
-  delegate_to: localhost
+- delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    name: "{{ keycloak_namespace }}"
-    state: present
-    kind: namespace
-    api_version: v1
+  block:
+    - name: create the keycloak namespace
+      kubernetes.core.k8s:
+        name: "{{ keycloak_namespace }}"
+        state: present
+        kind: namespace
+        api_version: v1
 
-- name: create the keycloak secrets
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: dbuser
-        namespace: "{{ keycloak_namespace }}"
-        labels:
-          app: keycloak
-      type: Opaque
-      data:
-        username: "{{ keycloak_db_username | b64encode }}"
-        passweord: "{{ keycloak_db_password | b64encode }}"
-
-- name: create the kcadmin secret
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: kcadmin
-        namespace: "{{ keycloak_namespace }}"
-        labels:
-          app: keycloak
-      type: Opaque
-      data:
-        username: "{{ keycloak_admin_username | b64encode}}"
-        password: "{{ keycloak_admin_password | b64encode}}"
-
-- name: create the kc-selfsigned-ca secret
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    name: kc-selfsigned-ca
-    namespace: "{{ keycloak_namespace }}"
-    state: present
-    definition:
-      apiVersion: cert-manager.io/v1
-      kind: Certificate
-      metadata:
-        name: kc-selfsigned-ca
-      spec:
-        isCA: true
-        commonName: kc-selfsigned-ca
-        secretName: kc-selfsigned-ca
-        duration: "{{ keycloak_cert_duration }}"
-        renewBefore: "{{ keycloak_cert_renew_before }}"
-        privateKey:
-          algorithm: ECDSA
-          size: 256
-        issuerRef:
-          name: default-cluster-issuer
-          kind: ClusterIssuer
-          group: cert-manager.io
-
-- name: create the kc-ca-issuer issuer
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    name: kc-ca-issuer
-    namespace: "{{ keycloak_namespace }}"
-    state: present
-    definition:
-      apiVersion: cert-manager.io/v1
-      kind: Issuer
-      metadata:
-        name: kc-ca-issuer
-      spec:
-        ca:
-          secretName: kc-selfsigned-ca
-
-- name: create the kc-tls certificate
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    name: kc-tls
-    namespace: "{{ keycloak_namespace }}"
-    state: present
-    definition:
-      apiVersion: cert-manager.io/v1
-      kind: Certificate
-      metadata:
-        name: kc-tls
-      spec:
-        secretName: kc-tls
-        duration: "{{ keycloak_cert_duration }}"
-        renewBefore: "{{ keycloak_cert_renew_before }}"
-        issuerRef:
-          name: kc-ca-issuer
-          kind: Issuer
-        commonName: keycloak.{{ keycloak_namespace }}.svc.cluster.local
-        dnsNames:
-          - localhost
-          - "{{ ui_wildcard_fqdn }}"
-          - "{{ vice_wildcard_fqdn }}"
-          - "{{ vice_base_domain }}"
-          - "*.keycloak.{{ keycloak_namespace }}.svc.cluster.local"
-          - "*.keycloak.{{ keycloak_namespace }}.svc"
-          - "*.keycloak.{{ keycloak_namespace }}"
-          - "*.keycloak"
-          - keycloak.{{ keycloak_namespace }}.svc.cluster.local
-          - keycloak.{{ keycloak_namespace }}.svc
-          - keycloak.{{ keycloak_namespace }}
-          - keycloak
-
-- name: create the keycloak-config ConfigMap
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: keycloak-config
-        namespace: "{{ keycloak_namespace }}"
-        labels:
-          app: keycloak
-      data:
-        KEYCLOAK_HOSTNAME_URL: "{{ keycloak_hostname_url }}"
-        KEYCLOAK_HOSTNAME_STRICT: "{{ keycloak_hostname_strict }}"
-        KEYCLOAK_HOSTNAME_STRICT_HTTPS: "{{ keycloak_hostname_strict_https }}"
-        KEYCLOAK_LOGLEVEL: '"{{ keycloak_log_level }}"'
-        KEYCLOAK_PROXY: "{{ keycloak_proxy }}"
-        DB_VENDOR: "{{ keycloak_db_vendor }}"
-        DB_ADDR: "{{ groups['dbms'][0] }}"
-        DB_PORT: "{{ keycloak_db_port }}"
-        DB_NAME: "{{ keycloak_db_name }}"
-        JDBC_PARAMS: "{{ keycloak_jdbc_params }}"
-        JAVA_OPTS: "{{ keycloak_java_opts }}"
-        realms.json:  |
-          "{{ lookup('ansible.builtin.template', 'realms_config.json.j2') }}"
-
-- name: install the keycloak deployment
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: keycloak
-        namespace: "{{ keycloak_namespace }}"
-        labels:
-          app: keycloak
-      spec:
-        replicas: 1
-        selector:
-          matchLabels:
-            app: keycloak
-        template:
+    - name: create the keycloak secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
           metadata:
+            name: dbuser
+            namespace: "{{ keycloak_namespace }}"
+            labels:
+              app: keycloak
+          type: Opaque
+          data:
+            username: "{{ keycloak_db_username | b64encode }}"
+            password: "{{ keycloak_db_password | b64encode }}"
+
+    - name: create the kc-selfsigned-ca secret
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: kc-selfsigned-ca
+        namespace: "{{ keycloak_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: kc-selfsigned-ca
+          spec:
+            isCA: true
+            commonName: kc-selfsigned-ca
+            secretName: kc-selfsigned-ca
+            duration: "{{ keycloak_cert_duration }}"
+            renewBefore: "{{ keycloak_cert_renew_before }}"
+            privateKey:
+              algorithm: ECDSA
+              size: 256
+            issuerRef:
+              name: default-cluster-issuer
+              kind: ClusterIssuer
+              group: cert-manager.io
+
+    - name: create the kc-ca-issuer issuer
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: kc-ca-issuer
+        namespace: "{{ keycloak_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Issuer
+          metadata:
+            name: kc-ca-issuer
+          spec:
+            ca:
+              secretName: kc-selfsigned-ca
+
+    - name: create the locally signed kc-tls certificate
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: kc-tls
+        namespace: "{{ keycloak_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: kc-tls
+          spec:
+            secretName: kc-tls
+            duration: "{{ keycloak_cert_duration }}"
+            renewBefore: "{{ keycloak_cert_renew_before }}"
+            issuerRef:
+              name: kc-ca-issuer
+              kind: Issuer
+            commonName: keycloak.{{ keycloak_namespace }}.svc.cluster.local
+            dnsNames:
+              - localhost
+              - "{{ keycloak_hostname }}"
+              - "*.keycloak.{{ keycloak_namespace }}.svc.cluster.local"
+              - "*.keycloak.{{ keycloak_namespace }}.svc"
+              - "*.keycloak.{{ keycloak_namespace }}"
+              - "*.keycloak"
+              - keycloak.{{ keycloak_namespace }}.svc.cluster.local
+              - keycloak.{{ keycloak_namespace }}.svc
+              - keycloak.{{ keycloak_namespace }}
+              - keycloak
+
+    - name: create the kc-tls certificate signed by Let's Encrypt
+      when: cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: kc-tls
+        namespace: "{{ keycloak_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: kc-tls
+          spec:
+            secretName: kc-tls
+            duration: "{{ keycloak_cert_duration }}"
+            renewBefore: "{{ keycloak_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ keycloak_hostname }}"
+            dnsNames:
+              - "{{ keycloak_hostname }}"
+
+    - name: install the keycloak deployment
+      kubernetes.core.k8s:
+        state: present
+        wait: true
+        wait_timeout: 1800
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: keycloak
+            namespace: "{{ keycloak_namespace }}"
             labels:
               app: keycloak
           spec:
-            volumes:
-              - name: kc-tls
-                secret:
-                  secretName: kc-tls
-              - name: kc-keystore
-                emptyDir:
-                  sizeLimit: "2Gi"
-              - name: keycloak-config
-                configMap:
-                  name: keycloak-config
-                  items:
-                    - key: realms.json
-                      path: realms.json
-            initContainers:
-              - name: init-keystore
-                image: alpine/openssl
-                command:
-                  - "openssl"
-                  - "pkcs12"
-                  - "-export"
-                  - "-in"
-                  - "/etc/tls/tls.crt"
-                  - "-inkey"
-                  - "/etc/tls/tls.key"
-                  - "-out"
-                  - "/etc/keystore/tls.p12"
-                  - "-name"
-                  - "certificate"
-                  - "-passout"
-                  - "pass:password"
-                resources:
-                  requests:
-                    cpu: "{{ keycloak_cpu_request }}"
-                    memory: "{{ keycloak_memory_request }}"
-                    ephemeral-storage: "{{ keycloak_ephemeral_storage_request }}"
-                  limits:
-                    cpu: "{{ keycloak_cpu_limit }}"
-                    memory: "{{ keycloak_memory_limit }}"
-                    ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
-                volumeMounts:
-                  - name: kc-tls
-                    mountPath: "/etc/tls"
-                  - name: kc-keystore
-                    mountPath: "/etc/keystore"
-              - name: fix-keystore-perms
-                image: alpine/openssl
-                command:
-                  - "chmod"
-                  - "0644"
-                  - "/etc/tls/tls.p12"
-                resources:
-                  requests:
-                    cpu: "{{ keycloak_cpu_request }}"
-                    memory: "{{ keycloak_memory_request }}"
-                    ephemeral-storage: "{{ keycloak_ephemeral_storage_request }}"
-                  limits:
-                    cpu: "{{ keycloak_cpu_limit }}"
-                    memory: "{{ keycloak_memory_limit }}"
-                    ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
-                volumeMounts:
-                  - name: kc-keystore
-                    mountPath: "/etc/tls"
-            containers:
-              - name: keycloak
-                image: quay.io/keycloak/keycloak:21.1
-                args:
-                  - "start"
-                  - "--import-realm"
-                  - "--hostname-url=$KC_HOSTNAME_URL"
-                  - "--hostname-admin-url=$KC_HOSTNAME_URL"
-                  - "--log-level=$KEYCLOAK_LOGLEVEL"
-                  - "--https-key-store-file=/etc/tls/tls.p12"
-                  - "--https-key-store-type=pkcs12"
-                  - "--proxy=$KC_PROXY"
-                  - "--db=$DB_VENDOR"
-                  - "--db-url-host=$DB_ADDR"
-                  - "--db-url-port=$DB_PORT"
-                  - "--db-url-database=$DB_NAME"
-                  - "--db-username=$DB_USER"
-                  - "--db-password=$DB_PASSWORD"
-                  - "--health-enabled=true"
-                  - "--http-enabled=true"
-                  - "--spi-login-protocol-openid-connect-legacy-logout-redirect-uri=true"
-                env:
-                  - name: KC_HOSTNAME_URL
-                    value: "{{ keycloak_hostname_url }}"
-                  - name: KC_HOSTNAME_STRICT
-                    value: "{{ keycloak_hostname_strict }}"
-                  - name: KC_HOSTNAME_STRICT_HTTPS
-                    value: "{{ keycloak_hostname_strict_https }}"
-                  - name: KC_PROXY
-                    value: "{{ keycloak_proxy }}"
-                  - name: KEYCLOAK_ADMIN
-                    value: "{{ keycloak_admin_username }}"
-                  - name: KEYCLOAK_ADMIN_PASSWORD
-                    value: "{{ keycloak_admin_password }}"
-                  - name: KEYCLOAK_LOGLEVEL
-                    value: "{{ keycloak_log_level }}"
-                  - name: DB_VENDOR
-                    value: "{{ keycloak_db_vendor }}"
-                  - name: DB_ADDR
-                    value: "{{ groups['dbms'][0] }}"
-                  - name: DB_PORT
-                    value: "{{ keycloak_db_port }}"
-                  - name: DB_NAME
-                    value: "{{ keycloak_db_name }}"
-                  - name: DB_USER
-                    value: "{{ keycloak_db_username }}"
-                  - name: DB_PASSWORD
-                    value: "{{ keycloak_db_password }}"
-                  - name: JAVA_OPTS
-                    value: "{{ keycloak_java_opts }}"
-                resources:
-                  requests:
-                    cpu: "{{ keycloak_cpu_request }}"
-                    memory: "{{ keycloak_memory_request }}"
-                    ephemeral-storage: "{{ keycloak_ephemeral_storage_request }}"
-                  limits:
-                    cpu: "{{ keycloak_cpu_limit }}"
-                    memory: "{{ keycloak_memory_limit }}"
-                    ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
-                volumeMounts:
-                  - name: kc-keystore
-                    mountPath: "/etc/tls"
-                  - name: keycloak-config
-                    mountPath: /opt/keycloak/data/import
-                ports:
-                  - name: http
-                    containerPort: 8080
-                  - name: https
-                    containerPort: 8443
-                startupProbe:
-                  httpGet:
-                    path: /health/live
-                    port: 8080
-                  periodSeconds: 30
-                  failureThreshold: 100
-                livenessProbe:
-                  httpGet:
-                    path: /health/live
-                    port: 8080
-                  periodSeconds: 30
-                  failureThreshold: 10
-                readinessProbe:
-                  httpGet:
-                    path: /health/ready
-                    port: 8080
-                  periodSeconds: 30
-                  failureThreshold: 10
+            replicas: 1
+            selector:
+              matchLabels:
+                app: keycloak
+            template:
+              metadata:
+                labels:
+                  app: keycloak
+              spec:
+                containers:
+                  - name: keycloak
+                    image: harbor.cyverse.org/de/keycloak:26.5
+                    args:
+                      - "start"
+                      - "--optimized"
+                    env:
+                      - name: KC_BOOTSTRAP_ADMIN_USERNAME
+                        value: "{{ keycloak_temp_admin_username }}"
+                      - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+                        value: "{{ keycloak_temp_admin_password }}"
+                      - name: KC_PROXY_HEADERS
+                        value: "{{ keycloak_proxy_headers }}"
+                      - name: KC_HTTP_ENABLED
+                        value: "{{ keycloak_http_enabled }}"
+                      - name: KC_HOSTNAME_STRICT
+                        value: "{{ keycloak_hostname_strict }}"
+                      - name: KC_HEALTH_ENABLED
+                        value: "true"
+                      - name: KC_METRICS_ENABLED
+                        value: "true"
+                      - name: KC_LOG_LEVEL
+                        value: "{{ keycloak_log_level }}"
+                      - name: KC_DB
+                        value: "{{ keycloak_db_vendor }}"
+                      - name: KC_DB_URL_DATABASE
+                        value: "{{ keycloak_db_name }}"
+                      - name: KC_DB_URL_HOST
+                        value: "{{ groups['dbms'][0] }}"
+                      - name: KC_DB_URL_PORT
+                        value: "{{ keycloak_db_port }}"
+                      - name: KC_DB_USERNAME
+                        valueFrom:
+                          secretKeyRef:
+                            name: dbuser
+                            key: username
+                      - name: KC_DB_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: dbuser
+                            key: password
+                      - name: JAVA_OPTS
+                        value: "{{ keycloak_java_opts }}"
+                    resources:
+                      requests:
+                        cpu: "{{ keycloak_cpu_request }}"
+                        memory: "{{ keycloak_memory_request }}"
+                        ephemeral-storage: "{{ keycloak_ephemeral_storage_request }}"
+                      limits:
+                        cpu: "{{ keycloak_cpu_limit }}"
+                        memory: "{{ keycloak_memory_limit }}"
+                        ephemeral-storage: "{{ keycloak_ephemeral_storage_limit }}"
+                    ports:
+                      - name: http
+                        containerPort: 8080
+                    startupProbe:
+                      httpGet:
+                        path: /health/live
+                        port: 9000
+                      periodSeconds: 30
+                      failureThreshold: 100
+                    livenessProbe:
+                      httpGet:
+                        path: /health/live
+                        port: 9000
+                      periodSeconds: 30
+                      failureThreshold: 10
+                    readinessProbe:
+                      httpGet:
+                        path: /health/ready
+                        port: 9000
+                      periodSeconds: 30
+                      failureThreshold: 10
 
-- name: install the keycloak service
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: keycloak
+    - name: install the keycloak service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: keycloak
+            namespace: "{{ keycloak_namespace }}"
+            labels:
+              app: keycloak
+          spec:
+            ports:
+              - protocol: TCP
+                name: http
+                port: 80
+                targetPort: http
+            selector:
+              app: keycloak
+            type: ClusterIP
+
+    - name: create the gateway for Keycloak
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: keycloak
+            namespace: "{{ keycloak_namespace }}"
+          spec:
+            gatewayClassName: "{{ gateway_class_name }}"
+            listeners:
+              - hostname: "{{ keycloak_hostname }}"
+                name: keycloak-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: kc-tls
+
+    - name: define the routes for Keycloak
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: keycloak-routes
+            namespace: "{{ keycloak_namespace }}"
+          spec:
+            hostnames:
+              - "{{ keycloak_hostname }}"
+            parentRefs:
+              - name: keycloak
+            rules:
+              - backendRefs:
+                  - name: keycloak
+                    port: 80
+
+    - name: create the kcadmin secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: kcadmin
+            namespace: "{{ keycloak_namespace }}"
+            labels:
+              app: keycloak
+          type: Opaque
+          data:
+            username: "{{ keycloak_admin_username | b64encode}}"
+            password: "{{ keycloak_admin_password | b64encode}}"
+            email: "{{ keycloak_admin_email | b64encode}}"
+
+    - name: create the permanent admin user
+      kubernetes.core.k8s:
+        state: present
+        wait: true
+        wait_condition:
+          type: Complete
+          status: "True"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: kc-create-admin-user
+            namespace: "{{ keycloak_namespace }}"
+          spec:
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                containers:
+                  - name: kc
+                    image: harbor.cyverse.org/de/keycloak:26.5
+                    imagePullPolicy: Always
+                    command:
+                      - create-kc-admin.sh
+                    env:
+                      - name: KC_ADMIN_URL
+                        value: "http://keycloak"
+                      - name: KC_ADMIN_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: kcadmin
+                            key: username
+                      - name: KC_ADMIN_PASS
+                        valueFrom:
+                          secretKeyRef:
+                            name: kcadmin
+                            key: password
+                      - name: KC_ADMIN_EMAIL
+                        valueFrom:
+                          secretKeyRef:
+                            name: kcadmin
+                            key: email
+                restartPolicy: Never
+            backoffLimit: 4
+
+    - name: delete the permanent admin user creation jobs
+      kubernetes.core.k8s:
+        state: absent
+        api_version: batch/v1
+        kind: Job
+        name: kc-create-admin-user
         namespace: "{{ keycloak_namespace }}"
-        labels:
-          app: keycloak
-      spec:
-        ports:
-          - protocol: TCP
-            name: http
-            port: 80
-            targetPort: http
-            nodePort: "{{keycloak_http_nodeport}}"
-          - protocol: TCP
-            name: https
-            port: 443
-            targetPort: https
-            nodePort: "{{keycloak_https_nodeport}}"
-        selector:
-          app: keycloak
-        type: NodePort
+
+    - name: delete the kcadmin secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: kcadmin
+        namespace: "{{ keycloak_namespace }}"
