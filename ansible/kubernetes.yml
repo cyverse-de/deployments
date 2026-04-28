@@ -165,6 +165,16 @@
   tags:
     - irods-csi-driver
 
+- name: deploy vice-operator in local cluster
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: vice-operator
+  tags:
+    - vice-operator
+
 - hosts: k8s_controllers[0]
   connection: local
   gather_facts: false

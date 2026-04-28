@@ -1,0 +1,150 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+    name: vice-operator
+    namespace: {{ vice_ns }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vice-operator
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "secrets", "persistentvolumes", "persistentvolumeclaims", "nodes"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways", "httproutes"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["traefik.io"]
+    resources: ["middlewares"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vice-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vice-operator
+subjects:
+  - kind: ServiceAccount
+    name: vice-operator
+    namespace: {{ vice_ns}}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vice-operator-secret
+  namespace: {{ vice_ns }}
+data:
+  REGISTRY_PASSWORD: "{{ vice_operator_registry_password | b64encode }}"
+  KEYCLOAK_CLIENT_SECRET: "{{ vice_operator_keycloak_client_secret | b64encode }}"
+  SWAGGER_CLIENT_SECRET: "{{ vice_operator_swagger_client_secret | b64encode }}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vice-operator
+  namespace: {{ vice_ns }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vice-operator
+  template:
+    metadata:
+      labels:
+        app: vice-operator
+    spec:
+      serviceAccountName: vice-operator
+      containers:
+        - name: vice-operator
+          image: "{{ build_json.builds[0].tag }}"
+          imagePullPolicy: Always
+          command: ["/vice-operator"]
+          env:
+          - name: REGISTRY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: REGISTRY_PASSWORD
+          - name: KEYCLOAK_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: KEYCLOAK_CLIENT_SECRET
+          - name: SWAGGER_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: SWAGGER_CLIENT_SECRET
+          args:
+            - "--namespace={{ vice_ns }}"
+            - "--port={{ vice_operator_port }}"
+            - "--loading-port={{ vice_operator_loading_port}}"
+            - "--max-analyses={{ vice_operator_max_analyses }}"
+            - "--gpu-vendor={{ vice_operator_gpu_vendor }}"
+            - "--vice-base-url={{ vice_operator_base_url }}"
+{% if vice_operator_skip_gateway_creation %}
+            - "--gateway-skip-creation"
+            - "--gateway-name={{ vice_operator_gateway_name }}"
+            - "--gateway-namespace={{ vice_operator_gateway_namespace }}"
+{% endif %}
+{% if vice_operator_disable_internet_access %}
+            - "--disable-internet-access"
+{% endif %}
+            - "--registry-server={{ vice_operator_registry_server }}"
+            - "--registry-username={{ vice_operator_registry_username }}"
+            - "--operator-pod-selector={{ vice_operator_pod_selector }}"
+            - "--api-service-name={{ vice_operator_api_service_name }}"
+            - "--api-auth-issuer-url={{ vice_operator_api_auth_issuer_url }}"
+            - "--api-auth-client-id={{ vice_operator_keycloak_client_id }}"
+            - "--swagger-client-id={{ vice_operator_swagger_client_id }}"
+{% if not vice_operator_disable_vice_proxy_auth %}
+            - "--keycloak-base-url={{ vice_operator_keycloak_base_url }}"
+            - "--keycloak-client-id={{ vice_operator_keycloak_client_id }}"
+            - "--keycloak-realm={{ vice_operator_keycloak_realm}}"
+{% else %}
+            - "--disable-vice-proxy-auth"
+{% endif%}
+{% for ingress_pod_exception in vice_operator_ingress_pod_exceptions %}
+            - "--ingress-pod-exception={{ ingress_pod_exception}}"
+{% endfor %}
+{% for egress_host_exception in vice_operator_egress_host_exceptions %}
+            - "--egress-host-exception={{ egress_host_exception }}"
+{% endfor %}
+          ports:
+            - containerPort: {{ vice_operator_port }}
+              name: http
+            - containerPort: {{ vice_operator_loading_port}}
+              name: loading
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

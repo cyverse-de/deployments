@@ -700,6 +700,33 @@ tapis_enabled: false
 tapis_jobs_enabled: false
 
 vice_operators_values: []
+vice_operator_image: harbor.cyverse.org/de/app-exposer:latest
+vice_operator_skip_gateway_creation: false
+vice_operator_gateway_name: vice
+vice_operator_gateway_namespace: vice-apps
+vice_operator_port: 10000
+vice_operator_loading_port: 8080
+vice_operator_max_analyses: 0
+vice_operator_gpu_vendor: nvidia
+vice_operator_base_url: https://cyverse.run
+vice_operator_disable_internet_access: false
+vice_operator_registry_server: harbor.cyverse.org
+vice_operator_registry_username: replace_me
+vice_operator_registry_password: replace_me
+vice_operator_pod_selector: app=vice-operator
+vice_operator_api_service_name: vice-operator
+vice_operator_api_auth_issuer_url: replace_me
+vice_operator_disable_vice_proxy_auth: false
+vice_operator_keycloak_base_url: https://replace_me
+vice_operator_keycloak_client_id: replace_me
+vice_operator_keycloak_client_secret: replace_me
+vice_operator_swagger_client_id: replace_me
+vice_operator_swagger_client_secret: replace_me
+vice_operator_keycloak_realm: replace_me
+vice_operator_ingress_pod_exceptions:
+  - kubernetes.io/metadata.name=traefik,app.kubernetes.io/name=traefik
+vice_operator_egress_host_exceptions:
+  - replace_me
 
 vice_cache_images:
   - harbor.cyverse.org/de/vice-proxy:qa
