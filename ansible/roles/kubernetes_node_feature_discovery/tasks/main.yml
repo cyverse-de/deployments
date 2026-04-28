@@ -23,6 +23,13 @@
         values:
           worker:
             tolerations:
+              - key: nvidia.com/gpu
+                operator: Exists
+                effect: NoSchedule
+              - key: gpu
+                operator: Equal
+                value: true
+                effect: NoSchedule
               - key: analysis
                 operation: Equal
                 value: only
@@ -41,6 +48,10 @@
           tolerations:
             - key: nvidia.com/gpu
               operator: Exists
+              effect: NoSchedule
+            - key: gpu
+              operator: Equal
+              value: true
               effect: NoSchedule
             - key: analysis
               operator: Equal
