@@ -70,7 +70,7 @@ spec:
       serviceAccountName: vice-operator
       containers:
         - name: vice-operator
-          image: {{ vice_operator_image }}
+          image: "{{ build_json.builds[0].tag }}"
           imagePullPolicy: Always
           command: ["/vice-operator"]
           env:
