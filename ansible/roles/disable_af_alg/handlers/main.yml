@@ -1,0 +1,30 @@
+---
+# `notify: compile disable_af_alg systemtap module` triggers the next two
+# handlers via the shared `listen:` topic. The stale .ko must be removed
+# first because `stap -p4` will not overwrite an existing module.
+- name: remove stale compiled module
+  ansible.builtin.file:
+    path: /usr/local/lib/systemtap/disable_af_alg.ko
+    state: absent
+  listen: compile disable_af_alg systemtap module
+
+- name: rebuild the systemtap module
+  ansible.builtin.command:
+    argv:
+      - stap
+      - -g
+      - -p4
+      - -m
+      - disable_af_alg
+      - disable_af_alg.stp
+    chdir: /usr/local/lib/systemtap
+  listen: compile disable_af_alg systemtap module
+
+- name: reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: restart disable-af-alg
+  ansible.builtin.systemd_service:
+    name: disable-af-alg.service
+    state: restarted

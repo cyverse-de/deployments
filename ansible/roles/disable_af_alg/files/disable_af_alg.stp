@@ -1,0 +1,33 @@
+/*
+ * disable_af_alg.stp
+ *
+ * Run (requires root and guru mode):
+ *   stap -g disable_af_alg.stp
+ */
+
+global blocked
+
+probe begin {
+    blocked = 0
+    printf("[disable_af_alg] Blocking AF_ALG via kprobes...\n")
+}
+
+probe kprobe.function("__sys_socket").call?,
+      kprobe.function("__x64_sys_socket").call?,
+      kprobe.function("__ia32_sys_socket").call?,
+      kprobe.function("__arm64_sys_socket").call?
+{
+    family = uint_arg(1)
+    if (family == 38) {
+        blocked += 1
+        printf("[disable_af_alg] blocked[%d] pid=%d comm=%s at %s type=%d proto=%d\n",
+               blocked, pid(), execname(), probefunc(), uint_arg(2), uint_arg(3))
+
+        /* Deny by killing the offending task when override() is unavailable. */
+        raise(9)
+    }
+}
+
+probe end {
+    printf("[disable_af_alg] exiting (blocked=%d)\n", blocked)
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Disable AF_ALG socket family (pre-patch mitigation)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/staprun /usr/local/lib/systemtap/disable_af_alg.ko
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

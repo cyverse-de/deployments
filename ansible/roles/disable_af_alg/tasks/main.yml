@@ -1,0 +1,94 @@
+---
+- name: get the running kernel release
+  ansible.builtin.command:
+    argv: [uname, -r]
+  register: uname
+  changed_when: false
+
+- name: install systemtap and kernel build packages
+  ansible.builtin.package:
+    name:
+      - systemtap
+      - systemtap-runtime
+      - dnf-plugins-core
+      - "kernel-devel-{{ uname.stdout }}"
+      - "kernel-headers-{{ uname.stdout }}"
+    state: present
+
+# `dnf debuginfo-install` auto-enables the matching *-debuginfo repo and pulls
+# in kernel-debuginfo + kernel-debuginfo-common-* for the running kernel.
+# Required because the .stp script probes named kernel functions
+# (__sys_socket, __x64_sys_socket, ...) which stap pass-2 cannot resolve
+# without debuginfo.
+- name: install kernel debuginfo for the running kernel
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - debuginfo-install
+      - -y
+      - "kernel-{{ uname.stdout }}"
+  register: debuginfo_install
+  changed_when: "'Installed' in debuginfo_install.stdout or 'Installing' in debuginfo_install.stdout"
+
+- name: create the systemtap module directory
+  ansible.builtin.file:
+    path: /usr/local/lib/systemtap
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: install the disable_af_alg.stp script
+  ansible.builtin.copy:
+    src: disable_af_alg.stp
+    dest: /usr/local/lib/systemtap/disable_af_alg.stp
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - compile disable_af_alg systemtap module
+    - restart disable-af-alg
+
+- name: install the disable-af-alg.service unit
+  ansible.builtin.copy:
+    src: disable-af-alg.service
+    dest: /etc/systemd/system/disable-af-alg.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart disable-af-alg
+
+# First-run case: the .stp copy above is a no-op on re-runs, so its handler
+# won't fire and we'd never get a .ko on a fresh node. The `creates:` keeps
+# this idempotent on subsequent runs.
+- name: compile the systemtap module if it does not yet exist
+  ansible.builtin.command:
+    argv:
+      - stap
+      - -g
+      - -p4
+      - -m
+      - disable_af_alg
+      - disable_af_alg.stp
+    chdir: /usr/local/lib/systemtap
+    creates: /usr/local/lib/systemtap/disable_af_alg.ko
+
+# Run any pending handlers (recompile on .stp change, daemon-reload on unit
+# change) before we try to enable/start the service.
+- name: flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: enable and start disable-af-alg.service
+  ansible.builtin.systemd_service:
+    name: disable-af-alg.service
+    enabled: true
+    state: started
+
+- name: verify disable-af-alg.service is active
+  ansible.builtin.command:
+    argv: [systemctl, is-active, disable-af-alg.service]
+  register: stap_status
+  changed_when: false
+  failed_when: stap_status.stdout.strip() != "active"
