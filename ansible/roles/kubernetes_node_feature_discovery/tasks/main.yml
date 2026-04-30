@@ -31,7 +31,7 @@
                 value: "true"
                 effect: NoSchedule
               - key: analysis
-                operation: Equal
+                operator: Equal
                 value: only
                 effect: NoSchedule
         wait: true
