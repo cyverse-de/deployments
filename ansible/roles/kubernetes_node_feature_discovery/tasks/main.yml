@@ -43,6 +43,8 @@
         chart_version: 0.17.1
         namespace: kube-system
         values:
+          nfd:
+            enabled: false
           gfd:
             enabled: true
           tolerations:

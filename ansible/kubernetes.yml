@@ -122,6 +122,7 @@
   roles:
     - nvidia_container_toolkit
   tags:
+    - nvidia-container-toolkit
     - post-k8s-tasks
     - prep-nodes
     - add-nodes
