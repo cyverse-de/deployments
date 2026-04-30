@@ -1,48 +1,5 @@
 ---
 apiVersion: v1
-kind: ServiceAccount
-metadata:
-    name: vice-operator
-    namespace: {{ vice_ns }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: vice-operator
-rules:
-  - apiGroups: [""]
-    resources: ["pods", "pods/log", "services", "configmaps", "secrets", "persistentvolumes", "persistentvolumeclaims", "nodes"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "daemonsets"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["networkpolicies"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
-  - apiGroups: ["policy"]
-    resources: ["poddisruptionbudgets"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
-  - apiGroups: ["gateway.networking.k8s.io"]
-    resources: ["gateways", "httproutes"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
-  - apiGroups: ["traefik.io"]
-    resources: ["middlewares"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: vice-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: vice-operator
-subjects:
-  - kind: ServiceAccount
-    name: vice-operator
-    namespace: {{ vice_ns}}
----
-apiVersion: v1
 kind: Secret
 metadata:
   name: vice-operator-secret
