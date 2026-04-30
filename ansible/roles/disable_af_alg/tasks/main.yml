@@ -92,3 +92,29 @@
   register: stap_status
   changed_when: false
   failed_when: stap_status.stdout.strip() != "active"
+
+# Functional check: try to open an AF_ALG (family 38) socket. The .stp script
+# raises SIGKILL on the offending task, so python3 is killed before it can
+# print MITIGATION_FAILED. If the trailing echo does run, the mitigation is
+# not actually blocking AF_ALG and the play should fail loudly.
+- name: verify the mitigation kills processes opening AF_ALG sockets
+  ansible.builtin.shell: |
+    python3 -c "import socket; socket.socket(38, 5, 0)" && echo MITIGATION_FAILED
+  register: af_alg_probe
+  changed_when: false
+  failed_when: "'MITIGATION_FAILED' in af_alg_probe.stdout"
+
+# Confirm the kernel-side block was actually logged by the running module —
+# guards against false positives (e.g. python3 dying for an unrelated reason).
+- name: verify the block was logged to the journal
+  ansible.builtin.command:
+    argv:
+      - journalctl
+      - -u
+      - disable-af-alg.service
+      - --since
+      - "1 minute ago"
+      - --no-pager
+  register: af_alg_journal
+  changed_when: false
+  failed_when: "'[disable_af_alg] blocked' not in af_alg_journal.stdout"
