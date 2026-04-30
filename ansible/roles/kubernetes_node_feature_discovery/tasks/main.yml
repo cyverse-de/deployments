@@ -28,7 +28,7 @@
                 effect: NoSchedule
               - key: gpu
                 operator: Equal
-                value: true
+                value: "true"
                 effect: NoSchedule
               - key: analysis
                 operation: Equal
@@ -51,7 +51,7 @@
               effect: NoSchedule
             - key: gpu
               operator: Equal
-              value: true
+              value: "true"
               effect: NoSchedule
             - key: analysis
               operator: Equal
