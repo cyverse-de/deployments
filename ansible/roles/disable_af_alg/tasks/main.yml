@@ -44,9 +44,15 @@
     - reload systemd
     - restart disable-af-alg
 
-# First-run case: the .stp copy above is a no-op on re-runs, so its handler
-# won't fire and we'd never get a .ko on a fresh node. The `creates:` keeps
-# this idempotent on subsequent runs.
+# Run any pending handlers (recompile on .stp change, daemon-reload on unit
+# change) before we try to enable/start the service.
+- name: flush handlers
+  ansible.builtin.meta: flush_handlers
+
+# Recovery / fresh-install fallback: if a previous run failed mid-compile and
+# left no .ko, the handler above won't fire on the retry (the .stp copy will
+# report "ok" with nothing to notify). The `creates:` makes this a no-op when
+# the handler already produced the .ko on this run.
 - name: compile the systemtap module if it does not yet exist
   ansible.builtin.command:
     argv:
@@ -58,11 +64,6 @@
       - disable_af_alg.stp
     chdir: /usr/local/lib/systemtap
     creates: /usr/local/lib/systemtap/disable_af_alg.ko
-
-# Run any pending handlers (recompile on .stp change, daemon-reload on unit
-# change) before we try to enable/start the service.
-- name: flush handlers
-  ansible.builtin.meta: flush_handlers
 
 - name: enable and start disable-af-alg.service
   ansible.builtin.systemd_service:

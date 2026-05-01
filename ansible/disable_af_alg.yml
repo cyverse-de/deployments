@@ -2,6 +2,7 @@
 - name: install the AF_ALG mitigation systemtap module
   hosts: k8s
   become: true
+  serial: 5
   roles:
     - role: disable_af_alg
   tags:
