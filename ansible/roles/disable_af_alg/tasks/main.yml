@@ -10,25 +10,9 @@
     name:
       - systemtap
       - systemtap-runtime
-      - dnf-plugins-core
       - "kernel-devel-{{ uname.stdout }}"
       - "kernel-headers-{{ uname.stdout }}"
     state: present
-
-# `dnf debuginfo-install` auto-enables the matching *-debuginfo repo and pulls
-# in kernel-debuginfo + kernel-debuginfo-common-* for the running kernel.
-# Required because the .stp script probes named kernel functions
-# (__sys_socket, __x64_sys_socket, ...) which stap pass-2 cannot resolve
-# without debuginfo.
-- name: install kernel debuginfo for the running kernel
-  ansible.builtin.command:
-    argv:
-      - dnf
-      - debuginfo-install
-      - -y
-      - "kernel-{{ uname.stdout }}"
-  register: debuginfo_install
-  changed_when: "'Installed' in debuginfo_install.stdout or 'Installing' in debuginfo_install.stdout"
 
 - name: create the systemtap module directory
   ansible.builtin.file:
