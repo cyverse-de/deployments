@@ -1,18 +1,16 @@
 ---
-- name: system updates
+- name: reboot nodes
   hosts: k8s_workers
-  become: true
+  become: false
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   serial: 5
   tasks:
     - name: print host
-      become: false
       debug:
         var: inventory_hostname
 
     - name: drain hosts
-      become: false
-      environment:
-        KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_drain:
         name: "{{ inventory_hostname }}"
         delete_options:
@@ -22,23 +20,11 @@
       delegate_to: 127.0.0.1
       ignore_errors: true
 
-    - name: update packages
-      ansible.builtin.shell: yum update -y --disablerepo=kubernetes
-      when: ansible_os_family == "RedHat"
-
-    - name: update debian/ubuntu packages
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
-        state: latest
-        name: "*"
-      when: ansible_os_family == "Debian"
-
     - name: reboot
+      become: true
       ansible.builtin.reboot:
 
     - name: wait for node to be ready
-      become: false
       kubernetes.core.k8s_info:
         kind: Node
         name: "{{ inventory_hostname }}"
@@ -49,29 +35,23 @@
       delegate_to: 127.0.0.1
 
     - name: uncordon hosts
-      become: false
-      environment:
-        KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_drain:
         name: "{{ inventory_hostname }}"
         state: uncordon
       delegate_to: 127.0.0.1
 
-
-- name: system updates
+- name: reboot nodes
   hosts: k8s_controllers
-  become: true
-  serial: 1
+  become: false
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  serial: 5
   tasks:
     - name: print host
-      become: false
       debug:
         var: inventory_hostname
 
     - name: drain hosts
-      become: false
-      environment:
-        KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_drain:
         name: "{{ inventory_hostname }}"
         delete_options:
@@ -79,24 +59,13 @@
           ignore_daemonsets: true
           terminate_grace_period: 0
       delegate_to: 127.0.0.1
-
-    - name: update packages
-      ansible.builtin.shell: yum update -y --disablerepo=kubernetes
-      when: ansible_os_family == "RedHat"
-
-    - name: update debian/ubuntu packages
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
-        state: latest
-        name: "*"
-      when: ansible_os_family == "Debian"
+      ignore_errors: true
 
     - name: reboot
+      become: true
       ansible.builtin.reboot:
 
     - name: wait for node to be ready
-      become: false
       kubernetes.core.k8s_info:
         kind: Node
         name: "{{ inventory_hostname }}"
@@ -107,9 +76,6 @@
       delegate_to: 127.0.0.1
 
     - name: uncordon hosts
-      become: false
-      environment:
-        KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_drain:
         name: "{{ inventory_hostname }}"
         state: uncordon
