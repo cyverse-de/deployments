@@ -1,105 +1,18 @@
 ---
-- name: get the running kernel release
-  ansible.builtin.command:
-    argv: [uname, -r]
-  register: uname
-  changed_when: false
+- name: validate disable_af_alg_state
+  ansible.builtin.assert:
+    that:
+      - disable_af_alg_state in ['present', 'absent']
+    fail_msg: >-
+      disable_af_alg_state must be 'present' or 'absent',
+      got: {{ disable_af_alg_state }}
 
-- name: install systemtap and kernel build packages
-  ansible.builtin.package:
-    name:
-      - systemtap
-      - systemtap-runtime
-      - "kernel-devel-{{ uname.stdout }}"
-      - "kernel-headers-{{ uname.stdout }}"
-    state: present
+# Use include_tasks (dynamic) so the unused branch is not parsed — keeps
+# install-only constructs (meta: flush_handlers, etc.) out of removal runs.
+- name: install the AF_ALG mitigation
+  ansible.builtin.include_tasks: install.yml
+  when: disable_af_alg_state == 'present'
 
-- name: create the systemtap module directory
-  ansible.builtin.file:
-    path: /usr/local/lib/systemtap
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: install the disable_af_alg.stp script
-  ansible.builtin.copy:
-    src: disable_af_alg.stp
-    dest: /usr/local/lib/systemtap/disable_af_alg.stp
-    owner: root
-    group: root
-    mode: "0644"
-  notify:
-    - compile disable_af_alg systemtap module
-    - restart disable-af-alg
-
-- name: install the disable-af-alg.service unit
-  ansible.builtin.copy:
-    src: disable-af-alg.service
-    dest: /etc/systemd/system/disable-af-alg.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify:
-    - reload systemd
-    - restart disable-af-alg
-
-# Run any pending handlers (recompile on .stp change, daemon-reload on unit
-# change) before we try to enable/start the service.
-- name: flush handlers
-  ansible.builtin.meta: flush_handlers
-
-# Recovery / fresh-install fallback: if a previous run failed mid-compile and
-# left no .ko, the handler above won't fire on the retry (the .stp copy will
-# report "ok" with nothing to notify). The `creates:` makes this a no-op when
-# the handler already produced the .ko on this run.
-- name: compile the systemtap module if it does not yet exist
-  ansible.builtin.command:
-    argv:
-      - stap
-      - -g
-      - -p4
-      - -m
-      - disable_af_alg
-      - disable_af_alg.stp
-    chdir: /usr/local/lib/systemtap
-    creates: /usr/local/lib/systemtap/disable_af_alg.ko
-
-- name: enable and start disable-af-alg.service
-  ansible.builtin.systemd_service:
-    name: disable-af-alg.service
-    enabled: true
-    state: started
-
-- name: verify disable-af-alg.service is active
-  ansible.builtin.command:
-    argv: [systemctl, is-active, disable-af-alg.service]
-  register: stap_status
-  changed_when: false
-  failed_when: stap_status.stdout.strip() != "active"
-
-# Functional check: try to open an AF_ALG (family 38) socket. The .stp script
-# raises SIGKILL on the offending task, so python3 is killed before it can
-# print MITIGATION_FAILED. If the trailing echo does run, the mitigation is
-# not actually blocking AF_ALG and the play should fail loudly.
-- name: verify the mitigation kills processes opening AF_ALG sockets
-  ansible.builtin.shell: |
-    python3 -c "import socket; socket.socket(38, 5, 0)" && echo MITIGATION_FAILED
-  register: af_alg_probe
-  changed_when: false
-  failed_when: "'MITIGATION_FAILED' in af_alg_probe.stdout"
-
-# Confirm the kernel-side block was actually logged by the running module —
-# guards against false positives (e.g. python3 dying for an unrelated reason).
-- name: verify the block was logged to the journal
-  ansible.builtin.command:
-    argv:
-      - journalctl
-      - -u
-      - disable-af-alg.service
-      - --since
-      - "1 minute ago"
-      - --no-pager
-  register: af_alg_journal
-  changed_when: false
-  failed_when: "'[disable_af_alg] blocked' not in af_alg_journal.stdout"
+- name: remove the AF_ALG mitigation
+  ansible.builtin.include_tasks: remove.yml
+  when: disable_af_alg_state == 'absent'

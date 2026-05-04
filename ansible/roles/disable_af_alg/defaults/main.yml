@@ -1,0 +1,4 @@
+---
+# `present` installs the AF_ALG mitigation; `absent` removes it. Override
+# via the uninstall_disable_af_alg.yml playbook or on the command line.
+disable_af_alg_state: present

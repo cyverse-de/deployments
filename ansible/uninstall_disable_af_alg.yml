@@ -1,0 +1,12 @@
+---
+- name: remove the AF_ALG mitigation systemtap module
+  hosts: k8s
+  become: true
+  serial: 5
+  roles:
+    - role: disable_af_alg
+      vars:
+        disable_af_alg_state: absent
+  tags:
+    - disable-af-alg
+    - uninstall-disable-af-alg

@@ -1,0 +1,41 @@
+---
+# Removal flow for the AF_ALG mitigation. Idempotent: safe to re-run.
+# Does not reboot — a previously-loaded kernel module may stay resident
+# in the kernel until the next reboot, but on-disk artifacts are gone.
+
+- name: check whether the disable-af-alg.service unit is installed
+  ansible.builtin.stat:
+    path: /etc/systemd/system/disable-af-alg.service
+  register: af_alg_unit
+
+# Skip stop/disable cleanly when the unit is already gone — avoids
+# "service not found" failures on re-runs.
+- name: stop and disable disable-af-alg.service
+  ansible.builtin.systemd_service:
+    name: disable-af-alg.service
+    state: stopped
+    enabled: false
+  when: af_alg_unit.stat.exists
+
+- name: remove the disable-af-alg.service unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/disable-af-alg.service
+    state: absent
+  register: af_alg_unit_removed
+
+# daemon-reload only after the unit file is gone, so systemd forgets the
+# unit. Gated on actual change so a second uninstall run is fully no-op.
+- name: reload systemd so the removed unit is forgotten
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: af_alg_unit_removed.changed
+
+- name: remove the compiled systemtap module
+  ansible.builtin.file:
+    path: /usr/local/lib/systemtap/disable_af_alg.ko
+    state: absent
+
+- name: remove the systemtap probe script
+  ansible.builtin.file:
+    path: /usr/local/lib/systemtap/disable_af_alg.stp
+    state: absent
