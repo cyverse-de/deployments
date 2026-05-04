@@ -176,6 +176,16 @@
   tags:
     - vice-operator
 
+- name: deploy maintenance-page
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: maintenance-page
+  tags:
+    - maintenance-page
+
 - hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
