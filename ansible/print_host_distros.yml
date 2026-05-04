@@ -1,0 +1,27 @@
+---
+- name: Identify hosts by distribution in the k8s group
+  hosts: k8s
+  gather_facts: true
+  vars:
+    target_distributions:
+      - AlmaLinux
+      - Rocky
+      - Ubuntu
+      - CentOS
+  tasks:
+    - name: Print host distribution
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+      when: ansible_distribution in target_distributions
+
+    - name: Summary of hosts by distribution
+      ansible.builtin.debug:
+        msg: >-
+          {{ item }} hosts in k8s group:
+          {{ ansible_play_hosts
+             | map('extract', hostvars)
+             | selectattr('ansible_distribution', 'equalto', item)
+             | map(attribute='inventory_hostname')
+             | list }}
+      loop: "{{ target_distributions }}"
+      run_once: true
