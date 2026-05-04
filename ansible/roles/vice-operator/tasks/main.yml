@@ -22,16 +22,109 @@
     - name: render the template
       ansible.builtin.template:
         src: vice_operator.yml.j2
-        dest: /tmp/vice_operator.yml
+        dest: "/tmp/vice_operator_{{ vice_ns }}.yml"
+
+    - name: set up the vice-operator service account
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+              name: vice-operator
+              namespace: "{{ vice_ns }}"
+
+    - name: set up vice-operator cluster role
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: vice-operator
+          rules:
+            - apiGroups: [""]
+              resources: ["persistentvolumes"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: [""]
+              resources: ["nodes"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: [""]
+              resources: ["services"]
+              verbs: ["get"]
+
+    - name: set up the vice-operator role
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: Role
+          metadata:
+            name: vice-operator
+            namespace: "{{ vice_ns }}"
+          rules:
+            - apiGroups: [""]
+              resources: ["pods", "pods/log", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: ["apps"]
+              resources: ["deployments", "daemonsets"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: ["networking.k8s.io"]
+              resources: ["networkpolicies"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: ["policy"]
+              resources: ["poddisruptionbudgets"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: ["gateway.networking.k8s.io"]
+              resources: ["gateways", "httproutes"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: ["traefik.io"]
+              resources: ["middlewares"]
+              verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+    - name: set up the cluster role binding
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: "vice-operator-{{ vice_ns }}"
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: vice-operator
+          subjects:
+            - kind: ServiceAccount
+              name: vice-operator
+              namespace: "{{ vice_ns }}"
+
+    - name: set up the role binding
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: vice-operator
+            namespace: "{{ vice_ns }}"
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: vice-operator
+          subjects:
+            - kind: ServiceAccount
+              name: vice-operator
+              namespace: "{{ vice_ns }}"
     
     - name: deploy the vice-operator
       ansible.builtin.shell:
-        cmd: kubectl apply -f /tmp/vice_operator.yml
+        cmd: "kubectl apply -f /tmp/vice_operator_{{ vice_ns }}.yml"
       register: deployed
     
     - name: remove rendered template
       ansible.builtin.file:
-        path: /tmp/vice_operator.yml
+        path: "/tmp/vice_operator_{{ vice_ns }}.yml"
         state: absent
       when: deployed.changed
   
