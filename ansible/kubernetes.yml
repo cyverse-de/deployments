@@ -183,8 +183,10 @@
   become: false
   roles:
     - role: maintenance-page
-  tags:
-    - maintenance-page
+      tags: maintenance-page
+
+    - role: app-exposer
+      tags: app-exposer
 
 - hosts: k8s_controllers[0]
   connection: local
