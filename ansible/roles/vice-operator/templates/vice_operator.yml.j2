@@ -5,6 +5,7 @@ metadata:
   name: vice-operator-secret
   namespace: {{ vice_ns }}
 data:
+  ADMIN_ENTITLEMENTS: "{{ vice_operator_admin_entitlements | b64encode }}"
   REGISTRY_PASSWORD: "{{ vice_operator_registry_password | b64encode }}"
   KEYCLOAK_CLIENT_SECRET: "{{ vice_operator_keycloak_client_secret | b64encode }}"
   SWAGGER_CLIENT_SECRET: "{{ vice_operator_swagger_client_secret | b64encode }}"
@@ -46,6 +47,11 @@ spec:
               secretKeyRef:
                 name: vice-operator-secret
                 key: SWAGGER_CLIENT_SECRET
+          - name: ADMIN_ENTITLEMENTS
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: ADMIN_ENTITLEMENTS
           args:
             - "--namespace={{ vice_ns }}"
             - "--port={{ vice_operator_port }}"
@@ -66,7 +72,7 @@ spec:
             - "--operator-pod-selector={{ vice_operator_pod_selector }}"
             - "--api-service-name={{ vice_operator_api_service_name }}"
             - "--api-auth-issuer-url={{ vice_operator_api_auth_issuer_url }}"
-            - "--api-auth-client-id={{ vice_operator_keycloak_client_id }}"
+            - "--api-auth-client-id={{ vice_api_keycloak_client_id }}"
             - "--swagger-client-id={{ vice_operator_swagger_client_id }}"
 {% if not vice_operator_disable_vice_proxy_auth %}
             - "--keycloak-base-url={{ vice_operator_keycloak_base_url }}"
