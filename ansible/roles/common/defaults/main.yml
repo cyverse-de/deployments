@@ -730,6 +730,10 @@ vice_operator_ingress_pod_exceptions:
   - kubernetes.io/metadata.name=traefik,app.kubernetes.io/name=traefik
 vice_operator_egress_host_exceptions:
   - replace_me
+vice_api_keycloak_base_url: replace_me
+vice_api_keycloak_realm: replace_me
+vice_api_keycloak_client_id: replace_me
+vice_api_keycloak_client_secret: replace_me
 
 vice_cache_images:
   - harbor.cyverse.org/de/vice-proxy:qa
