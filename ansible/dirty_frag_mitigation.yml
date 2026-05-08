@@ -1,0 +1,29 @@
+---
+- name: Mitigate Dirty Frag (CVE-2024-2101) - Fleet Wide
+  hosts: k8s_workers
+  become: yes
+  vars:
+    vulnerable_modules:
+      - esp4
+      - esp6
+      - rxrpc
+
+  tasks:
+    - name: Create modprobe blacklist file
+      copy:
+        dest: /etc/modprobe.d/dirty-frag.conf
+        content: |
+          {% for module in vulnerable_modules %}
+          install {{ module }} /bin/false
+          {% endfor %}
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Attempt to unload vulnerable modules immediately
+      modprobe:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ vulnerable_modules }}"
+      ignore_errors: yes
+
