@@ -1,8 +1,7 @@
 ---
 - name: system updates
-  hosts: k8s_workers
+  hosts: k8s
   become: true
-  serial: 5
   tasks:
     - name: print host
       become: false
