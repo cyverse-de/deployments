@@ -1,0 +1,20 @@
+---
+- name: bootstrap EKS cluster and supporting services
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: vice-operator-eks
+  tags:
+    - vice-operator-eks
+
+- name: deploy vice-operator
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: vice-operator
+  tags:
+    - vice-operator
