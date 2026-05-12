@@ -34,3 +34,23 @@ vice_wildcard_fqdn: "*.{{ vice_base_domain }}"
 # Gateway API CRDs
 gateway_api_crd_version: "v1.4.0"
 gateway_api_crd_url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml"
+
+# --- NodePools (Karpenter, provisioned by EKS Auto Mode) ---
+# Operator-side constants in app-exposer's constants/constants.go drive the
+# label/taint shape: VICE pods require nodes with an `analysis` label, and
+# GPU pods additionally tolerate `gpu=true:NoSchedule` and select on `gpu=true`.
+nodepool_cpu_name: analysis-cpu
+nodepool_cpu_instance_categories:
+  - c
+  - m
+  - r
+nodepool_cpu_capacity_types:
+  - on-demand
+
+nodepool_gpu_name: analysis-gpu
+nodepool_gpu_instance_families:
+  - g5
+  - g6
+  - g6e
+nodepool_gpu_capacity_types:
+  - on-demand

@@ -29,6 +29,8 @@
             type: gp3
             encrypted: "true"
 
+- ansible.builtin.include_tasks: nodepools.yml
+
 - ansible.builtin.include_tasks: cert_manager.yml
 
 - ansible.builtin.include_tasks: traefik.yml

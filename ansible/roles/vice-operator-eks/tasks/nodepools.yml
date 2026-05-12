@@ -1,0 +1,72 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the analysis CPU NodePool
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: karpenter.sh/v1
+          kind: NodePool
+          metadata:
+            name: "{{ nodepool_cpu_name }}"
+          spec:
+            template:
+              metadata:
+                labels:
+                  # Matches vice-operator's AnalysisAffinityKey (Exists).
+                  analysis: "true"
+              spec:
+                nodeClassRef:
+                  group: eks.amazonaws.com
+                  kind: NodeClass
+                  name: default
+                requirements:
+                  - key: eks.amazonaws.com/instance-category
+                    operator: In
+                    values: "{{ nodepool_cpu_instance_categories }}"
+                  - key: karpenter.sh/capacity-type
+                    operator: In
+                    values: "{{ nodepool_cpu_capacity_types }}"
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+
+    - name: create the analysis GPU NodePool
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: karpenter.sh/v1
+          kind: NodePool
+          metadata:
+            name: "{{ nodepool_gpu_name }}"
+          spec:
+            template:
+              metadata:
+                labels:
+                  analysis: "true"
+                  # Matches vice-operator's GPUAffinityKey/Value.
+                  gpu: "true"
+              spec:
+                nodeClassRef:
+                  group: eks.amazonaws.com
+                  kind: NodeClass
+                  name: default
+                # Matches vice-operator's GPUToleration{Key,Value,Effect}.
+                taints:
+                  - key: gpu
+                    value: "true"
+                    effect: NoSchedule
+                requirements:
+                  - key: eks.amazonaws.com/instance-family
+                    operator: In
+                    values: "{{ nodepool_gpu_instance_families }}"
+                  - key: karpenter.sh/capacity-type
+                    operator: In
+                    values: "{{ nodepool_gpu_capacity_types }}"
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
