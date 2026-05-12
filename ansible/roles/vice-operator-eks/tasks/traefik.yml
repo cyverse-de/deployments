@@ -1,0 +1,90 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: install Gateway API CRDs
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ gateway_api_crd_url }}"
+
+    - name: create the traefik namespace
+      kubernetes.core.k8s:
+        name: "{{ traefik_namespace }}"
+        state: present
+        kind: Namespace
+        api_version: v1
+
+    - name: create the TLS Certificate for traefik
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ traefik_cert_name }}"
+            namespace: "{{ traefik_namespace }}"
+          spec:
+            secretName: "{{ traefik_cert_name }}"
+            duration: "{{ traefik_cert_duration }}"
+            renewBefore: "{{ traefik_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+              group: cert-manager.io
+            commonName: "{{ vice_base_domain }}"
+            dnsNames:
+              - "{{ vice_base_domain }}"
+              - "{{ vice_wildcard_fqdn }}"
+
+    - name: add the traefik helm repo
+      kubernetes.core.helm_repository:
+        name: traefik
+        repo_url: "https://traefik.github.io/charts"
+        state: present
+
+    - name: install the traefik chart
+      kubernetes.core.helm:
+        name: traefik
+        chart_ref: traefik/traefik
+        chart_version: "{{ traefik_chart_version | default(omit, true) }}"
+        release_namespace: "{{ traefik_namespace }}"
+        wait: true
+        values:
+          providers:
+            kubernetesGateway:
+              enabled: true
+          gateway:
+            listeners:
+              web:
+                namespacePolicy:
+                  from: All
+          ports:
+            web:
+              # allowEncodedSlash + 24h timeouts are required for the VICE
+              # loading page and long-lived interactive sessions.
+              http:
+                encodedCharacters:
+                  allowEncodedSlash: true
+              transport:
+                respondingTimeouts:
+                  readTimeout: "24h"
+                  writeTimeout: "24h"
+            websecure:
+              http:
+                encodedCharacters:
+                  allowEncodedSlash: true
+              transport:
+                respondingTimeouts:
+                  readTimeout: "24h"
+                  writeTimeout: "24h"
+          service:
+            type: LoadBalancer
+            annotations:
+              service.beta.kubernetes.io/aws-load-balancer-type: external
+              service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+              service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          tlsStore:
+            default:
+              defaultCertificate:
+                secretName: "{{ traefik_cert_name }}"

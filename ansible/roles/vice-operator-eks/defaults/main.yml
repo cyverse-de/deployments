@@ -1,0 +1,36 @@
+---
+region_code: us-east-1
+cluster_name: ua-ai-sandboxes
+gateway_class_name: traefik
+storage_class_name: auto-ebs-sc
+
+# --- cert-manager ---
+cert_manager_namespace: cert-manager
+cert_manager_chart_version: ""
+
+# Let's Encrypt + Route 53 DNS-01.
+# Static AWS keys for v1; Pod Identity is the planned follow-up.
+cert_manager_le_issuer_name: letsencrypt
+cert_manager_le_issuer_email: replace_me
+cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
+cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
+cert_manager_le_aws_region: "{{ region_code }}"
+cert_manager_le_aws_access_key_id: replace_me
+cert_manager_le_aws_secret_access_key: replace_me
+cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
+
+# --- Traefik ---
+traefik_namespace: traefik
+traefik_chart_version: ""
+traefik_cert_name: traefik-tls
+traefik_cert_duration: "2160h"
+traefik_cert_renew_before: "240h"
+
+# The wildcard hostname Traefik will terminate TLS for. Set vice_base_domain
+# to the public host (e.g. cyverse.run); the wildcard is derived from it.
+vice_base_domain: replace_me
+vice_wildcard_fqdn: "*.{{ vice_base_domain }}"
+
+# Gateway API CRDs
+gateway_api_crd_version: "v1.4.0"
+gateway_api_crd_url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml"

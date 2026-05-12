@@ -1,0 +1,34 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: render the template
+      ansible.builtin.template:
+        src: cluster_config.yaml.j2
+        dest: "/tmp/cluster_config.yaml"
+
+    - name: create the cluster
+      ansible.builtin.shell:
+        cmd: "eksctl create cluster --kubeconfig {{ lookup('env', 'KUBECONFIG') }} -f /tmp/cluster_config.yaml"
+      register: cluster_created
+
+    - name: create the gp3 storage class
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: "{{ storage_class_name }}"
+            annotations:
+              storageclass.kubernetes.io/is-default-class: "true"
+          provisioner: ebs.csi.eks.amazonaws.com
+          volumeBindingMode: WaitForFirstConsumer
+          parameters:
+            type: gp3
+            encrypted: "true"
+
+- ansible.builtin.include_tasks: cert_manager.yml
+
+- ansible.builtin.include_tasks: traefik.yml
