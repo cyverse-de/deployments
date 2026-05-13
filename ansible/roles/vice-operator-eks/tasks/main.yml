@@ -3,15 +3,15 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: render the template
-      ansible.builtin.template:
-        src: cluster_config.yaml.j2
-        dest: "/tmp/cluster_config.yaml"
+    #- name: render the template
+    #  ansible.builtin.template:
+    #    src: cluster_config.yaml.j2
+    #    dest: "/tmp/cluster_config.yaml"
 
-    - name: create the cluster
-      ansible.builtin.shell:
-        cmd: "eksctl create cluster --kubeconfig {{ lookup('env', 'KUBECONFIG') }} -f /tmp/cluster_config.yaml"
-      register: cluster_created
+    #- name: create the cluster
+    #  ansible.builtin.shell:
+    #    cmd: "eksctl create cluster --kubeconfig {{ lookup('env', 'KUBECONFIG') }} -f /tmp/cluster_config.yaml"
+    #  register: cluster_created
 
     - name: create the gp3 storage class
       kubernetes.core.k8s:

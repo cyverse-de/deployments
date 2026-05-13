@@ -24,6 +24,15 @@
         src: vice_operator.yml.j2
         dest: "/tmp/vice_operator_{{ vice_ns }}.yml"
 
+    - name: set up the namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ vice_ns }}"
+
     - name: set up the vice-operator service account
       kubernetes.core.k8s:
         state: present

@@ -59,6 +59,13 @@
               web:
                 namespacePolicy:
                   from: All
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                namespacePolicy:
+                  from: All
+                certificateRefs:
+                  - name: "{{ traefik_cert_name }}"
           ports:
             web:
               # allowEncodedSlash + 24h timeouts are required for the VICE
