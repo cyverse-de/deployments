@@ -9,6 +9,7 @@ data:
   REGISTRY_PASSWORD: "{{ vice_operator_registry_password | b64encode }}"
   KEYCLOAK_CLIENT_SECRET: "{{ vice_operator_keycloak_client_secret | b64encode }}"
   SWAGGER_CLIENT_SECRET: "{{ vice_operator_swagger_client_secret | b64encode }}"
+  STATE_HMAC_SECRET: "{{ vice_operator_state_hmac_secret | b64encode }}"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -52,6 +53,11 @@ spec:
               secretKeyRef:
                 name: vice-operator-secret
                 key: ADMIN_ENTITLEMENTS
+          - name: STATE_HMAC_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vice-operator-secret
+                key: STATE_HMAC_SECRET
           args:
             - "--namespace={{ vice_ns }}"
             - "--port={{ vice_operator_port }}"
@@ -59,6 +65,7 @@ spec:
             - "--max-analyses={{ vice_operator_max_analyses }}"
             - "--gpu-vendor={{ vice_operator_gpu_vendor }}"
             - "--vice-base-url={{ vice_operator_base_url }}"
+            - "--public-url={{ vice_operator_public_base_url }}"
 {% if vice_operator_skip_gateway_creation %}
             - "--gateway-skip-creation"
             - "--gateway-name={{ vice_operator_gateway_name }}"

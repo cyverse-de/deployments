@@ -712,6 +712,8 @@ vice_operator_loading_port: 8080
 vice_operator_max_analyses: 0
 vice_operator_gpu_vendor: nvidia
 vice_operator_base_url: https://cyverse.run
+vice_operator_public_base_url: https://replace_me
+vice_operator_state_hmac_secret: "replace_me"
 vice_operator_disable_internet_access: false
 vice_operator_registry_server: harbor.cyverse.org
 vice_operator_registry_username: replace_me
