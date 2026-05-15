@@ -9,6 +9,16 @@
   tags:
     - vice-operator-eks
 
+- name: install the iRODS CSI driver
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: kubernetes_irods_csi_driver
+  tags:
+    - irods-csi-driver
+
 - name: deploy vice-operator
   hosts: localhost
   connection: local

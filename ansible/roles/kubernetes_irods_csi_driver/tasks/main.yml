@@ -21,7 +21,16 @@
             retainData: "{{ irods_csi_driver_retain_data }}"
             enforceProxyAccess: "{{ irods_csi_driver_enforce_proxy_access }}"
             mountPathWhitelist: "{{ irods_csi_driver_mount_path_white_list }}"
+      controllerService:
+        # cyverse/irods-csi-driver only publishes amd64 images; arm64 nodes
+        # (e.g. EKS Auto's Graviton system NodePool) fail with exec format error.
+        nodeSelector:
+          kubernetes.io/os: linux
+          kubernetes.io/arch: amd64
       nodeService:
+        nodeSelector:
+          kubernetes.io/os: linux
+          kubernetes.io/arch: amd64
         irodsPlugin:
           poolServerEndpoint: "{{ irods_csi_driver_pool_server_endpoint }}"
         irodsPool:
