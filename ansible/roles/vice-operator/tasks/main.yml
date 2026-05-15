@@ -127,10 +127,11 @@
               namespace: "{{ vice_ns }}"
     
     - name: deploy the vice-operator
-      ansible.builtin.shell:
-        cmd: "kubectl apply -f /tmp/vice_operator_{{ vice_ns }}.yml"
+      kubernetes.core.k8s:
+        state: present
+        src: "/tmp/vice_operator_{{ vice_ns }}.yml"
       register: deployed
-    
+
     - name: remove rendered template
       ansible.builtin.file:
         path: "/tmp/vice_operator_{{ vice_ns }}.yml"
