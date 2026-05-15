@@ -11,6 +11,8 @@
         name: "{{ grouper_connection_user }}"
         password: "{{ grouper_connection_pass }}"
       when: create_user is defined and create_user
+      tags:
+        - update-databases
 
     - name: create grouper database
       community.postgresql.postgresql_db:

@@ -11,17 +11,25 @@
         name: "{{ dbms_connection_user }}"
         password: "{{ dbms_connection_pass }}"
       when: create_user is defined and create_user
+      tags:
+        - update-databases
 
     - name: create staging directory
       ansible.builtin.tempfile:
         state: directory
         suffix: "-dbs"
       register: dbs_dir
+      tags:
+        - update-databases
 
     - name: check for migrate command
       command: which migrate
       changed_when: false
       register: migrate_installed
+      tags:
+        - update-databases
 
     - debug:
         msg: "{{ migrate_installed }}"
+      tags:
+        - update-databases

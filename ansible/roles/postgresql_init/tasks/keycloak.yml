@@ -11,6 +11,8 @@
         name: "{{ keycloak_db_username }}"
         password: "{{ keycloak_db_password }}"
       when: create_user is defined and create_user
+      tags:
+        - update-databases
 
     - name: create the keycloak database
       community.postgresql.postgresql_db:

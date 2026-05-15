@@ -11,6 +11,8 @@
         name: "{{ portal_db_user }}"
         password: "{{ portal_db_password }}"
       when: create_user is defined and create_user
+      tags:
+        - update-databases
 
     - name: create the portal database
       community.postgresql.postgresql_db:
@@ -38,6 +40,8 @@
         type: schema
         objs: public
         role: "{{portal_db_user}}"
+      tags:
+        - update-databases
 
     - name: grant the pg_read_server_files privilege to the portal user
       community.postgresql.postgresql_query:
@@ -47,6 +51,8 @@
         login_password: "{{pg_login_password}}"
         login_db: "{{portal_db_name}}"
         query: "GRANT pg_read_server_files TO {{portal_db_user}}"
+      tags:
+        - update-databases
 
     - name: install extensions for the portal database
       when: install_exts is defined and install_exts
@@ -61,6 +67,8 @@
         - moddatetime
         - btree_gist
         - insert_username
+      tags:
+        - update-databases
 
     - name: checkout the portal repo for its migrations
       ansible.builtin.git:
@@ -70,6 +78,8 @@
         update: yes
         force: yes
         version: "{{ portal_version }}"
+      tags:
+        - update-databases
 
     - name: run portal repo migrations
       ansible.builtin.command: >
@@ -78,6 +88,8 @@
         -path "{{ dbs_dir.path }}/portal2/migrations"
         up
       when: migrate is defined and migrate
+      tags:
+        - update-databases
 
     - name: check out the grid csv files
       ansible.builtin.git:
@@ -87,6 +99,8 @@
         update: yes
         force: yes
         version: "{{grid_csv_version}}"
+      tags:
+        - update-databases
 
     - name: check for the 'Other' record in account_institution_grid
       community.postgresql.postgresql_query:
@@ -97,9 +111,13 @@
         login_db: "{{portal_db_name}}"
         query: SELECT grid_id FROM account_institution_grid WHERE name = 'Other'
       register: other_result
+      tags:
+        - update-databases
 
     - debug:
         msg: "{{other_result}}"
+      tags:
+        - update-databases
 
     - name: insert the Other field into the account_institution_grid table
       when: other_result.rowcount == 0
@@ -110,6 +128,8 @@
         login_password: "{{portal_db_password}}"
         login_db: "{{portal_db_name}}"
         query: INSERT INTO account_institution_grid (grid_id,name,city,state,country) VALUES ('', 'Other','','','') ON CONFLICT (grid_id) DO NOTHING
+      tags:
+        - update-databases
 
     - name: check for records in account_institution_grid
       community.postgresql.postgresql_query:
@@ -120,9 +140,13 @@
         login_db: "{{portal_db_name}}"
         query: SELECT COUNT(*) AS record_count FROM account_institution_grid
       register: records_result
+      tags:
+        - update-databases
 
     - debug:
         msg: "{{records_result}}"
+      tags:
+        - update-databases
 
     - name: update pgpass so that we can use psql
       ansible.builtin.lineinfile:
@@ -133,6 +157,8 @@
         line: "{{groups['dbms'][0]}}:*:*:{{portal_db_user}}:{{portal_db_password}}"
       vars:
         user_home: "{{ lookup('env', 'HOME') }}"
+      tags:
+        - update-databases
 
     - name: copy grid.csv data into the account_institution_grid table
       when: records_result["query_result"][0]["record_count"] <= 1
@@ -150,3 +176,5 @@
         table: "account_institution_grid"
         options: "DELIMITER ',', FORMAT 'csv', NULL 'null'"
         cmd: "\\copy {{table}} ({{column_list}}) from {{grid_csv_path}} WITH ({{options}})"
+      tags:
+        - update-databases

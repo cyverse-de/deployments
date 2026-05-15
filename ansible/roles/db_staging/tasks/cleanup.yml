@@ -6,3 +6,5 @@
         path: "{{ dbs_dir.path }}"
         state: absent
       when: dbs_dir.path is defined and cleanup is defined and cleanup
+      tags:
+        - update-databases

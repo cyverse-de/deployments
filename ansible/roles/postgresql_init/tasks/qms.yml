@@ -29,6 +29,8 @@
         - moddatetime
         - btree_gist
         - insert_username
+      tags:
+        - update-databases
 
     - name: checkout the qms repo for its migrations
       ansible.builtin.git:
@@ -38,6 +40,8 @@
         update: yes
         force: yes
         version: "{{ qms_version }}"
+      tags:
+        - update-databases
 
     - name: run qms repo for its migrations
       ansible.builtin.command: >
@@ -46,3 +50,5 @@
         -path "{{ dbs_dir.path }}/qms/migrations"
         up
       when: migrate is defined and migrate
+      tags:
+        - update-databases

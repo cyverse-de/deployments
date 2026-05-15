@@ -32,6 +32,8 @@
         - uuid-ossp
         - moddatetime
         - btree_gist
+      tags:
+        - update-databases
 
     - name: install uuid-ossp for notifications database
       community.postgresql.postgresql_ext:
@@ -42,6 +44,8 @@
         db: "{{ notifications_db_name }}"
         name: "uuid-ossp"
       when: install_exts is defined and install_exts
+      tags:
+        - update-databases
 
     - name: install uuid-ossp for metadata database
       community.postgresql.postgresql_ext:
@@ -52,6 +56,8 @@
         db: "{{ metadata_db_name }}"
         name: "uuid-ossp"
       when: install_exts is defined and install_exts
+      tags:
+        - update-databases
 
     - name: checkout de database repo
       ansible.builtin.git:
@@ -61,6 +67,8 @@
         update: yes
         force: yes
         version: "{{ de_db_version }}"
+      tags:
+        - update-databases
 
     - name: checkout notifications database repo
       ansible.builtin.git:
@@ -70,6 +78,8 @@
         update: yes
         force: yes
         version: "{{ notifications_db_version }}"
+      tags:
+        - update-databases
 
     - name: checkout metadata database repo
       ansible.builtin.git:
@@ -79,6 +89,8 @@
         update: yes
         force: yes
         version: "{{ metadata_db_version }}"
+      tags:
+        - update-databases
 
     - name: run de database migrations
       ansible.builtin.command: >
@@ -87,6 +99,8 @@
         -path "{{ dbs_dir.path }}/de-database/migrations"
         up
       when: migrate is defined and migrate
+      tags:
+        - update-databases
 
     - name: run metadata db migrations
       ansible.builtin.command: >
@@ -95,6 +109,8 @@
         -path "{{ dbs_dir.path }}/metadata-db/migrations"
         up
       when: migrate is defined and migrate
+      tags:
+        - update-databases
 
     - name: run notifications db migrations
       ansible.builtin.command: >
@@ -103,6 +119,8 @@
         -path "{{ dbs_dir.path }}/notifications-db/migrations"
         up
       when: migrate is defined and migrate
+      tags:
+        - update-databases
 
     - name: add default instant launch mapping to the de db
       community.postgresql.postgresql_query:
@@ -117,3 +135,5 @@
           VALUES
             (0, '{}', '00000000-0000-0000-0000-000000000000')
           ON CONFLICT DO NOTHING
+      tags:
+        - update-databases
