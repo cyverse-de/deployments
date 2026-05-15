@@ -1,0 +1,12 @@
+---
+- name: deploy services
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: app-exposer
+      tags: app-exposer 
+
+    - role: vice-operator
+      tags: vice-operator
