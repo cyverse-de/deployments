@@ -66,6 +66,7 @@ spec:
             - "--gpu-vendor={{ vice_operator_gpu_vendor }}"
             - "--vice-base-url={{ vice_operator_base_url }}"
             - "--public-url={{ vice_operator_public_base_url }}"
+            - "--local-storage-class={{ storage_class_name }}"
 {% if vice_operator_skip_gateway_creation %}
             - "--gateway-skip-creation"
             - "--gateway-name={{ vice_operator_gateway_name }}"
