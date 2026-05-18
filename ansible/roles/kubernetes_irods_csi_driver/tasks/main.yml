@@ -39,6 +39,43 @@
             - "--cache_size_max={{ irods_csi_driver_cache_size_max }}"
             - "--data_root={{ irods_csi_driver_data_root }}"
       kubeletDir: "{{ irods_csi_driver_kubelet_dir }}"
+  register: irods_csi_helm
+
+# Most globalConfig values land in a Secret mounted at /secrets in the driver
+# pods. Helm updates the Secret in place, but the Deployment and DaemonSet pod
+# templates don't change, so K8s doesn't roll the pods and the driver keeps
+# reading the old values until it restarts. Bump a restartedAt annotation when
+# the Helm release actually changed so config edits (host, user, password,
+# zone, ...) reach the running driver on the next playbook run.
+- name: restart the irods CSI driver controller after a config change
+  delegate_to: localhost
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ irods_csi_driver_namespace }}"
+    name: irods-csi-driver-controller
+    definition:
+      spec:
+        template:
+          metadata:
+            annotations:
+              kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+  when: irods_csi_helm is changed
+
+- name: restart the irods CSI driver node DaemonSet after a config change
+  delegate_to: localhost
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: DaemonSet
+    namespace: "{{ irods_csi_driver_namespace }}"
+    name: irods-csi-driver-node
+    definition:
+      spec:
+        template:
+          metadata:
+            annotations:
+              kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+  when: irods_csi_helm is changed
 
 - name: define the storage class for the iRODS CSI driver
   environment:
