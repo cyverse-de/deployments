@@ -90,6 +90,9 @@
             - apiGroups: ["traefik.io"]
               resources: ["middlewares"]
               verbs: ["get", "list", "watch", "create", "update", "delete"]
+            - apiGroups: ["coordination.k8s.io"]
+              resources: ["leases"]
+              verbs: ["get", "create", "update"]
 
     - name: set up the cluster role binding
       kubernetes.core.k8s:

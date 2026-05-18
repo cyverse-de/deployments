@@ -245,6 +245,11 @@
                   - name: job-status-listener
                     port: 80
                 filters:
+                  - type: URLRewrite
+                    urlRewrite:
+                      path:
+                        type: ReplacePrefixMatch
+                        replacePrefixMatch: /
                   - type: ExtensionRef
                     extensionRef:
                       group: traefik.io
@@ -333,6 +338,12 @@
               - backendRefs:
                   - name: job-status-listener
                     port: 80
+                filters:
+                  - type: URLRewrite
+                    urlRewrite:
+                      path:
+                        type: ReplacePrefixMatch
+                        replacePrefixMatch: /
                 matches:
                   - path:
                       type: PathPrefix
