@@ -105,6 +105,7 @@
             MAILMAN_ENABLED: "{{ portal_mailman_enabled }}"
             MAILMAN_URL: "{{ portal_mailman_url }}"
             MAILMAN_PASSWORD: "{{ portal_mailman_password }}"
+            VICE_BASE_DOMAIN: "{{ vice_base_domain }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - name: create portal-conductor SSL certificate
