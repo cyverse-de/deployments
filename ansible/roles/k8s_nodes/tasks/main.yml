@@ -310,13 +310,29 @@
         commands: ALL
         state: present
 
+    - name: determine whether or not NetworkManager is being used
+      community.general.systemd_info:
+        unitname:
+          - NetworkManager.service
+      register: nm_info
+
     - name: allow calico to work with NetworkManager
-      ansible.builtin.copy:
-        content: |
-          [keyfile]
-          unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
-        dest: /etc/NetworkManager/conf.d/calico.conf
-        mode: "0644"
+      block:
+        - ansible.builtin.file:
+            path: /etc/NetworkManager/conf.d
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - ansible.builtin.copy:
+            content: |
+              [keyfile]
+              unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
+            dest: /etc/NetworkManager/conf.d/calico.conf
+            owner: root
+            group: root
+            mode: "0644"
 
     # - name: copy the storage_fix.sh file
     #   ansible.builtin.template:
