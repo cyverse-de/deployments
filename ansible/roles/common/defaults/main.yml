@@ -176,7 +176,7 @@ de_tools_admin_max_disk_limit: 1099511627776
 de_tools_admin_max_cpu_limit: 24
 de_tools_admin_max_gpu_limit: 0
 de_tools_admin_max_memory_limit: 75161927680
-de_tools_valid_gpu_models: ["NVIDIA-A16"]
+de_tools_valid_gpu_models: ["NVIDIA-A16", "NVIDIA-T4"]
 de_tools_default_gpu_models: ["NVIDIA-A16"]
 
 # Discovery Environment TLS settings
