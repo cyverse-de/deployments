@@ -22,6 +22,14 @@
                   group: eks.amazonaws.com
                   kind: NodeClass
                   name: default
+                # Keeps non-analysis workloads (vice-operator, cert-manager,
+                # Traefik, irods-csi-driver controller, etc.) off these nodes
+                # so a runaway analysis can't squeeze them out. Matched by
+                # the `analysis Exists` toleration that incluster/deployments.go
+                # and batch/batch.go already attach to every launched pod.
+                taints:
+                  - key: analysis
+                    effect: NoSchedule
                 requirements:
                   # Declare analysis here too; metadata.labels alone is
                   # applied to provisioned nodes but ignored by Karpenter
@@ -63,10 +71,15 @@
                   group: eks.amazonaws.com
                   kind: NodeClass
                   name: default
-                # Matches vice-operator's GPUToleration{Key,Value,Effect}.
+                # The gpu taint matches vice-operator's
+                # GPUToleration{Key,Value,Effect}; the analysis taint
+                # keeps non-analysis workloads off these (already
+                # expensive) GPU nodes. VICE GPU pods tolerate both.
                 taints:
                   - key: gpu
                     value: "true"
+                    effect: NoSchedule
+                  - key: analysis
                     effect: NoSchedule
                 requirements:
                   # analysis and gpu must be declared as requirements (not
