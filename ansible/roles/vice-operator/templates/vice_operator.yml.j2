@@ -64,6 +64,15 @@ spec:
             - "--loading-port={{ vice_operator_loading_port}}"
             - "--max-analyses={{ vice_operator_max_analyses }}"
             - "--gpu-vendor={{ vice_operator_gpu_vendor }}"
+{% if vice_operator_gpu_model_affinity_key %}
+            - "--gpu-model-affinity-key={{ vice_operator_gpu_model_affinity_key }}"
+{% endif %}
+{% for gpu_model in vice_operator_gpu_models %}
+            - "--gpu-model={{ gpu_model }}"
+{% endfor %}
+{% for gpu_model_mapping in vice_operator_gpu_model_mappings %}
+            - "--gpu-model-mapping={{ gpu_model_mapping }}"
+{% endfor %}
             - "--vice-base-url={{ vice_operator_base_url }}"
             - "--public-url={{ vice_operator_public_base_url }}"
             - "--local-storage-class={{ vice_local_storage_class }}"

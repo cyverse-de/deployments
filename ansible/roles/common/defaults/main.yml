@@ -711,6 +711,20 @@ vice_operator_port: 10000
 vice_operator_loading_port: 8080
 vice_operator_max_analyses: 0
 vice_operator_gpu_vendor: nvidia
+# Canonical (GFD-style) GPU models this cluster can deliver. Advertised to
+# the scheduler so model-specific analyses route here. Empty means the
+# operator does not filter on model (backwards compatible with on-prem
+# clusters that rely on NVIDIA GPU Feature Discovery for the canonical
+# nvidia.com/gpu.product label).
+vice_operator_gpu_models: []
+# NAME:VALUE pairs mapping canonical GPU model names to this cluster's
+# node-label values, e.g. NVIDIA-A10G:a10g on EKS. Applied per launch to
+# rewrite the deployment's GPU model affinity. Empty leaves values as-is.
+vice_operator_gpu_model_mappings: []
+# Node-label key this cluster uses for GPU-model affinity (e.g.
+# eks.amazonaws.com/instance-gpu-name on EKS). Empty leaves the bundle's
+# canonical nvidia.com/gpu.product key untouched.
+vice_operator_gpu_model_affinity_key: ""
 vice_operator_base_url: https://cyverse.run
 vice_operator_public_base_url: https://replace_me
 vice_operator_state_hmac_secret: "replace_me"

@@ -23,6 +23,15 @@
                   kind: NodeClass
                   name: default
                 requirements:
+                  # Declare analysis here too; metadata.labels alone is
+                  # applied to provisioned nodes but ignored by Karpenter
+                  # at scheduling time, so a pod requiring analysis=true
+                  # would otherwise be rejected with "label \"analysis\"
+                  # does not have known values".
+                  - key: analysis
+                    operator: In
+                    values:
+                      - "true"
                   - key: eks.amazonaws.com/instance-category
                     operator: In
                     values: "{{ nodepool_cpu_instance_categories }}"
@@ -60,6 +69,19 @@
                     value: "true"
                     effect: NoSchedule
                 requirements:
+                  # analysis and gpu must be declared as requirements (not
+                  # just metadata.labels) for Karpenter to consider them at
+                  # scheduling time. Without these, a GPU pod fails with
+                  # "label \"gpu\" does not have known values" even though
+                  # provisioned nodes would carry the label.
+                  - key: analysis
+                    operator: In
+                    values:
+                      - "true"
+                  - key: gpu
+                    operator: In
+                    values:
+                      - "true"
                   - key: eks.amazonaws.com/instance-family
                     operator: In
                     values: "{{ nodepool_gpu_instance_families }}"
