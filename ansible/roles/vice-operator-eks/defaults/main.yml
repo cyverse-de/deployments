@@ -48,9 +48,26 @@ nodepool_cpu_capacity_types:
   - on-demand
 
 nodepool_gpu_name: analysis-gpu
+# Each instance family below maps to one NVIDIA GPU model on AWS:
+#   g4dn → T4 (16 GB)         p4d  → A100 SXM4 40 GB
+#   g5   → A10G (24 GB)       p4de → A100 SXM4 80 GB
+#   g6   → L4 (24 GB)         p5   → H100 (80 GB)
+#   g6e  → L40S (48 GB)       p5e  → H200 (141 GB)
+#   gr6  → L4 (24 GB, mem-heavy ratio)
+#                             p5en → H200 (141 GB)
+# Karpenter only provisions on demand, so listing a family does not
+# itself create capacity or cost; matching pods are what trigger
+# provisioning.
 nodepool_gpu_instance_families:
+  - g4dn
   - g5
   - g6
   - g6e
+  - gr6
+  - p4d
+  - p4de
+  - p5
+  - p5e
+  - p5en
 nodepool_gpu_capacity_types:
   - on-demand
