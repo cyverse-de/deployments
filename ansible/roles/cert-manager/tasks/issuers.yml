@@ -3,7 +3,7 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: apply default-issuer
+    - name: Apply default-issuer
       kubernetes.core.k8s:
         state: present
         namespace: "{{ ns }}"
@@ -15,7 +15,7 @@
           spec:
             selfSigned: {}
 
-    - name: apply default-cluster-issuer
+    - name: Apply default-cluster-issuer
       kubernetes.core.k8s:
         state: present
         definition:
@@ -31,7 +31,7 @@
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   when: cert_manager_use_letsencrypt
   block:
-    - name: create the route53 credentials secret
+    - name: Create the route53 credentials secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -45,7 +45,7 @@
             access-key-id: "{{ cert_manager_le_aws_access_key_id | b64encode }}"
             secret-access-key: "{{ cert_manager_le_aws_secret_access_key | b64encode }}"
 
-    - name: generate the Let's Encrypt ClusterIsuer
+    - name: Generate the Let's Encrypt ClusterIsuer
       kubernetes.core.k8s:
         state: present
         definition:

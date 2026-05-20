@@ -1,53 +1,53 @@
 ---
-- name: prepare for database work
+- name: Prepare for database work
   ansible.builtin.include_role:
     name: db_staging
     tasks_from: prepare.yml
   tags:
     - update-databases
 
-- name: setup and migrate de databases
+- name: Setup and migrate de databases
   ansible.builtin.include_tasks: de.yml
   tags:
     - update-databases
 
-- name: setup and migrate grouper database
+- name: Setup and migrate grouper database
   when: grouper
   ansible.builtin.include_tasks: grouper.yml
   tags:
     - update-databases
 
-- name: setup and migrate qms database
+- name: Setup and migrate qms database
   when: qms
   ansible.builtin.include_tasks: qms.yml
   tags:
     - update-databases
 
-- name: setup and migrate unleash database
+- name: Setup and migrate unleash database
   when: unleash
   ansible.builtin.include_tasks: unleash.yml
   tags:
     - update-databases
 
-- name: setup and migrate harbor databases
+- name: Setup and migrate harbor databases
   when: harbor
   ansible.builtin.include_tasks: harbor.yml
   tags:
     - update-databases
 
-- name: setup and migrate keycloak databases
+- name: Setup and migrate keycloak databases
   when: keycloak
   ansible.builtin.include_tasks: keycloak.yml
   tags:
     - update-databases
 
-- name: setup and migrate portal database
+- name: Setup and migrate portal database
   when: portal
   ansible.builtin.include_tasks: portal.yml
   tags:
     - update-databases
 
-- name: clean up database work
+- name: Clean up database work
   ansible.builtin.include_role:
     name: db_staging
     tasks_from: cleanup.yml

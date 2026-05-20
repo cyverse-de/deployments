@@ -32,12 +32,12 @@
 - ansible.builtin.set_fact:
     secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}"
 
-- name: copy ssl files
+- name: Copy ssl files
   become: true
   ansible.builtin.copy:
     dest: /etc/ssl/
     src: "{{ secrets_dir }}/{{ item }}"
-    mode: 0600
+    mode: "0600"
     owner: root
     group: root
   with_items: "{{ secrets_loader_ssl_filepaths }}"
@@ -53,7 +53,7 @@
 #   notify:
 #     - restart haproxy
 
-- name: configure ui haproxy settings
+- name: Configure ui haproxy settings
   become: true
   ansible.builtin.blockinfile:
     dest: /etc/haproxy/haproxy.cfg

@@ -3,13 +3,13 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: add the kube-fledged helm repo
+    - name: Add the kube-fledged helm repo
       kubernetes.core.helm_repository:
         name: kubefledged-charts
         repo_url: https://senthilrch.github.io/kubefledged-charts/
         state: present
 
-    - name: install kube-fledged
+    - name: Install kube-fledged
       kubernetes.core.helm:
         name: image-cache
         chart_ref: kubefledged-charts/kube-fledged
@@ -24,7 +24,7 @@
             controllerImagePullDeadlineDuration: 30m
             controllerImageCacheRefreshFrequency: 1h
 
-    - name: create the harbor json file
+    - name: Create the harbor json file
       ansible.builtin.shell:
         cmd: >
           {{ image_tool }} login
@@ -34,7 +34,7 @@
           harbor.cyverse.org
         creates: harbor_login.json
 
-    - name: create the harbor image pull secret
+    - name: Create the harbor image pull secret
       ansible.builtin.shell:
         cmd: >
           kubectl -n image-cache
@@ -43,12 +43,12 @@
           --type=kubernetes.io/dockerconfigjson
       ignore_errors: true
 
-    - name: remove the tempfile for the harbor login json
+    - name: Remove the tempfile for the harbor login json
       ansible.builtin.file:
         path: harbor_login.json
         state: absent
 
-    - name: add the actual image cache
+    - name: Add the actual image cache
       kubernetes.core.k8s:
         state: present
         definition:

@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   block:
-    - name: create the portal db user
+    - name: Create the portal db user
       community.postgresql.postgresql_user:
         login_host: "{{ groups['dbms'][0] }}"
         login_port: "{{ pg_listen_port }}"
@@ -14,7 +14,7 @@
       tags:
         - update-databases
 
-    - name: create the portal database
+    - name: Create the portal database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -28,13 +28,13 @@
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
-    - name: grant all privileges to the portal user
+    - name: Grant all privileges to the portal user
       community.postgresql.postgresql_privs:
-        login_host: "{{groups['dbms'][0]}}"
-        port: "{{pg_listen_port}}"
-        login_user: "{{pg_login_user}}"
-        login_password: "{{pg_login_password}}"
-        login_db: "{{portal_db_name}}"
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ portal_db_name }}"
         grant_option: true
         privs: ALL
         type: schema
@@ -43,7 +43,7 @@
       tags:
         - update-databases
 
-    - name: grant the pg_read_server_files privilege to the portal user
+    - name: Grant the pg_read_server_files privilege to the portal user
       community.postgresql.postgresql_query:
         login_host: "{{groups['dbms'][0]}}"
         port: "{{pg_listen_port}}"
@@ -54,7 +54,7 @@
       tags:
         - update-databases
 
-    - name: install extensions for the portal database
+    - name: Install extensions for the portal database
       when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
         login_host: "{{ groups['dbms'][0] }}"
@@ -62,7 +62,7 @@
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         db: "{{ portal_db_name }}"
-        name: "{{item}}"
+        name: "{{ item }}"
       loop:
         - moddatetime
         - btree_gist
@@ -70,18 +70,18 @@
       tags:
         - update-databases
 
-    - name: checkout the portal repo for its migrations
+    - name: Checkout the portal repo for its migrations
       ansible.builtin.git:
         repo: "https://github.com/cyverse-de/portal2"
         dest: "{{ dbs_dir.path }}/portal2"
-        clone: yes
-        update: yes
-        force: yes
+        clone: true
+        update: true
+        force: true
         version: "{{ portal_version }}"
       tags:
         - update-databases
 
-    - name: run portal repo migrations
+    - name: Run portal repo migrations
       ansible.builtin.command: >
         {{migrate_installed.stdout}}
         -database "postgresql://{{portal_db_user}}:{{portal_db_password}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
@@ -91,7 +91,7 @@
       tags:
         - update-databases
 
-    - name: check out the grid csv files
+    - name: Check out the grid csv files
       ansible.builtin.git:
         repo: "{{grid_csv_repo}}"
         dest: "{{dbs_dir.path}}/grid_institutions"
@@ -102,13 +102,13 @@
       tags:
         - update-databases
 
-    - name: check for the 'Other' record in account_institution_grid
+    - name: Check for the 'Other' record in account_institution_grid
       community.postgresql.postgresql_query:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_db_user}}"
-        login_password: "{{portal_db_password}}"
-        login_db: "{{portal_db_name}}"
+        login_host: "{{ groups['dbms'][0] }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ portal_db_user }}"
+        login_password: "{{ portal_db_password }}"
+        login_db: "{{ portal_db_name }}"
         query: SELECT grid_id FROM account_institution_grid WHERE name = 'Other'
       register: other_result
       tags:
@@ -119,25 +119,25 @@
       tags:
         - update-databases
 
-    - name: insert the Other field into the account_institution_grid table
+    - name: Insert the Other field into the account_institution_grid table
       when: other_result.rowcount == 0
       community.postgresql.postgresql_query:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_db_user}}"
-        login_password: "{{portal_db_password}}"
-        login_db: "{{portal_db_name}}"
+        login_host: "{{ groups['dbms'][0] }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ portal_db_user }}"
+        login_password: "{{ portal_db_password }}"
+        login_db: "{{ portal_db_name }}"
         query: INSERT INTO account_institution_grid (grid_id,name,city,state,country) VALUES ('', 'Other','','','') ON CONFLICT (grid_id) DO NOTHING
       tags:
         - update-databases
 
-    - name: check for records in account_institution_grid
+    - name: Check for records in account_institution_grid
       community.postgresql.postgresql_query:
-        login_host: "{{groups['dbms'][0]}}"
-        login_port: "{{pg_listen_port}}"
-        login_user: "{{portal_db_user}}"
-        login_password: "{{portal_db_password}}"
-        login_db: "{{portal_db_name}}"
+        login_host: "{{ groups['dbms'][0] }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ portal_db_user }}"
+        login_password: "{{ portal_db_password }}"
+        login_db: "{{ portal_db_name }}"
         query: SELECT COUNT(*) AS record_count FROM account_institution_grid
       register: records_result
       tags:
@@ -148,31 +148,31 @@
       tags:
         - update-databases
 
-    - name: update pgpass so that we can use psql
+    - name: Update pgpass so that we can use psql
       ansible.builtin.lineinfile:
-        path: "{{user_home}}/.pgpass"
+        path: "{{ user_home }}/.pgpass"
         create: true
         insertafter: "EOF"
-        mode: 0600
-        line: "{{groups['dbms'][0]}}:*:*:{{portal_db_user}}:{{portal_db_password}}"
+        mode: "0600"
+        line: "{{ groups['dbms'][0] }}:*:*:{{ portal_db_user }}:{{ portal_db_password }}"
       vars:
         user_home: "{{ lookup('env', 'HOME') }}"
       tags:
         - update-databases
 
-    - name: copy grid.csv data into the account_institution_grid table
+    - name: Copy grid.csv data into the account_institution_grid table
       when: records_result["query_result"][0]["record_count"] <= 1
       ansible.builtin.command:
         argv:
           - "psql"
-          - "--host={{groups['dbms'][0]}}"
-          - "--port={{pg_listen_port}}"
-          - "--username={{portal_db_user}}"
-          - "--dbname={{portal_db_name}}"
-          - "--command={{cmd}}"
+          - "--host={{ groups['dbms'][0] }}"
+          - "--port={{ pg_listen_port }}"
+          - "--username={{ portal_db_user }}"
+          - "--dbname={{ portal_db_name }}"
+          - "--command={{ cmd }}"
       vars:
         column_list: "grid_id,name,city,state,country"
-        grid_csv_path: "{{dbs_dir.path}}/grid_institutions/grid.csv"
+        grid_csv_path: "{{ dbs_dir.path }}/grid_institutions/grid.csv"
         table: "account_institution_grid"
         options: "DELIMITER ',', FORMAT 'csv', NULL 'null'"
         cmd: "\\copy {{table}} ({{column_list}}) from {{grid_csv_path}} WITH ({{options}})"

@@ -1,7 +1,7 @@
 ---
-- name: create the grouper-configs secret
+- name: Create the grouper-configs secret
   delegate_to: localhost
-  run_once: True
+  run_once: true
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   kubernetes.core.k8s:
@@ -25,12 +25,12 @@
         grouper-ws.properties: "{{ lookup('template', 'grouper-ws.properties.j2') | b64encode }}"
         grouper.properties: "{{ lookup('template', 'grouper.properties.j2') | b64encode }}"
 
-- name: grouper db initialization
+- name: Grouper db initialization
   when: skip_db_init is undefined or (skip_db_init is defined and not skip_db_init)
   block:
-    - name: create the gsh pod
+    - name: Create the gsh pod
       delegate_to: localhost
-      run_once: True
+      run_once: true
       environment:
         KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s:
@@ -86,24 +86,24 @@
                     mountPath: /etc/grouper
                     readOnly: true
 
-    - name: wait for the gsh pod to be ready
+    - name: Wait for the gsh pod to be ready
       delegate_to: localhost
-      run_once: True
+      run_once: true
       environment:
         KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_info:
         kind: Pod
         namespace: "{{ ns }}"
         name: gsh
-        wait: yes
+        wait: true
         wait_condition:
           type: Ready
-          status: True
+          status: true
         wait_timeout: 1000
 
-    - name: run the database init command in the gsh pod
+    - name: Run the database init command in the gsh pod
       delegate_to: localhost
-      run_once: True
+      run_once: true
       environment:
         KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_exec:
@@ -114,19 +114,19 @@
       register: init_result
       ignore_errors: true
 
-    - name: debug the database init command result
-      debug:
+    - name: Debug the database init command result
+      ansible.builtin.debug:
         var: init_result
       when: init_result.failed
 
-    - name: exit if init command failed
-      fail:
+    - name: Exit if init command failed
+      ansible.builtin.fail:
         msg: "Grouper database init command failed"
       when: init_result.rc != 0
 
-    - name: copy the grouper_init.groovy file to the gsh pod
+    - name: Copy the grouper_init.groovy file to the gsh pod
       delegate_to: localhost
-      run_once: True
+      run_once: true
       environment:
         KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_cp:
@@ -208,9 +208,9 @@
           GrouperSession.stopQuietly(deGrouperSession)
         remote_path: /tmp/grouper_init.groovy
 
-    - name: run the grouper_init.groovy script in the gsh pod
+    - name: Run the grouper_init.groovy script in the gsh pod
       delegate_to: localhost
-      run_once: True
+      run_once: true
       environment:
         KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s_exec:
@@ -221,19 +221,19 @@
       register: groovy_result
       ignore_errors: true
 
-    - name: debug the grouper_init.groovy script result
-      debug:
+    - name: Debug the grouper_init.groovy script result
+      ansible.builtin.debug:
         var: groovy_result
       when: groovy_result.failed
 
-    - name: exit if grouper_init.groovy script failed
-      fail:
+    - name: Exit if grouper_init.groovy script failed
+      ansible.builtin.fail:
         msg: "Grouper init script failed"
       when: groovy_result.rc != 0
 
-- name: create the grouper-loader deployment
+- name: Create the grouper-loader deployment
   delegate_to: localhost
-  run_once: True
+  run_once: true
   timeout: 1000
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -243,7 +243,7 @@
     wait: true
     wait_condition:
       type: Available
-      status: True
+      status: true
     wait_timeout: 600
     definition:
       apiVersion: apps/v1
@@ -345,9 +345,9 @@
                   - name: GROUPER_USE_SSL
                     value: "false"
 
-- name: deploy grouper-ws
+- name: Deploy grouper-ws
   delegate_to: localhost
-  run_once: True
+  run_once: true
   timeout: 10000
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -357,7 +357,7 @@
     wait: true
     wait_condition:
       type: Available
-      status: True
+      status: true
     wait_timeout: 600
     definition:
       apiVersion: apps/v1
@@ -478,9 +478,9 @@
                   initialDelaySeconds: 180
                   periodSeconds: 20
 
-- name: deploy grouper-ws service
+- name: Deploy grouper-ws service
   delegate_to: localhost
-  run_once: True
+  run_once: true
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   kubernetes.core.k8s:

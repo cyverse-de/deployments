@@ -1,5 +1,5 @@
 ---
-- name: add a kifshare nodeport
+- name: Add a kifshare nodeport
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -21,7 +21,7 @@
             targetPort: 60000
             nodePort: "{{ kifshare_nodeport }}"
 
-- name: add a terrain nodeport
+- name: Add a terrain nodeport
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -43,7 +43,7 @@
             targetPort: 60000
             nodePort: "{{ terrain_nodeport }}"
 
-- name: add a job-status-listener nodeport
+- name: Add a job-status-listener nodeport
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"

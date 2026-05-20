@@ -3,7 +3,7 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the namespaces for the DE and VICE
+    - name: Create the namespaces for the DE and VICE
       kubernetes.core.k8s:
         api_version: v1
         state: present

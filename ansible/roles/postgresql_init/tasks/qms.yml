@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   block:
-    - name: create qms database
+    - name: Create qms database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -15,7 +15,7 @@
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
-    - name: install extensions for the qms database
+    - name: Install extensions for the qms database
       when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
         login_host: "{{ groups['dbms'][0] }}"
@@ -23,7 +23,7 @@
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         db: "{{ qms_db_name }}"
-        name: "{{item}}"
+        name: "{{ item }}"
       loop:
         - uuid-ossp
         - moddatetime
@@ -32,18 +32,18 @@
       tags:
         - update-databases
 
-    - name: checkout the qms repo for its migrations
+    - name: Checkout the qms repo for its migrations
       ansible.builtin.git:
         repo: "https://github.com/cyverse/qms"
         dest: "{{ dbs_dir.path }}/qms"
-        clone: yes
-        update: yes
-        force: yes
+        clone: true
+        update: true
+        force: true
         version: "{{ qms_version }}"
       tags:
         - update-databases
 
-    - name: run qms repo for its migrations
+    - name: Run qms repo for its migrations
       ansible.builtin.command: >
         {{migrate_installed.stdout}}
         -database "postgresql://{{dbms_connection_user}}:{{dbms_connection_pass}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/qms?sslmode=disable"

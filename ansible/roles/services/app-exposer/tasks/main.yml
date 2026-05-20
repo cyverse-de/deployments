@@ -1,8 +1,9 @@
+---
 - delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the vice-app-runner ServiceAccount
+    - name: Create the vice-app-runner ServiceAccount
       kubernetes.core.k8s:
         state: present
         definition:
@@ -13,7 +14,7 @@
             namespace: "{{ vice_ns }}"
           automountServiceAccountToken: true
 
-    - name: create the configurator service account
+    - name: Create the configurator service account
       kubernetes.core.k8s:
         state: present
         definition:
@@ -24,7 +25,7 @@
             namespace: "{{ ns }}"
           automountServiceAccountToken: true
 
-    - name: create the app-exposer service account
+    - name: Create the app-exposer service account
       kubernetes.core.k8s:
         state: present
         definition:
@@ -35,7 +36,7 @@
             namespace: "{{ ns }}"
           automountServiceAccountToken: true
 
-    - name: create the vice-apps Role
+    - name: Create the vice-apps Role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -49,7 +50,7 @@
               resources: [""]
               verbs: [""]
 
-    - name: create the pod-reader role
+    - name: Create the pod-reader role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -63,7 +64,7 @@
               resources: ["pods"]
               verbs: ["get", "watch", "list"]
 
-    - name: create the configurator role RoleBinding
+    - name: Create the configurator role RoleBinding
       kubernetes.core.k8s:
         state: present
         definition:
@@ -81,7 +82,7 @@
             name: pod-reader
             apiGroup: rbac.authorization.k8s.io
 
-    - name: create the app-exposer persistent volume provisioner cluster role binding
+    - name: Create the app-exposer persistent volume provisioner cluster role binding
       kubernetes.core.k8s:
         state: present
         definition:
@@ -98,7 +99,7 @@
             name: system:persistent-volume-provisioner
             apiGroup: rbac.authorization.k8s.io
 
-    - name: create the app-exposer cluster role binding
+    - name: Create the app-exposer cluster role binding
       kubernetes.core.k8s:
         state: present
         definition:
@@ -115,7 +116,7 @@
             name: admin
             apiGroup: rbac.authorization.k8s.io
 
-    - name: create the httproute-admin cluster role
+    - name: Create the httproute-admin cluster role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -137,7 +138,7 @@
                 - patch
                 - delete
 
-    - name: create the app-exposer httproute admin cluster role binding
+    - name: Create the app-exposer httproute admin cluster role binding
       kubernetes.core.k8s:
         state: present
         definition:

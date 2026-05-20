@@ -3,14 +3,14 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create traefik namespace
+    - name: Create traefik namespace
       kubernetes.core.k8s:
         name: "{{ traefik_namespace }}"
         state: present
         kind: namespace
         api_version: v1
 
-    - name: create the self-signed CA certificate for traefik
+    - name: Create the self-signed CA certificate for traefik
       kubernetes.core.k8s:
         name: "{{ traefik_ca_name }}"
         namespace: "{{ traefik_namespace }}"
@@ -34,7 +34,7 @@
               kind: ClusterIssuer
               group: cert-manager.io
 
-    - name: create the certificate issuer for traefik
+    - name: Create the certificate issuer for traefik
       kubernetes.core.k8s:
         name: "{{ traefik_issuer_name }}"
         namespace: "{{ traefik_namespace }}"
@@ -48,7 +48,7 @@
             ca:
               secretName: "{{ traefik_ca_name }}"
 
-    - name: create the TLS certificate for traefik
+    - name: Create the TLS certificate for traefik
       kubernetes.core.k8s:
         name: "{{ traefik_cert_name }}"
         namespace: "{{ traefik_namespace }}"
@@ -72,12 +72,12 @@
               - "{{ vice_wildcard_fqdn }}"
               - "{{ vice_base_domain }}"
 
-    - name: install traefik repo
+    - name: Install traefik repo
       kubernetes.core.helm_repository:
         name: traefik
         repo_url: https://traefik.github.io/charts
 
-    - name: install traefik
+    - name: Install traefik
       kubernetes.core.helm:
         name: traefik
         chart_ref: traefik/traefik
@@ -132,7 +132,7 @@
               defaultCertificate:
                 secretName: "{{ traefik_cert_name }}"
 
-    - name: install Gateway API CRDs
+    - name: Install Gateway API CRDs
       kubernetes.core.k8s:
         state: present
         src: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml

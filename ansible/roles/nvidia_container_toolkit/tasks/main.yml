@@ -1,11 +1,11 @@
 ---
-- name: install the nvidia container repo if not present
+- name: Install the nvidia container repo if not present
   ansible.builtin.get_url:
     url: https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
     dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
-    mode: 0644
+    mode: "0644"
 
-- name: install the container toolkit packages
+- name: Install the container toolkit packages
   ansible.builtin.package:
     name:
       - nvidia-container-toolkit
@@ -15,7 +15,7 @@
     state: present
   notify: reboot host
 
-- name: configure the nvidia container toolkit runtime
+- name: Configure the nvidia container toolkit runtime
   ansible.builtin.command:
     argv:
       - nvidia-ctk

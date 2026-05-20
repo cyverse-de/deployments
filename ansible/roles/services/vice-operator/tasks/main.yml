@@ -1,25 +1,25 @@
 ---
-- name: install the vice-operator
+- name: Install the vice-operator
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: builds dir
+    - name: Builds dir
       delegate_to: localhost
       ansible.builtin.debug:
         msg: "{{ build_json_dir }}"
 
-    - name: read the build JSON file
+    - name: Read the build JSON file
       delegate_to: localhost
-      set_fact:
-        build_json: "{{ lookup('file', build_json_dir +'/app-exposer.json') | from_json }}"
+      ansible.builtin.set_fact:
+        build_json: "{{ lookup('file', build_json_dir + '/app-exposer.json') | from_json }}"
 
-    - name: image tag
+    - name: Image tag
       delegate_to: localhost
       ansible.builtin.debug:
         msg: "{{ build_json.builds[0].tag }}"
 
-    - name: render the template
+    - name: Render the template
       ansible.builtin.template:
         src: vice_operator.yml.j2
         dest: "/tmp/vice_operator_{{ vice_ns }}.yml"
@@ -33,17 +33,17 @@
           metadata:
             name: "{{ vice_ns }}"
 
-    - name: set up the vice-operator service account
+    - name: Set up the vice-operator service account
       kubernetes.core.k8s:
         state: present
         definition:
           apiVersion: v1
           kind: ServiceAccount
           metadata:
-              name: vice-operator
-              namespace: "{{ vice_ns }}"
+            name: vice-operator
+            namespace: "{{ vice_ns }}"
 
-    - name: set up vice-operator cluster role
+    - name: Set up vice-operator cluster role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -62,7 +62,7 @@
               resources: ["services"]
               verbs: ["get"]
 
-    - name: set up the vice-operator role
+    - name: Set up the vice-operator role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -94,7 +94,7 @@
               resources: ["leases"]
               verbs: ["get", "create", "update"]
 
-    - name: set up the cluster role binding
+    - name: Set up the cluster role binding
       kubernetes.core.k8s:
         state: present
         definition:
@@ -111,7 +111,7 @@
               name: vice-operator
               namespace: "{{ vice_ns }}"
 
-    - name: set up the role binding
+    - name: Set up the role binding
       kubernetes.core.k8s:
         state: present
         definition:
@@ -128,16 +128,15 @@
             - kind: ServiceAccount
               name: vice-operator
               namespace: "{{ vice_ns }}"
-    
-    - name: deploy the vice-operator
+
+    - name: Deploy the vice-operator
       kubernetes.core.k8s:
         state: present
         src: "/tmp/vice_operator_{{ vice_ns }}.yml"
       register: deployed
 
-    - name: remove rendered template
+    - name: Remove rendered template
       ansible.builtin.file:
         path: "/tmp/vice_operator_{{ vice_ns }}.yml"
         state: absent
       when: deployed.changed
-  

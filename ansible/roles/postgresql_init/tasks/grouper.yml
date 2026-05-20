@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   block:
-    - name: create the grouper user
+    - name: Create the grouper user
       community.postgresql.postgresql_user:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -14,7 +14,7 @@
       tags:
         - update-databases
 
-    - name: create grouper database
+    - name: Create grouper database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"

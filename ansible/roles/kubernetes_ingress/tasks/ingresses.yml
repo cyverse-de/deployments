@@ -1,5 +1,5 @@
 ---
-- name: remove the discoenv ingress
+- name: Remove the discoenv ingress
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -12,7 +12,7 @@
         name: "discoenv"
         namespace: "{{ ns }}"
 
-- name: remove the portal ingress
+- name: Remove the portal ingress
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"

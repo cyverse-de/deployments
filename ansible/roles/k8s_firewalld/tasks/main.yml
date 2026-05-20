@@ -1,12 +1,12 @@
 ---
-- name: start and enable firewalld
+- name: Start and enable firewalld
   ansible.builtin.service:
     name: firewalld
     state: started
     enabled: true
   when: ansible_os_family == "RedHat"
 
-- name: open the ports
+- name: Open the ports
   ansible.posix.firewalld:
     permanent: true
     immediate: true
@@ -26,7 +26,7 @@
   notify: reload firewalld
   when: ansible_os_family == "RedHat"
 
-- name: remove trusted subnets from public zone
+- name: Remove trusted subnets from public zone
   ansible.builtin.command: "firewall-cmd --zone=public --remove-source={{ item }} --permanent"
   loop:
     - 10.42.0.0/16 # k3s pods
@@ -34,7 +34,7 @@
   notify: reload firewalld
   when: ansible_os_family == "RedHat"
 
-- name: open trusted subnets
+- name: Open trusted subnets
   ansible.builtin.command: "firewall-cmd --zone=trusted --add-source={{ item }} --permanent"
   loop:
     - 10.42.0.0/16 # k3s pods

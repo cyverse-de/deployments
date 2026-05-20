@@ -1,25 +1,26 @@
 ---
-- block:
-    - name: builds dir
+- tags:
+    - deploy
+  block:
+    - name: Builds dir
       delegate_to: localhost
       ansible.builtin.debug:
         msg: "{{ build_json_dir }}"
 
-    - name: read the build JSON file
+    - name: Read the build JSON file
       delegate_to: localhost
-      set_fact:
-        build_json: "{{ lookup('file', build_json_dir +'/' + project_name + '.json') | from_json }}"
+      ansible.builtin.set_fact:
+        build_json: "{{ lookup('file', build_json_dir + '/' + project_name + '.json') | from_json }}"
 
-    - name: image tag
+    - name: Image tag
       delegate_to: localhost
       ansible.builtin.debug:
         msg: "{{ build_json.builds[0].tag }}"
 
-    - name: run skaffold deploy
+    - name: Run skaffold deploy
       delegate_to: localhost
       run_once: true
       ansible.builtin.command:
         chdir: "{{ de_releases_dir }}/services/{{ project_name }}"
-        cmd: skaffold deploy --namespace "{{ ns }}" --build-artifacts "../../builds/{{ project_name }}.json" --force --kubeconfig "{{ lookup('env', 'KUBECONFIG') }}"
-  tags:
-    - deploy
+        cmd: skaffold deploy --namespace "{{ ns }}" --build-artifacts "../../builds/{{ project_name }}.json" --force --kubeconfig "{{ lookup('env',
+          'KUBECONFIG') }}"

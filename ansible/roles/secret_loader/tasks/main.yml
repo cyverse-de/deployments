@@ -7,9 +7,9 @@
         repo_dir: "{{ inventory_dir | dirname }}"
     - ansible.builtin.set_fact:
         secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}/"
-    - debug:
+    - ansible.builtin.debug:
         msg: "repo dir: '{{ repo_dir }}', secrets_dir: '{{ secrets_dir }}'"
-    - name: create secret ui-nginx-tls secret
+    - name: Create secret ui-nginx-tls secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -20,17 +20,17 @@
             namespace: "{{ ns }}"
           type: kubernetes.io/tls
           data:
-            tls.crt: "{{ lookup('file', secrets_dir + secrets_loader_ui_tls_cert_filepath ) | b64encode }}"
+            tls.crt: "{{ lookup('file', secrets_dir + secrets_loader_ui_tls_cert_filepath) | b64encode }}"
             tls.key: "{{ lookup('file', secrets_dir + secrets_loader_ui_tls_key_filepath) | b64encode }}"
       when: secrets_loader_load_ui_secret
 
-    - name: generate gpg data
-      set_fact:
-        gpg_data: "{{ gpg_data | default({}) | combine({ item | basename : lookup('file', secrets_dir + item) | b64encode }) }}"
+    - name: Generate gpg data
+      ansible.builtin.set_fact:
+        gpg_data: "{{ gpg_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item) | b64encode}) }}"
       with_items: "{{ secrets_loader_gpg_filepaths }}"
       when: secrets_loader_load_gpg_secret
 
-    - name: load gpg secret
+    - name: Load gpg secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -42,12 +42,12 @@
           data: "{{ gpg_data }}"
       when: secrets_loader_load_gpg_secret
 
-    - set_fact:
-        pgpass_data: "{{ pgpass_data | default({}) | combine({ item | basename : lookup('file', secrets_dir + item) | b64encode }) }}"
+    - ansible.builtin.set_fact:
+        pgpass_data: "{{ pgpass_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item) | b64encode}) }}"
       with_items: "{{ secrets_loader_pgpass_filepaths }}"
       when: secrets_loader_load_pgpass_secret
 
-    - name: load pgpass secret
+    - name: Load pgpass secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -59,12 +59,12 @@
           data: "{{ pgpass_data }}"
       when: secrets_loader_load_pgpass_secret
 
-    - set_fact:
-        signing_keys_data: "{{ signing_keys_data | default({}) | combine({ item | basename : lookup('file', secrets_dir + item) | b64encode }) }}"
+    - ansible.builtin.set_fact:
+        signing_keys_data: "{{ signing_keys_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item) | b64encode}) }}"
       with_items: "{{ secrets_loader_signing_keys_filepaths }}"
       when: secrets_loader_load_signing_keys_secret
 
-    - name: load signing keys secret
+    - name: Load signing keys secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -76,12 +76,12 @@
           data: "{{ signing_keys_data }}"
       when: secrets_loader_load_signing_keys_secret
 
-    - set_fact:
-        accepted_keys_data: "{{ accepted_keys_data | default({}) | combine({ item | basename : lookup('file', secrets_dir + item, rtrim=false) | b64encode }) }}"
+    - ansible.builtin.set_fact:
+        accepted_keys_data: "{{ accepted_keys_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item, rtrim=false) | b64encode}) }}"
       with_items: "{{ secrets_loader_accepted_keys_filepaths }}"
       when: secrets_loader_load_accepted_keys_secret
 
-    - name: load accepted keys secret
+    - name: Load accepted keys secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -93,12 +93,12 @@
           data: "{{ accepted_keys_data }}"
       when: secrets_loader_load_accepted_keys_secret
 
-    - set_fact:
-        ssl_data: "{{ ssl_data | default({}) | combine({ item | basename : lookup('file', secrets_dir + item) | b64encode }) }}"
+    - ansible.builtin.set_fact:
+        ssl_data: "{{ ssl_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item) | b64encode}) }}"
       with_items: "{{ secrets_loader_ssl_filepaths }}"
       when: secrets_loader_load_ssl_secret
 
-    - name: load ssl secret
+    - name: Load ssl secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -110,7 +110,7 @@
           data: "{{ ssl_data }}"
       when: secrets_loader_load_ssl_secret
 
-    - name: load unleash secret
+    - name: Load unleash secret
       kubernetes.core.k8s:
         state: present
         definition:

@@ -1,5 +1,5 @@
 ---
-- name: reboot host
+- name: Reboot host
   ansible.builtin.reboot:
 
 - name: Reload udev rules
