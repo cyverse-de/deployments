@@ -8,7 +8,7 @@
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
+        login_db: "{{ pg_db }}"
         name: "{{ portal_db_user }}"
         password: "{{ portal_db_password }}"
       when: create_user is defined and create_user
@@ -62,7 +62,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ portal_db_name }}"
+        login_db: "{{ portal_db_name }}"
         name: "{{ item }}"
       loop:
         - moddatetime

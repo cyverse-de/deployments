@@ -27,7 +27,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ de_db_name }}"
+        login_db: "{{ de_db_name }}"
         name: "{{ item }}"
       loop:
         - uuid-ossp
@@ -42,7 +42,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ notifications_db_name }}"
+        login_db: "{{ notifications_db_name }}"
         name: "uuid-ossp"
       when: install_exts is defined and install_exts
       tags:
@@ -54,7 +54,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ metadata_db_name }}"
+        login_db: "{{ metadata_db_name }}"
         name: "uuid-ossp"
       when: install_exts is defined and install_exts
       tags:
@@ -130,7 +130,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "de"
+        login_db: "de"
         query: |
           INSERT INTO default_instant_launches
             (version, instant_launches, added_by)

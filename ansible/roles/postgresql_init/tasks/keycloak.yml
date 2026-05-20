@@ -8,7 +8,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
+        login_db: "{{ pg_db }}"
         name: "{{ keycloak_db_username }}"
         password: "{{ keycloak_db_password }}"
       when: create_user is defined and create_user

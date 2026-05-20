@@ -7,7 +7,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
+        login_db: "{{ pg_db }}"
         name: "{{ dbms_connection_user }}"
         password: "{{ dbms_connection_pass }}"
       when: create_user is defined and create_user

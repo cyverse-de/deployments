@@ -59,7 +59,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ metadata_db_name }}"
+        login_db: "{{ metadata_db_name }}"
         name: "{{ item }}"
       with_items:
         - "uuid-ossp"
@@ -82,5 +82,5 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ metadata_db_name }}"
+        login_db: "{{ metadata_db_name }}"
         query: "DELETE FROM avus WHERE target_type = 'file' OR target_type = 'folder'"
