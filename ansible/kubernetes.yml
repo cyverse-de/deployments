@@ -172,7 +172,7 @@
   gather_facts: false
   become: false
   roles:
-    - role: vice-operator
+    - role: services/vice-operator
   tags:
     - vice-operator
 
@@ -185,7 +185,7 @@
     - role: maintenance-page
       tags: maintenance-page
 
-    - role: app-exposer
+    - role: services/app-exposer
       tags: app-exposer
 
 - hosts: k8s_controllers[0]
@@ -197,7 +197,7 @@
     - deploy-all-services
   tasks:
     - ansible.builtin.include_role:
-        name: services
+        name: deploy-service
         tasks_from: main
       vars:
         project_name: "{{ project }}"
@@ -206,7 +206,7 @@
       when: "'deploy-single-service' in ansible_run_tags"
 
     - ansible.builtin.include_role:
-        name: services
+        name: deploy-service
         tasks_from: main
       vars:
         project_name: "{{ item }}"
