@@ -1,0 +1,81 @@
+---
+# =====================================================================
+# Phase 1: Kubernetes Node Preparation
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags prep-nodes` (GPU drivers,
+# timezone, base node prep, firewalld, NVIDIA container toolkit).
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear
+# in roughly the order they are first consulted during the pass.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Ansible connection
+# ---------------------------------------------------------------------
+
+# Path to the Python interpreter on managed nodes. Consulted by Ansible
+# itself on every connection, before any task runs.
+# Default: /usr/bin/python3
+# ansible_python_interpreter: /usr/bin/python3
+
+
+# ---------------------------------------------------------------------
+# Host system
+# ---------------------------------------------------------------------
+
+# Timezone written to /etc/timezone and symlinked from /etc/localtime by
+# the `timezone` role (k8s_de_workers).
+# Default: America/Phoenix
+# timezone: America/Phoenix
+
+
+# ---------------------------------------------------------------------
+# Node networking
+# ---------------------------------------------------------------------
+
+# Toggle for installing `wireguard-tools` on every k8s node. Treated as
+# enabled when undefined — set to false to opt out on hosts that will
+# never use Calico's WireGuard encryption.
+# Default: undefined (install)
+# do_wireguard: true
+
+
+# ---------------------------------------------------------------------
+# Kubernetes component versions
+# ---------------------------------------------------------------------
+# The three versions below pin the Kubernetes apt/yum repo, the Helm CLI
+# binary, and the calicoctl binary that get installed on each node. They
+# should be kept in sync with what the later `create-cluster` pass
+# actually deploys into the cluster.
+
+# Major.minor of the Kubernetes apt/yum repo configured on each node.
+# Default: "1.30"
+# k8s_version: "1.30"
+
+# Helm CLI version downloaded to each node.
+# Default: "3.16.2"
+# helm_version: "3.16.2"
+
+# Version of the `calicoctl` binary installed on each node.
+# Default: "3.29.0"
+# calico_version: "3.29.0"
+
+
+# ---------------------------------------------------------------------
+# NVIDIA container toolkit (GPU workers only)
+# ---------------------------------------------------------------------
+# Applied by the `nvidia_container_toolkit` role on k8s_gpu_workers
+# after drivers are installed. Both values are passed to `nvidia-ctk
+# runtime configure`.
+
+# Container runtime that nvidia-ctk should configure.
+# Default: containerd
+# nvidia_container_toolkit_runtime: containerd
+
+# Path to the drop-in config file nvidia-ctk writes. The default matches
+# the k0s containerd config-fragment directory.
+# Default: /etc/k0s/containerd.d/nvidia.toml
+# nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml

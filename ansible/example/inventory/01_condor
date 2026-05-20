@@ -1,0 +1,10 @@
+[condor:children]
+condor_manager
+condor_submit
+condor_worker
+
+[condor_manager]
+
+[condor_submit]
+
+[condor_worker]
