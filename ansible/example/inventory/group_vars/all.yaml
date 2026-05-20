@@ -1,6 +1,352 @@
 ---
 # =====================================================================
-# Phase 1: Kubernetes Node Preparation
+# Phase 1: PostgreSQL Installation (optional)
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags install-postgres`
+# (PostgreSQL packages, the firewall port, pg_hba.conf access rules, and
+# the postgres superuser password).
+#
+# This phase is OPTIONAL. Skip it when the deployment uses a PostgreSQL
+# instance that was provisioned in advance — run Phase 2
+# (`--tags setup-databases`) directly against that instance instead.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear
+# in roughly the order they are first consulted during the pass.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# PostgreSQL packages
+# ---------------------------------------------------------------------
+# PostgreSQL 14 is the minimum version supported by these playbooks.
+
+# Major version of the PostgreSQL server and client packages installed
+# on the `dbms` hosts. Also substituted into `pg_conf_path` below.
+# Default: "14"
+# dbms_postgresql_version: "14"
+
+
+# ---------------------------------------------------------------------
+# Client access (pg_hba.conf)
+# ---------------------------------------------------------------------
+# pg_hba.conf rules are written with the `scram-sha-256` authentication
+# method. The server stores passwords as SCRAM hashes by default on
+# every supported PostgreSQL version (14+), so no extra configuration
+# is needed.
+
+# Directory holding postgresql.conf and pg_hba.conf on the `dbms` hosts.
+# The `postgresql_access` role edits pg_hba.conf in this directory. The
+# default is the Debian layout and embeds `dbms_postgresql_version`.
+# Default: "/etc/postgresql/{{dbms_postgresql_version}}/main"
+# pg_conf_path: "/etc/postgresql/{{dbms_postgresql_version}}/main"
+
+# CIDR ranges added to pg_hba.conf as scram-sha-256-authenticated
+# `host` rules for local/private network access.
+# Default:
+#   - "127.0.0.1/32"
+#   - "10.0.0.0/8"
+#   - "172.16.0.0/12"
+#   - "192.168.0.0/16"
+# dbms_allowed_local_addresses:
+#   - "127.0.0.1/32"
+#   - "10.0.0.0/8"
+#   - "172.16.0.0/12"
+#   - "192.168.0.0/16"
+
+# Additional CIDR ranges added to pg_hba.conf as
+# scram-sha-256-authenticated `host` rules for remote access.
+# Default: [] (none)
+# dbms_allowed_remote_addresses: []
+
+
+# ---------------------------------------------------------------------
+# PostgreSQL superuser
+# ---------------------------------------------------------------------
+
+# Password assigned to the `postgres` superuser. Phase 2 reuses this
+# value to authenticate when creating roles and databases.
+# Default: Chang3m3
+# pg_login_password: Chang3m3
+
+
+# =====================================================================
+# Phase 2: Database Setup
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags setup-databases`
+# (creates roles and databases, installs extensions, runs schema
+# migrations).
+#
+# This phase runs locally (`connection: local`) and connects to the
+# first host in the `dbms` inventory group. It can run against the
+# instance set up in Phase 1 or against a pre-existing PostgreSQL
+# instance.
+#
+# The Grouper, QMS, Unleash, Harbor, Keycloak, and User Portal sections
+# only take effect when their feature toggle is enabled.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear
+# in roughly the order they are first consulted during the pass.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Database connection
+# ---------------------------------------------------------------------
+# Credentials used for the privileged connection to PostgreSQL. The host
+# is taken from the first entry in the `dbms` inventory group, not from a
+# variable. `pg_login_password` is documented under Phase 1.
+
+# Superuser role used for the privileged connection.
+# Default: postgres
+# pg_login_user: postgres
+
+# TCP port PostgreSQL listens on.
+# Default: 5432
+# pg_listen_port: 5432
+
+# Database connected to when creating roles.
+# Default: postgres
+# pg_db: postgres
+
+
+# ---------------------------------------------------------------------
+# DE service account
+# ---------------------------------------------------------------------
+
+# Role that owns the Discovery Environment databases and that the DE
+# services authenticate as.
+# Default: de
+# dbms_connection_user: de
+
+# Password for `dbms_connection_user`.
+# Default: Ch@ng3M3
+# dbms_connection_pass: Ch@ng3M3
+
+# Whether to create database roles. Set false when the roles already
+# exist.
+# Default: true
+# create_user: true
+
+
+# ---------------------------------------------------------------------
+# Database creation behavior
+# ---------------------------------------------------------------------
+
+# Whether to create the databases. Set false when they already exist.
+# Default: true
+# create_dbs: true
+
+# Whether to install PostgreSQL extensions (uuid-ossp, moddatetime,
+# btree_gist, ...) into the databases that need them.
+# Default: true
+# install_exts: true
+
+# Whether to run schema migrations with the `migrate` tool.
+# Default: true
+# migrate: true
+
+# Whether to remove the temporary staging directory used to check out
+# the migration repos once the pass finishes.
+# Default: true
+# cleanup: true
+
+# Character encoding for newly created databases.
+# Default: UTF8
+# encoding: UTF8
+
+# ICU locale for newly created databases.
+# Default: en-US
+# icu_locale: en-US
+
+# Template database that newly created databases are cloned from.
+# Default: template0
+# template: template0
+
+
+# ---------------------------------------------------------------------
+# Discovery Environment databases
+# ---------------------------------------------------------------------
+# Always created. Each `*_version` is the git ref of the corresponding
+# migrations repo to check out.
+
+# Name of the main DE database.
+# Default: de
+# de_db_name: de
+
+# Name of the notifications database.
+# Default: notifications
+# notifications_db_name: notifications
+
+# Name of the metadata database.
+# Default: metadata
+# metadata_db_name: metadata
+
+# Git ref of the de-database migrations repo.
+# Default: main
+# de_db_version: main
+
+# Git ref of the notifications-db migrations repo.
+# Default: main
+# notifications_db_version: main
+
+# Git ref of the metadata-db migrations repo.
+# Default: main
+# metadata_db_version: main
+
+
+# ---------------------------------------------------------------------
+# Grouper database
+# ---------------------------------------------------------------------
+# Created only when `grouper` is true.
+
+# Whether to create the Grouper database.
+# Default: true
+# grouper: true
+
+# Role that owns the Grouper database.
+# Default: GrouperSystem
+# grouper_connection_user: GrouperSystem
+
+# Password for `grouper_connection_user`.
+# Default: Ch@ng3m3
+# grouper_connection_pass: Ch@ng3m3
+
+# Name of the Grouper database.
+# Default: grouper
+# grouper_db_name: grouper
+
+
+# ---------------------------------------------------------------------
+# QMS database
+# ---------------------------------------------------------------------
+# Created only when `qms` is true. Owned by `dbms_connection_user`.
+
+# Whether to create and migrate the QMS database.
+# Default: true
+# qms: true
+
+# Name of the QMS database.
+# Default: qms
+# qms_db_name: qms
+
+# Git ref of the qms migrations repo.
+# Default: main
+# qms_version: main
+
+
+# ---------------------------------------------------------------------
+# Unleash database
+# ---------------------------------------------------------------------
+# Created only when `unleash` is true. Owned by `dbms_connection_user`.
+
+# Whether to create the Unleash database.
+# Default: true
+# unleash: true
+
+# Name of the Unleash database.
+# Default: unleash
+# unleash_db_name: unleash
+
+
+# ---------------------------------------------------------------------
+# Harbor databases
+# ---------------------------------------------------------------------
+# Created only when `harbor` is true.
+
+# Whether to create the Harbor databases.
+# Default: true
+# harbor: true
+
+# Role that owns the Harbor databases.
+# Default: harbor
+# harbor_database_user: harbor
+
+# Password for `harbor_database_user`.
+# Default: Ch@ng3M3
+# harbor_database_password: Ch@ng3M3
+
+# Name of the Harbor core database.
+# Default: harbor_core
+# harbor_core_db_name: harbor_core
+
+# Name of the Harbor clair database.
+# Default: harbor_clair
+# harbor_clair_db_name: harbor_clair
+
+# Name of the Harbor notary server database.
+# Default: harbor_notary_server
+# harbor_notary_server_db_name: harbor_notary_server
+
+# Name of the Harbor notary signer database.
+# Default: harbor_notary_signer
+# harbor_notary_signer_db_name: harbor_notary_signer
+
+
+# ---------------------------------------------------------------------
+# Keycloak database
+# ---------------------------------------------------------------------
+# Created only when `keycloak` is true. This section connects to the
+# first host in the `keycloak_dbms` inventory group, which may differ
+# from `dbms`.
+
+# Whether to create the Keycloak database.
+# Default: true
+# keycloak: true
+
+# Role that owns the Keycloak database.
+# Default: keycloak
+# keycloak_db_username: keycloak
+
+# Password for `keycloak_db_username`.
+# Default: Ch@ng3M3
+# keycloak_db_password: Ch@ng3M3
+
+# Name of the Keycloak database.
+# Default: keycloak
+# keycloak_db_name: keycloak
+
+
+# ---------------------------------------------------------------------
+# User Portal database
+# ---------------------------------------------------------------------
+# Disabled by default — set `portal` to true to create and migrate it.
+
+# Whether to create and migrate the User Portal database.
+# Default: false
+# portal: false
+
+# Role that owns the User Portal database.
+# Default: portal
+# portal_db_user: portal
+
+# Password for `portal_db_user`.
+# Default: replace_me
+# portal_db_password: replace_me
+
+# Name of the User Portal database.
+# Default: portal
+# portal_db_name: portal
+
+# Git ref of the portal2 migrations repo.
+# Default: main
+# portal_version: main
+
+# Git repo holding the GRID institutions CSV loaded into the portal
+# database.
+# Default: replace_me
+# grid_csv_repo: replace_me
+
+# Git ref of the GRID institutions CSV repo.
+# Default: main
+# grid_csv_version: main
+
+
+# =====================================================================
+# Phase 3: Kubernetes Node Preparation
 # =====================================================================
 # Variables consulted by `kubernetes.yml --tags prep-nodes` (GPU drivers,
 # timezone, base node prep, firewalld, NVIDIA container toolkit).

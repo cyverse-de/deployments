@@ -9,7 +9,7 @@
     databases: all
     users: all
     address: "{{ item }}"
-    method: md5
+    method: scram-sha-256
   loop: "{{ dbms_allowed_local_addresses }}"
   notify: restart postgres
 
@@ -20,7 +20,7 @@
     databases: all
     users: all
     address: "{{ item }}"
-    method: md5
+    method: scram-sha-256
   loop: "{{ dbms_allowed_remote_addresses }}"
   notify: restart postgres
 

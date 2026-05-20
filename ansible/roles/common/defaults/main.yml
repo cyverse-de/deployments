@@ -340,7 +340,8 @@ nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml
 # DE Databases Variables
 dbms_connection_user: de
 dbms_connection_pass: Ch@ng3M3
-dbms_postgresql_version: "13.16"
+# PostgreSQL 14 is the minimum supported version (scram-sha-256 auth).
+dbms_postgresql_version: "14"
 de_db_version: main
 notifications_db_version: main
 metadata_db_version: main
