@@ -1,0 +1,6 @@
+---
+- ansible.builtin.include_role:
+    name: deploy-service
+    tasks_from: main
+  vars:
+    project_name: portal2
