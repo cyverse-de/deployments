@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Configure argo Kubernetes resources
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:

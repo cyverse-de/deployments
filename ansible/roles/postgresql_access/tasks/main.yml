@@ -1,5 +1,6 @@
 ---
-- ansible.builtin.debug:
+- name: Show pg_conf_path
+  ansible.builtin.debug:
     msg: "{{ pg_conf_path }}"
 
 - name: Add local access to pg_hba.conf

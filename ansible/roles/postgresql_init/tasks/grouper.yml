@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Initialize grouper database
+  delegate_to: localhost
   block:
     - name: Create the grouper user
       community.postgresql.postgresql_user:

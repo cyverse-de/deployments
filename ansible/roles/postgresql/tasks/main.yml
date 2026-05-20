@@ -31,7 +31,8 @@
   when: ansible_os_family == "Debian"
 
   block:
-    - ansible.builtin.apt:
+    - name: Install postgresql packages
+      ansible.builtin.apt:
         update_cache: true
         pkg:
           - "postgresql-{{ dbms_postgresql_version }}"
@@ -39,7 +40,7 @@
           - "python3-psycopg2"
         state: present
 
-    - name: configure | Ensure postgres user owns home dir
+    - name: Configure | ensure postgres user owns home dir
       ansible.builtin.file:
         path: /var/lib/postgresql
         state: directory
@@ -49,7 +50,8 @@
 - name: Install postgresql and postgresql-server
   when: ansible_os_family == "RedHat"
   block:
-    - ansible.builtin.package:
+    - name: Install postgresql packages
+      ansible.builtin.package:
         state: present
         name: "{{ item }}"
       with_items:
@@ -58,7 +60,7 @@
         - "postgresql-contrib"
         - "python-psycopg2"
 
-    - name: red hat | Run initdb
+    - name: Red hat | run initdb
       ansible.builtin.command:
         cmd: /usr/bin/postgresql-setup --initdb
         creates: "/var/lib/pgsql/data"

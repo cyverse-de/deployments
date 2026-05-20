@@ -285,7 +285,8 @@
     name: nats-client-tls-pkcs8
   register: pkcs8_result
 
-- ansible.builtin.debug:
+- name: Debug pkcs8 secret lookup result
+  ansible.builtin.debug:
     msg: "{{ pkcs8_result }}"
 
 - name: Get the client tls.key file for nats

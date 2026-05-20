@@ -4,17 +4,17 @@
     path: /usr/local/sbin/haproxy
   register: h
 
-- name: debug | Haproxy_installed
+- name: Debug | Haproxy_installed
   ansible.builtin.debug:
     var: h
 
-- name: install | Install haproxy
+- name: Install | Install haproxy
   ansible.builtin.package:
     name: haproxy
     state: present
   when: h.stat is not defined or not h.stat.exists
 
-- name: configure | Download dhparam
+- name: Configure | Download dhparam
   ansible.builtin.get_url:
     url: https://ssl-config.mozilla.org/ffdhe2048.txt
     dest: /etc/ssl/dhparam
@@ -22,7 +22,7 @@
     group: root
     mode: "0644"
 
-- name: configure | Template config
+- name: Configure | Template config
   ansible.builtin.template:
     src: haproxy.cfg.j2
     dest: /etc/haproxy/haproxy.cfg

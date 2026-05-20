@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Initialize keycloak database
+  delegate_to: localhost
   block:
     - name: Create the keycloak user
       community.postgresql.postgresql_user:

@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Create DE Kubernetes namespaces
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:

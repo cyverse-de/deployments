@@ -166,7 +166,7 @@
   tags:
     - irods-csi-driver
 
-- name: deploy a single service
+- name: Deploy a single service
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
@@ -174,16 +174,17 @@
   tags:
     - deploy-single-service
   tasks:
-    - ansible.builtin.include_role:
+    - name: Deploy a single named service
+      ansible.builtin.include_role:
         name: deploy-service
-        tasks_from: main
+       tasks_from: main
       vars:
         project_name: "{{ project }}"
       tags:
         - deploy
       when: "'deploy-single-service' in ansible_run_tags"
 
-- name: deploy all services
+- name: Deploy all services
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false

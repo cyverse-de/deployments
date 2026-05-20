@@ -1,7 +1,12 @@
 ---
-- ansible.builtin.include_tasks: traefik.yml
+- name: Include traefik tasks
+  ansible.builtin.include_tasks: traefik.yml
   when: gateway_provider == "traefik"
-- ansible.builtin.include_tasks: ingress_nginx.yml
-- ansible.builtin.include_tasks: de_namespaces.yml
-- ansible.builtin.include_tasks: local_exim.yml
-- ansible.builtin.include_tasks: harbor.yml
+- name: Include ingress-nginx tasks
+  ansible.builtin.include_tasks: ingress_nginx.yml
+- name: Include DE namespaces tasks
+  ansible.builtin.include_tasks: de_namespaces.yml
+- name: Include local exim tasks
+  ansible.builtin.include_tasks: local_exim.yml
+- name: Include harbor tasks
+  ansible.builtin.include_tasks: harbor.yml

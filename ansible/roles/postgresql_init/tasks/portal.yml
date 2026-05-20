@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Initialize portal database
+  delegate_to: localhost
   block:
     - name: Create the portal db user
       community.postgresql.postgresql_user:
@@ -83,8 +84,8 @@
 
     - name: Run portal repo migrations
       ansible.builtin.command: >
-        {{migrate_installed.stdout}}
-        -database "postgresql://{{portal_db_user}}:{{portal_db_password}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{portal_db_name}}?sslmode=disable"
+        {{ migrate_installed.stdout }}
+        -database "postgresql://{{ portal_db_user }}:{{ portal_db_password }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ portal_db_name }}?sslmode=disable"
         -path "{{ dbs_dir.path }}/portal2/migrations"
         up
       when: migrate is defined and migrate
@@ -114,8 +115,9 @@
       tags:
         - update-databases
 
-    - debug:
-        msg: "{{other_result}}"
+    - name: Show other_result debug output
+      ansible.builtin.debug:
+        msg: "{{ other_result }}"
       tags:
         - update-databases
 
@@ -143,6 +145,7 @@
       tags:
         - update-databases
 
+    - name: Show records_result debug output
     - debug:
         msg: "{{records_result}}"
       tags:

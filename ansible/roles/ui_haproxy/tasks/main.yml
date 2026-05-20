@@ -26,10 +26,12 @@
     - "443/tcp" # konnectivity server
   when: ansible_os_family == 'RedHat'
 
-- ansible.builtin.set_fact:
+- name: Set repo_dir fact
+  ansible.builtin.set_fact:
     repo_dir: "{{ inventory_dir | dirname }}"
 
-- ansible.builtin.set_fact:
+- name: Set secrets_dir fact
+  ansible.builtin.set_fact:
     secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}"
 
 - name: Copy ssl files

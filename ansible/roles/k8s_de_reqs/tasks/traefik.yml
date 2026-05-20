@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Install and configure traefik
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:

@@ -1,41 +1,42 @@
 ---
-- delegate_to: localhost
+- name: Load service configurations into Kubernetes
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: get the list of templates from the template directory
+    - name: Get the list of templates from the template directory
       ansible.builtin.find:
-        paths: "{{ de_releases_dir}}/templates"
+        paths: "{{ de_releases_dir }}/templates"
         patterns: "*.j2"
         file_type: file
       register: template_list
       tags:
         - local-confgs
 
-    - name: create a directory to output the rendered config files.
+    - name: Create a directory to output the rendered config files.
       ansible.builtin.file:
         path: "{{ rendered_configs_dir }}"
         state: directory
       tags:
         - local-confgs
 
-    - name: render each template
+    - name: Render each template
       ansible.builtin.template:
         src: "{{ item.path }}"
-        dest: "{{ [[ rendered_configs_dir ] + [item.path | basename | splitext | first]] | flatten | path_join }}"
+        dest: "{{ [[rendered_configs_dir] + [item.path | basename | splitext | first]] | flatten | path_join }}"
         mode: "0640"
       loop: "{{ template_list.files }}"
       tags:
         - local-confgs
 
-    - name: load configmap data
-      set_fact:
-        config_data: "{{ config_data | default({}) | combine({ item | basename : lookup('file', item) | b64encode }) }}"
+    - name: Load configmap data
+      ansible.builtin.set_fact:
+        config_data: "{{ config_data | default({}) | combine({item | basename: lookup('file', item) | b64encode}) }}"
       with_fileglob: "{{ rendered_configs_dir }}/*"
       tags:
         - local-confgs
 
-    - name: load the configurations into the cluster
+    - name: Load the configurations into the cluster
       run_once: true
       kubernetes.core.k8s:
         state: present
@@ -48,14 +49,14 @@
           data: "{{ config_data }}"
       when: load_configs is undefined or (load_configs | bool)
 
-    - name: remove the locally rendered files
+    - name: Remove the locally rendered files
       run_once: true
       ansible.builtin.file:
         path: "{{ rendered_configs_dir }}"
         state: absent
       when: remove_local_configs is undefined or (remove_local_configs | bool)
 
-    - name: create the configs secret
+    - name: Create the configs secret
       run_once: true
       kubernetes.core.k8s:
         state: present
@@ -72,16 +73,20 @@
             DE_ENV: "{{ ns }}"
             USER_SUFFIX: "{{ uid_domain }}"
             CLUSTER_CONFIG_SECRET: "{{ vice_operator_cluster_config_secret }}"
-            QMS_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ qms_db_name
+            QMS_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass |
+              urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ qms_db_name
               }}?sslmode=disable"
-            DE_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name
+            DE_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass |
+              urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name
               }}?sslmode=disable"
-            NOTIFICATIONS_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port
+            NOTIFICATIONS_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass |
+              urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port
               }}/{{ notifications_db_name }}?sslmode=disable"
-            METADATA_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{
+            METADATA_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass |
+              urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{
               metadata_db_name }}?sslmode=disable"
-            QMS_DATABASE_REINIT: "{{ qms_reinitialize | string}}"
-            QMS_DATABASE_MIGRATE: "{{ qms_automigrate | string}}"
+            QMS_DATABASE_REINIT: "{{ qms_reinitialize | string }}"
+            QMS_DATABASE_MIGRATE: "{{ qms_automigrate | string }}"
             USERNAME_SUFFIX: "@{{ uid_domain }}"
             OTEL_TRACES_EXPORTER: "{% if jaeger_enabled == True %}jaeger{% else %}none{% endif %}"
             OTEL_EXPORTER_JAEGER_ENDPOINT: "{{ jaeger_endpoint }}"
@@ -112,7 +117,7 @@
             VICE_BASE_DOMAIN: "{{ vice_base_domain }}"
       when: load_configs is undefined or (load_configs | bool)
 
-    - name: create portal-conductor SSL certificate
+    - name: Create portal-conductor SSL certificate
       run_once: true
       kubernetes.core.k8s:
         state: present
@@ -149,7 +154,7 @@
               - ::1
       when: load_configs is undefined or (load_configs | bool)
 
-    - name: create the timezone configmap
+    - name: Create the timezone configmap
       run_once: true
       kubernetes.core.k8s:
         state: present
@@ -163,7 +168,7 @@
             timezone: "{{ timezone }}"
       when: load_configs is undefined or (load_configs | bool)
 
-    - name: create the java tool options configmap
+    - name: Create the java tool options configmap
       run_once: true
       kubernetes.core.k8s:
         state: present

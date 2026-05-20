@@ -1,13 +1,17 @@
 ---
-- delegate_to: localhost
+- name: Configure argo workflow resources
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - ansible.builtin.set_fact:
+    - name: Set repo_dir fact
+      ansible.builtin.set_fact:
         repo_dir: "{{ inventory_dir | dirname }}"
-    - ansible.builtin.set_fact:
+    - name: Set secrets_dir fact
+      ansible.builtin.set_fact:
         secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}/"
-    - ansible.builtin.debug:
+    - name: Print repo_dir and secrets_dir
+      ansible.builtin.debug:
         msg: "repo dir: '{{ repo_dir }}', secrets_dir: '{{ secrets_dir }}'"
 
     - name: Create the wc-data secret
@@ -69,8 +73,10 @@
             SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/SP.common.xsd') | b64encode }}"
             submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/submission.xsd') | b64encode }}"
             bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-create-comment.xml') | b64encode }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}"
+            bioproject-create-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-create-comment.xml') | b64encode }}
+            bioproject-update-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/submission.xml') | b64encode }}"
 
     - name: Create the ncbi-sra-submit-configs-test-1-2 secret
@@ -96,17 +102,17 @@
           type: opaque
           data:
             init.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/__init__.py') | b64encode }}"
-            ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/ncbi_sra_submit_properties.py') | b64encode
-              }}"
+            ncbi_sra_submit_properties.py: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/ncbi_sra_submit_properties.py') | b64encode }}
             bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/bioproject.xsd') | b64encode }}"
             biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/biosample.xsd') | b64encode }}"
             SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/SP.common.xsd') | b64encode }}"
             submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/submission.xsd') | b64encode }}"
             bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-create-comment.xml') | b64encode
-              }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode
-              }}"
+            bioproject-create-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-create-comment.xml') | b64encode }}
+            bioproject-update-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode }}
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/submission.xml') | b64encode }}"
 
     - name: Add the ncbi-sra-submit-ssh-key-data-latest secret
@@ -196,8 +202,10 @@
             SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/SP.common.xsd') | b64encode }}"
             submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/submission.xsd') | b64encode }}"
             bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-create-comment.xml') | b64encode }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-update-comment.xml') | b64encode }}"
+            bioproject-create-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-create-comment.xml') | b64encode }}
+            bioproject-update-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-update-comment.xml') | b64encode }}
             genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/genome-metadata.xml') | b64encode }}"
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/submission.xml') | b64encode }}"
             template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/template.sbt') | b64encode }}"

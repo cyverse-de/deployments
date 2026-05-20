@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Configure app-exposer Kubernetes resources
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
@@ -155,7 +156,8 @@
             name: httproute-admin
             apiGroup: rbac.authorization.k8s.io
 
-    - ansible.builtin.include_role:
+    - name: Deploy app-exposer service
+      ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main
       vars:

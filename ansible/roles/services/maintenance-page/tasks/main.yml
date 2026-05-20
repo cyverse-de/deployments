@@ -47,7 +47,8 @@
               name: maintenance-page
               namespace: "{{ ns }}"
 
-    - ansible.builtin.include_role:
+    - name: Deploy maintenance-page service
+      ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main
       vars:

@@ -1,5 +1,6 @@
 ---
-- tags:
+- name: Deploy service via skaffold
+  tags:
     - deploy
   block:
     - name: Builds dir

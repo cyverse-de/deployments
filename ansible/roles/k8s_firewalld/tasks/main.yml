@@ -42,7 +42,8 @@
   notify: reload firewalld
   when: ansible_os_family == "RedHat"
 
-- community.general.ufw:
+- name: Open ports via ufw on Debian systems
+  community.general.ufw:
     rule: allow
     port: "{{ item.port }}"
     proto: "{{ item.proto }}"
@@ -65,7 +66,8 @@
       proto: tcp
   when: ansible_os_family == "Debian"
 
-- community.general.ufw:
+- name: Allow trusted subnets via ufw on Debian systems
+  community.general.ufw:
     rule: allow
     src: "{{ item }}"
   loop:

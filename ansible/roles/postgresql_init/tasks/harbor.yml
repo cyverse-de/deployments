@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Initialize harbor databases
+  delegate_to: localhost
   block:
     - name: Create the harbor database user
       community.postgresql.postgresql_user:

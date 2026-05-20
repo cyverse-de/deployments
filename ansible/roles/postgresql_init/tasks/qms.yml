@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Initialize qms database
+  delegate_to: localhost
   block:
     - name: Create qms database
       community.postgresql.postgresql_db:
@@ -45,8 +46,8 @@
 
     - name: Run qms repo for its migrations
       ansible.builtin.command: >
-        {{migrate_installed.stdout}}
-        -database "postgresql://{{dbms_connection_user}}:{{dbms_connection_pass}}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/qms?sslmode=disable"
+        {{ migrate_installed.stdout }}
+        -database "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/qms?sslmode=disable"
         -path "{{ dbs_dir.path }}/qms/migrations"
         up
       when: migrate is defined and migrate

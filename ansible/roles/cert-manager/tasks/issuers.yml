@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Apply self-signed issuers
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
@@ -26,7 +27,8 @@
           spec:
             selfSigned: {}
 
-- delegate_to: localhost
+- name: Apply Let's Encrypt issuer
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   when: cert_manager_use_letsencrypt

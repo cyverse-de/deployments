@@ -1,5 +1,6 @@
 ---
-- delegate_to: localhost
+- name: Install cert-manager via Helm
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:

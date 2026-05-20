@@ -200,7 +200,9 @@
         - name: Install gpg key
           become: true
           ansible.builtin.shell:
-            cmd: "curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+            cmd: >-
+              curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key |
+              gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
             creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
         - name: Install helm repo gpg key
@@ -318,14 +320,16 @@
 
     - name: Allow calico to work with NetworkManager
       block:
-        - ansible.builtin.file:
+        - name: Create /etc/NetworkManager/conf.d directory
+          ansible.builtin.file:
             path: /etc/NetworkManager/conf.d
             state: directory
             owner: root
             group: root
             mode: "0755"
 
-        - ansible.builtin.copy:
+        - name: Write calico NetworkManager keyfile config
+          ansible.builtin.copy:
             content: |
               [keyfile]
               unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
