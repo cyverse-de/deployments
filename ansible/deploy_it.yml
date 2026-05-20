@@ -5,8 +5,99 @@
   gather_facts: false
   become: false
   roles:
+    - role: services/unleash
+      tags: unleash
+    - role: services/analyses
+      tags: analyses
     - role: services/app-exposer
       tags: app-exposer
-
+    - role: services/apply-labels
+      tags: apply-labels
+    - role: services/apps
+      tags: apps
+    - role: services/async-tasks
+      tags: async-tasks
+    - role: services/bulk-typer
+      tags: bulk-typer
+    - role: services/check-resource-access
+      tags: check-resource-access
+    - role: services/clockwork
+      tags: clockwork
+    - role: services/data-info
+      tags: data-info
+    - role: services/de-mailer
+      tags: de-mailer
+    - role: services/de-webhooks
+      tags: de-webhooks
+    - role: services/dewey
+      tags: dewey
+    - role: services/discoenv-analyses
+      tags: discoenv-analyses
+    - role: services/discoenv-users
+      tags: discoenv-users
+    - role: services/email-requests
+      tags: email-requests
+    - role: services/event-recorder
+      tags: event-recorder
+    - role: services/get-analysis-id
+      tags: get-analysis-id
+    - role: services/info-typer
+      tags: info-typer
+    - role: services/infosquito2
+      tags: infosquito2
+    - role: services/iplant-groups
+      tags: iplant-groups
+    - role: services/jex-adapter
+      tags: jex-adapter
+    - role: services/job-status-listener
+      tags: job-status-listener
+    - role: services/job-status-recorder
+      tags: job-status-recorder
+    - role: services/job-status-to-apps-adapter
+      tags: job-status-to-apps-adapter
+    - role: services/kifshare
+      tags: kifshare
+    - role: services/metadata
+      tags: metadata
+    - role: services/notifications
+      tags: notifications
+    - role: services/permissions
+      tags: permissions
+    - role: services/qms
+      tags: qms
+    - role: services/qms-adapter
+      tags: qms-adapter
+    - role: services/requests
+      tags: requests
+    - role: services/resource-usage-api
+      tags: resource-usage-api
+    - role: services/data-usage-api
+      tags: data-usage-api
+    - role: services/subscriptions
+      tags: subscriptions
+    - role: services/timelord
+      tags: timelord
+    - role: services/user-info
+      tags: user-info
+    - role: services/vice-default-backend
+      tags: vice-default-backend
+    - role: services/vice-status-listener
+      tags: vice-status-listener
+    - role: services/search
+      tags: search
+    - role: services/dashboard-aggregator
+      tags: dashboard-aggregator
+    - role: services/terrain
+      tags: terrain
+    - role: services/sonora
+      tags: sonora
+    - role: services/group-propagator
+      tags: group-propagator
+    - role: services/portal-conductor
+      tags: portal-conductor
+    - role: services/portal2
+      tags: portal2
+    - role: services/formation
+      tags: formation
     - role: services/vice-operator
       tags: vice-operator

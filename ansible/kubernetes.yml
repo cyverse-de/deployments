@@ -188,13 +188,13 @@
     - role: services/app-exposer
       tags: app-exposer
 
-- hosts: k8s_controllers[0]
+- name: deploy a single service
+  hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
   become: false
   tags:
     - deploy-single-service
-    - deploy-all-services
   tasks:
     - ansible.builtin.include_role:
         name: deploy-service
@@ -205,62 +205,61 @@
         - deploy
       when: "'deploy-single-service' in ansible_run_tags"
 
-    - ansible.builtin.include_role:
-        name: deploy-service
-        tasks_from: main
-      vars:
-        project_name: "{{ item }}"
-      tags:
-        - deploy
-      when: "not 'deploy-single-service' in ansible_run_tags"
-      with_items:
-        - unleash
-        - analyses
-        - app-exposer
-        - apply-labels
-        - apps
-        - async-tasks
-        - bulk-typer
-        - check-resource-access
-        - clockwork
-        - data-info
-        - de-mailer
-        - de-webhooks
-        - dewey
-        - discoenv-analyses
-        - discoenv-users
-        - email-requests
-        - event-recorder
-        - get-analysis-id
-        - info-typer
-        - infosquito2
-        - iplant-groups
-        - jex-adapter
-        - job-status-listener
-        - job-status-recorder
-        - job-status-to-apps-adapter
-        - kifshare
-        - metadata
-        - notifications
-        - permissions
-        - qms
-        - qms-adapter
-        - requests
-        - resource-usage-api
-        - data-usage-api
-        - subscriptions
-        - timelord
-        - user-info
-        - vice-default-backend
-        - vice-status-listener
-        - search
-        - dashboard-aggregator
-        - terrain
-        - sonora
-        - group-propagator
-        - portal-conductor
-        - portal2
-        - formation
+- name: deploy all services
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  tags:
+    - deploy-all-services
+  roles:
+    - role: services/unleash
+    - role: services/analyses
+    - role: services/app-exposer
+    - role: services/apply-labels
+    - role: services/apps
+    - role: services/async-tasks
+    - role: services/bulk-typer
+    - role: services/check-resource-access
+    - role: services/clockwork
+    - role: services/data-info
+    - role: services/de-mailer
+    - role: services/de-webhooks
+    - role: services/dewey
+    - role: services/discoenv-analyses
+    - role: services/discoenv-users
+    - role: services/email-requests
+    - role: services/event-recorder
+    - role: services/get-analysis-id
+    - role: services/info-typer
+    - role: services/infosquito2
+    - role: services/iplant-groups
+    - role: services/jex-adapter
+    - role: services/job-status-listener
+    - role: services/job-status-recorder
+    - role: services/job-status-to-apps-adapter
+    - role: services/kifshare
+    - role: services/metadata
+    - role: services/notifications
+    - role: services/permissions
+    - role: services/qms
+    - role: services/qms-adapter
+    - role: services/requests
+    - role: services/resource-usage-api
+    - role: services/data-usage-api
+    - role: services/subscriptions
+    - role: services/timelord
+    - role: services/user-info
+    - role: services/vice-default-backend
+    - role: services/vice-status-listener
+    - role: services/search
+    - role: services/dashboard-aggregator
+    - role: services/terrain
+    - role: services/sonora
+    - role: services/group-propagator
+    - role: services/portal-conductor
+    - role: services/portal2
+    - role: services/formation
 
 - name: set up UI haproxy
   become: true
