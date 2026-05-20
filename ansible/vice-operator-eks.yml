@@ -25,6 +25,6 @@
   gather_facts: false
   become: false
   roles:
-    - role: vice-operator
+    - role: services/vice-operator
   tags:
     - vice-operator

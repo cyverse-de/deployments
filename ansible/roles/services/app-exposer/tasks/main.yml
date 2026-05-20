@@ -155,7 +155,7 @@
             apiGroup: rbac.authorization.k8s.io
 
     - ansible.builtin.include_role:
-        name: services
+        name: deploy-service
         tasks_from: main
       vars:
         project_name: app-exposer

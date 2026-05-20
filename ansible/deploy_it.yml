@@ -5,8 +5,8 @@
   gather_facts: false
   become: false
   roles:
-    - role: app-exposer
-      tags: app-exposer 
+    - role: services/app-exposer
+      tags: app-exposer
 
-    - role: vice-operator
+    - role: services/vice-operator
       tags: vice-operator

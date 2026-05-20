@@ -91,30 +91,36 @@ Keycloak is used for authentication/authorization and is installed inside the sa
 
 ## Services
 
-The services playbook is used to install and upgrade the Discovery Environment services.
+The Discovery Environment services are installed and upgraded through `kubernetes.yml`, selected by tag. The `deploy-service` role runs `skaffold deploy` for each service.
 
 Deploying all of the configurations and all of the services:
 
 ```bash
-ansible-playbook -i <inventory> services.yml
+ansible-playbook -i <inventory> --tags configure-services,deploy-all-services kubernetes.yml
 ```
 
 Deploying just the service configurations:
 
 ```bash
-ansible-playbook -i <inventory> --tags configure services.yml
+ansible-playbook -i <inventory> --tags configure-services kubernetes.yml
 ```
 
-Deploying a single service, without the configurations:
+Deploying a single service, without the configurations (set `project` to the service name):
 
 ```bash
-ansible-playbook -i <inventory> --tags deploy-single services.yml
+ansible-playbook -i <inventory> --tags deploy-single-service -e project=<service> kubernetes.yml
 ```
 
 Deploying all of the services, without the configurations:
 
 ```bash
-ansible-playbook -i <inventory> --tags deploy-all services.yml
+ansible-playbook -i <inventory> --tags deploy-all-services kubernetes.yml
+```
+
+For CI/CD, the standalone `deploy_service.yml` playbook deploys a single service. Set `project` to the service name and `KUBECONFIG` in the environment:
+
+```bash
+ansible-playbook -i <inventory> -e project=<service> deploy_service.yml
 ```
 
 # Common Tasks
