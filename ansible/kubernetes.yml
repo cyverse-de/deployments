@@ -213,7 +213,7 @@
   tags:
     - deploy-all-services
   roles:
-    - role: services/unleash
+    - role: services/maintenance-page
     - role: services/analyses
     - role: services/app-exposer
     - role: services/apply-labels

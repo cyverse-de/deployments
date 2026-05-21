@@ -5,8 +5,8 @@
   gather_facts: false
   become: false
   roles:
-    - role: services/unleash
-      tags: unleash
+    - role: services/maintenance-page
+      tags: maintenance-page
     - role: services/analyses
       tags: analyses
     - role: services/app-exposer
