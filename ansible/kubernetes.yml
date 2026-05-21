@@ -176,7 +176,7 @@
   tasks:
     - name: Deploy a single named service
       ansible.builtin.include_role:
-        name: deploy-service
+       name: deploy-service
        tasks_from: main
       vars:
         project_name: "{{ project }}"
