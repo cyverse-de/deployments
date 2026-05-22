@@ -1,0 +1,14 @@
+apiVersion: skaffold/v1
+kind: Config
+metadata:
+  name: get-analysis-id
+deploy:
+  kubectl:
+    manifests:
+    - k8s/get-analysis-id.yml
+build:
+  tagPolicy:
+    gitCommit: {}
+  artifacts:
+  - image: harbor.cyverse.org/de/get-analysis-id
+  local: {}

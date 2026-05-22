@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: dashboard-aggregator
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/dashboard-aggregator
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/dashboard-aggregator.yml
+deploy:
+  kubectl: {}

@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: formation
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/formation
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/formation.yml
+deploy:
+  kubectl: {}

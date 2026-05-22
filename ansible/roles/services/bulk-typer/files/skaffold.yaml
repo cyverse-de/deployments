@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: bulk-typer
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/bulk-typer
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/bulk-typer.yml
+deploy:
+  kubectl: {}

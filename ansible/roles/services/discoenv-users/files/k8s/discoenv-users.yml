@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discoenv-users
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      de-app: discoenv-users
+  template:
+    metadata:
+      labels:
+        de-app: discoenv-users
+        app: de
+    spec:
+      serviceAccount: configurator
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - discoenv-users
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Always
+      volumes:
+        - name: service-configs
+          secret:
+            secretName: service-configs
+            items:
+              - key: jobservices.yml
+                path: service.yml
+        - name: nats-client-tls
+          secret:
+            secretName: nats-client-tls
+        - name: nats-services-creds
+          secret:
+            secretName: nats-services-creds
+      containers:
+        - name: discoenv-users
+          image: harbor.cyverse.org/de/discoenv-users
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          args:
+            - --log-level
+            - debug
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
+            - name: DISCOENV_NATS_CLUSTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: NATS_URLS
+          volumeMounts:
+            - name: service-configs
+              mountPath: /etc/cyverse/de/configs
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /etc/nats/tls
+              readOnly: true
+            - name: nats-services-creds
+              mountPath: /etc/nats/creds
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
