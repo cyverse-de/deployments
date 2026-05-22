@@ -1,4 +1,16 @@
 ---
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Set firewall fact
+  ansible.builtin.set_fact:
+    active_firewall: >-
+      {% if ansible_facts.services['firewalld.service'] is defined
+          and ansible_facts.services['firewalld.service'].state == 'running' %}firewalld
+      {%- elif ansible_facts.services['ufw.service'] is defined
+            and ansible_facts.services['ufw.service'].state == 'running' %}ufw
+      {%- else %}none{% endif %}
+
 - name: Open the API Port
   become: true
   community.general.ufw:
@@ -9,7 +21,7 @@
     - "{{ k8s_api_port }}" # k0s api
     - "9443" # join api
     - "8132" # konnectivity
-  when: ansible_os_family == 'Debian'
+  when: active_firewall == "ufw"
 
 - name: Open the API port
   become: true
@@ -24,18 +36,7 @@
     - "{{ k8s_api_port }}/tcp" # k0s api port
     - "9443/tcp" # join api port
     - "8132/tcp" # konnectivity server
-  when: ansible_os_family == 'RedHat'
-
-# - name: configure k8s haproxy settings
-#   become: true
-#   ansible.builtin.template:
-#     src: 00_k8s.cfg.j2
-#     dest: /etc/haproxy/conf.d/00_k8s.cfg.j2
-#     owner: root
-#     group: root
-#     mode: 0644
-#   notify:
-#     - restart haproxy
+  when: active_firewall == "firewalld"
 
 - name: Configure k8s haproxy settings
   become: true
