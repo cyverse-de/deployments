@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: notifications
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/notifications
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/notifications.yml
+deploy:
+  kubectl: {}

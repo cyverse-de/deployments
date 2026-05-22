@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: qms-adapter
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/qms-adapter
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/qms-adapter.yml
+deploy:
+  kubectl: {}

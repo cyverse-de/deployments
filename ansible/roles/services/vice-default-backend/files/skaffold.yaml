@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: vice-default-backend
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/vice-default-backend
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/vice-default-backend.yml
+deploy:
+  kubectl: {}

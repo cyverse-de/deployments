@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: requests
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/requests
+  platforms:
+    - linux/amd64
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/requests.yml
+deploy:
+  kubectl: {}

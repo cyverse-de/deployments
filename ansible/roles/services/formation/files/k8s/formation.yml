@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: formation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: formation
+
+  template:
+    metadata:
+      labels:
+        app: formation
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - formation
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Always
+      volumes:
+        - name: config-volume
+          secret:
+            secretName: service-configs
+            items:
+              - key: formation.json
+                path: formation.json
+      containers:
+        - name: formation
+          image: harbor.cyverse.org/de/formation
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/cyverse/formation
+              readOnly: true
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: CONFIG_FILE
+              value: "/etc/cyverse/formation/formation.json"
+          ports:
+            - name: listen-port
+              containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: formation
+spec:
+  selector:
+    app: formation
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: listen-port

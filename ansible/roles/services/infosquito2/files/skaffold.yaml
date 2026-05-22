@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: infosquito2
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/infosquito2
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/infosquito2.yml
+deploy:
+  kubectl: {}
