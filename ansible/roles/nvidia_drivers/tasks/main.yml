@@ -8,7 +8,7 @@
   ansible.builtin.package:
     name: "*"
     state: latest
-  notify: reboot host
+  notify: Reboot host
 
 - name: Enable additional DNF repositories
   community.general.dnf_config_manager:
@@ -67,7 +67,7 @@
       - pkgconfig
       - dkms
     state: present
-  notify: reboot host
+  notify: Reboot host
 
 - name: Disable Nouveau drivers
   community.general.kernel_blacklist:
@@ -98,7 +98,7 @@
   ansible.builtin.dnf:
     name: "@nvidia-driver:latest-dkms"
     state: present
-  notify: reboot host
+  notify: Reboot host
 
 - name: Install CUDA development dependencies
   ansible.builtin.package:
@@ -110,4 +110,4 @@
       - mesa-libGLU-devel
       - freeimage-devel
     state: present
-  notify: reboot host
+  notify: Reboot host

@@ -32,7 +32,7 @@
     zone: public
     state: enabled
     port: "{{ item }}"
-  notify: reload firewalld
+  notify: Reload firewalld
   with_items:
     - "80/tcp" # join api port
     - "443/tcp" # konnectivity server
@@ -54,4 +54,4 @@
     prepend_newline: true
     marker: "# {mark} DE UI HAProxy Settings"
     block: "{{ lookup('template', '01_de.cfg.j2') }}"
-  notify: restart haproxy
+  notify: Restart haproxy

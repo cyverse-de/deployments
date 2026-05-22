@@ -30,4 +30,4 @@
     group: root
     mode: "0644"
   notify:
-    - restart haproxy
+    - Restart haproxy

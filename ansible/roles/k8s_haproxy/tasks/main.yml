@@ -19,7 +19,7 @@
     zone: public
     state: enabled
     port: "{{ item }}"
-  notify: reload firewalld
+  notify: Reload firewalld
   with_items:
     - "{{ k8s_api_port }}/tcp" # k0s api port
     - "9443/tcp" # join api port
@@ -45,4 +45,4 @@
     prepend_newline: true
     marker: "# {mark} K8S HAProxy Settings"
     block: "{{ lookup('template', '00_k8s.cfg.j2') }}"
-  notify: restart haproxy
+  notify: Restart haproxy

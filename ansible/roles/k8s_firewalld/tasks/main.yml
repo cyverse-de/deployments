@@ -23,7 +23,7 @@
     - "4789/udp" # Calico VXLAN Overlay
     - "30000-32767/tcp" # nodeports
     - "30000-32767/udp" # nodeports
-  notify: reload firewalld
+  notify: Reload firewalld
   when: ansible_os_family == "RedHat"
 
 - name: Remove trusted subnets from public zone
@@ -31,7 +31,7 @@
   loop:
     - 10.42.0.0/16 # k3s pods
     - 10.43.0.0/16 # k3s services
-  notify: reload firewalld
+  notify: Reload firewalld
   when: ansible_os_family == "RedHat"
 
 - name: Open trusted subnets
@@ -39,7 +39,7 @@
   loop:
     - 10.42.0.0/16 # k3s pods
     - 10.43.0.0/16 # k3s services
-  notify: reload firewalld
+  notify: Reload firewalld
   when: ansible_os_family == "RedHat"
 
 - name: Open ports via ufw on Debian systems
