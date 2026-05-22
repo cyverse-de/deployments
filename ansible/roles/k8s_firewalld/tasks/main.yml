@@ -1,10 +1,22 @@
 ---
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Set firewall fact
+  ansible.builtin.set_fact:
+    active_firewall: >-
+      {% if ansible_facts.services['firewalld.service'] is defined
+          and ansible_facts.services['firewalld.service'].state == 'running' %}firewalld
+      {%- elif ansible_facts.services['ufw.service'] is defined
+            and ansible_facts.services['ufw.service'].state == 'running' %}ufw
+      {%- else %}none{% endif %}
+
 - name: Start and enable firewalld
   ansible.builtin.service:
     name: firewalld
     state: started
     enabled: true
-  when: ansible_os_family == "RedHat"
+  when: active_firewall == "firewalld"
 
 - name: Open the ports
   ansible.posix.firewalld:
@@ -24,7 +36,7 @@
     - "30000-32767/tcp" # nodeports
     - "30000-32767/udp" # nodeports
   notify: Reload firewalld
-  when: ansible_os_family == "RedHat"
+  when: active_firewall == "firewalld"
 
 - name: Remove trusted subnets from public zone
   ansible.builtin.command: "firewall-cmd --zone=public --remove-source={{ item }} --permanent"
@@ -32,7 +44,7 @@
     - 10.42.0.0/16 # k3s pods
     - 10.43.0.0/16 # k3s services
   notify: Reload firewalld
-  when: ansible_os_family == "RedHat"
+  when: active_firewall == "firewalld"
 
 - name: Open trusted subnets
   ansible.builtin.command: "firewall-cmd --zone=trusted --add-source={{ item }} --permanent"
@@ -40,7 +52,7 @@
     - 10.42.0.0/16 # k3s pods
     - 10.43.0.0/16 # k3s services
   notify: Reload firewalld
-  when: ansible_os_family == "RedHat"
+  when: active_firewall == "firewalld"
 
 - name: Open ports via ufw on Debian systems
   community.general.ufw:
@@ -64,7 +76,7 @@
       proto: tcp
     - port: 30000:32767 # nodePorts
       proto: tcp
-  when: ansible_os_family == "Debian"
+  when: active_firewall == "ufw"
 
 - name: Allow trusted subnets via ufw on Debian systems
   community.general.ufw:
@@ -73,4 +85,4 @@
   loop:
     - 10.42.0.0/16 # k3s pods
     - 10.43.0.0/16 # k3s services
-  when: ansible_os_family == "Debian"
+  when: active_firewall == "ufw"
