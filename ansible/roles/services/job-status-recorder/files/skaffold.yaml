@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: job-status-recorder
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/job-status-recorder
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/job-status-recorder.yml
+deploy:
+  kubectl: {}

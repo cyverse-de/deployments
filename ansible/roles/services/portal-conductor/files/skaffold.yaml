@@ -1,0 +1,17 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: portal-conductor
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/portal-conductor
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/portal-conductor.yml
+deploy:
+  kubectl: {}

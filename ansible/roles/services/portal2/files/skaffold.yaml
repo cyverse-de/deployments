@@ -1,0 +1,14 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: user-portal
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/portal2
+      docker:
+        dockerfile: Dockerfile
+  platforms:
+    - "linux/amd64"
+manifests:
+  rawYaml:
+    - k8s/portal2.yml

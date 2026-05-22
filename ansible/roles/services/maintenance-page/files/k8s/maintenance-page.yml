@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maintenance-page
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maintenance-page
+  template:
+    metadata:
+      labels:
+        app: maintenance-page
+    spec:
+      serviceAccountName: maintenance-page
+      containers:
+        - name: maintenance-page
+          image: harbor.cyverse.org/de/maintenance-page
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "100Mi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "100Mi"
+          args:
+            - --namespace=$(DE_ENV)
+            - --basic-auth-username=$(BASIC_AUTH_USERNAME)
+            - --basic-auth-password=$(BASIC_AUTH_PASSWORD)
+          env:
+            - name: DE_ENV
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: DE_ENV
+            - name: BASIC_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: BASIC_AUTH_USERNAME
+            - name: BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: BASIC_AUTH_PASSWORD
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: admin
+              containerPort: 8081
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 2

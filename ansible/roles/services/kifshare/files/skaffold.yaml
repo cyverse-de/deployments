@@ -1,0 +1,20 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: kifshare
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/kifshare
+      docker:
+        cacheFrom:
+          - harbor.cyverse.org/de/kifshare:cache
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+  platforms:
+    - "linux/amd64"
+manifests:
+  rawYaml:
+    - k8s/kifshare.yml
+deploy:
+  kubectl: {}

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: group-propagator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      de-app: group-propagator
+  template:
+    metadata:
+      labels:
+        de-app: group-propagator
+        app: de
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - group-propagator
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Always
+      volumes:
+        - name: service-configs
+          secret:
+            secretName: service-configs
+            items:
+              - key: group-propagator.yml
+                path: group-propagator.yml
+      containers:
+        - name: group-propagator
+          image: harbor.cyverse.org/de/group-propagator
+          resources:
+            requests:
+              cpu: "5m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
+          volumeMounts:
+            - name: service-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
