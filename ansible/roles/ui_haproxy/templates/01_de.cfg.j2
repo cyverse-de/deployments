@@ -6,7 +6,7 @@ frontend https
     bind *:443
     mode tcp
     option tcplog
-    default_backend: gateway
+    default_backend gateway
 
 backend gateway
     balance roundrobin
