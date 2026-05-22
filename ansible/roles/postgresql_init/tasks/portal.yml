@@ -146,7 +146,7 @@
         - update-databases
 
     - name: Show records_result debug output
-    - debug:
+      debug:
         msg: "{{records_result}}"
       tags:
         - update-databases
