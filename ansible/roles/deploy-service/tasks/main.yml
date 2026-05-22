@@ -8,10 +8,15 @@
       ansible.builtin.debug:
         msg: "{{ build_json_dir }}"
 
-    - name: Read the build JSON file
+    - name: Show the immediate parent's path
+      debug:
+        msg: "My parent is at {{ ansible_parent_role_paths[0] }}"
+
+    - name: read the build JSON file
       delegate_to: localhost
-      ansible.builtin.set_fact:
-        build_json: "{{ lookup('file', build_json_dir + '/' + project_name + '.json') | from_json }}"
+      set_fact:
+        build_json_path: "{{ build_json_dir + '/' + project_name + '.json'}}"
+        build_json: "{{ lookup('file', build_json_dir +'/' + project_name + '.json') | from_json }}"
 
     - name: Image tag
       delegate_to: localhost
@@ -22,15 +27,13 @@
       delegate_to: localhost
       run_once: true
       ansible.builtin.command:
-        chdir: "{{ de_releases_dir }}/services/{{ project_name }}"
-        # deploy_profile is optional: when set, it activates a skaffold profile
-        # (e.g. a kustomize overlay) without affecting callers that don't set it.
-        argv: >-
-          {{
-            ['skaffold', 'deploy',
-             '--namespace', deploy_ns | default(ns),
-             '--build-artifacts', '../../builds/' + project_name + '.json',
-             '--force',
-             '--kubeconfig', lookup('env', 'KUBECONFIG')]
-            + (['--profile', deploy_profile] if deploy_profile is defined else [])
-          }}
+        chdir: "{{ skaffold_dir }}"
+        cmd: >
+          skaffold deploy
+          --namespace "{{ deploy_ns | default(ns) }}"
+          --build-artifacts "{{ build_json_path }}"
+          --force
+          --kubeconfig "{{ lookup('env', 'KUBECONFIG') }}"
+          {% if deploy_profile is defined -%}
+          --profile {{ deploy_profile }}
+          {%- endif -%}
