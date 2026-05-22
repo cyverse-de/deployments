@@ -1,4 +1,16 @@
 ---
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Set firewall fact
+  ansible.builtin.set_fact:
+    active_firewall: >-
+      {% if ansible_facts.services['firewalld.service'] is defined
+          and ansible_facts.services['firewalld.service'].state == 'running' %}firewalld
+      {%- elif ansible_facts.services['ufw.service'] is defined
+            and ansible_facts.services['ufw.service'].state == 'running' %}ufw
+      {%- else %}none{% endif %}
+
 - name: Open the HTTP/S Port
   become: true
   community.general.ufw:
@@ -10,7 +22,7 @@
       proto: tcp
     - port: 443
       proto: tcp
-  when: ansible_os_family == 'Debian'
+  when: active_firewall == "ufw"
 
 - name: Open the HTTP/S port
   become: true
@@ -24,7 +36,7 @@
   with_items:
     - "80/tcp" # join api port
     - "443/tcp" # konnectivity server
-  when: ansible_os_family == 'RedHat'
+  when: active_firewall == "firewalld"
 
 - name: Set repo_dir fact
   ansible.builtin.set_fact:
@@ -33,27 +45,6 @@
 - name: Set secrets_dir fact
   ansible.builtin.set_fact:
     secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}"
-
-- name: Copy ssl files
-  become: true
-  ansible.builtin.copy:
-    dest: /etc/ssl/
-    src: "{{ secrets_dir }}/{{ item }}"
-    mode: "0600"
-    owner: root
-    group: root
-  with_items: "{{ secrets_loader_ssl_filepaths }}"
-
-# - name: configure ui haproxy settings
-#   become: true
-#   ansible.builtin.template:
-#     src: 01_de.cfg.j2
-#     dest: /etc/haproxy/conf.d/01_de.cfg.j2
-#     owner: root
-#     group: root
-#     mode: 0644
-#   notify:
-#     - restart haproxy
 
 - name: Configure ui haproxy settings
   become: true
