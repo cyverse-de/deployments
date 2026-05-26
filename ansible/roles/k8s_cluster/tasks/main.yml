@@ -1,5 +1,6 @@
 ---
 - name: Apply k0sctl cluster configuration
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
     SSH_KNOWN_HOSTS: /dev/null # Needed for some reason due to how we configure our connection to the hosts.
