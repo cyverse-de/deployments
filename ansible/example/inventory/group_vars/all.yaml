@@ -461,3 +461,44 @@
 # the k0s containerd config-fragment directory.
 # Default: /etc/k0s/containerd.d/nvidia.toml
 # nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml
+
+
+# =====================================================================
+# Phase 5: Create the k0s Cluster
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags create-cluster` (runs
+# `k0sctl apply` against the controllers and workers and writes out the
+# resulting kubeconfig).
+#
+# Run this phase after the HAProxy load balancer (Phase 3) is in place
+# and the nodes have been prepared (Phase 4) — k0sctl talks to the API
+# through the load balancer and expects the node OS to already be set
+# up.
+#
+# This phase runs locally (`connection: local`) on the first host in
+# `k8s_controllers`. It shells out to `k0sctl`, so the `k0sctl` binary
+# must be installed on the machine running ansible-playbook (not on the
+# controller).
+#
+# The `k8s_cluster` role does not consult any group_vars. Its behavior
+# is governed entirely by two operational inputs:
+#
+#   1. `k0sctl.yaml` — a static configuration file the role expects to
+#      find next to the inventory directory (e.g.
+#      `example/k0sctl.yaml` alongside `example/inventory/`). It lists
+#      the controller and worker hosts, the k0s version to install, and
+#      any cluster-wide k0s configuration. Keep the k0s version in sync
+#      with the `k8s_version` configured in Phase 4.
+#
+#   2. `KUBECONFIG` — environment variable read from the shell running
+#      ansible-playbook. It is the *destination* path where this phase
+#      writes the newly minted kubeconfig (mode 0600); the file does
+#      not need to exist yet, but the variable must be set or the
+#      `k0sctl kubeconfig` redirect and the follow-up file task will
+#      both fail. Later phases (`de-reqs`, `configure-services`,
+#      deploys) read this same path to authenticate against the
+#      cluster.
+#
+# There are no variables to uncomment in this section — it exists only
+# to document the prerequisites above.
+# =====================================================================
