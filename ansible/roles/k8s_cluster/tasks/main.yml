@@ -15,7 +15,11 @@
 
     - name: Apply k0sctl configuration
       ansible.builtin.command:
-        cmd: "k0sctl apply --config {{ yaml_path }}"
+        argv:
+          - "k0sctl"
+          - "apply"
+          - "--config"
+          - "{{ yaml_path }}"
 
     - name: Write out kubeconfig
       ansible.builtin.shell:
