@@ -702,6 +702,8 @@ tapis_read_timeout: 30000
 tapis_enabled: false
 tapis_jobs_enabled: false
 
+image_cache_mode: daemonset
+
 vice_operators_values: []
 vice_operator_cluster_config_secret: cluster-config-secret
 vice_operator_skip_gateway_creation: false

@@ -10,6 +10,15 @@ data:
   KEYCLOAK_CLIENT_SECRET: "{{ vice_operator_keycloak_client_secret | b64encode }}"
   SWAGGER_CLIENT_SECRET: "{{ vice_operator_swagger_client_secret | b64encode }}"
   STATE_HMAC_SECRET: "{{ vice_operator_state_hmac_secret | b64encode }}"
+{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vice-operator-repos
+  namespace: {{ vice_ns }}
+data: {{ lookup('ansible.builtin.file', 'files/repos.json') }}
+{% endif %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -63,6 +72,12 @@ spec:
             - "--port={{ vice_operator_port }}"
             - "--loading-port={{ vice_operator_loading_port}}"
             - "--max-analyses={{ vice_operator_max_analyses }}"
+            - "--image-cache-mode={{ image_cache_mode | default('daemonset') }}"
+{% if image_cache_mode == 'cron' %}
+            - "--image-cache-schedule={{ image_cache_schedule | default('0 2 * * *') }}"
+{% elif image_cache_mode == 'manual-mirror' %}
+            - "--repos-file={{ image_cache_repos_file | default('/etc/cyverse/de/repos.json') }}"
+{% endif %}
             - "--gpu-vendor={{ vice_operator_gpu_vendor }}"
 {% if vice_operator_gpu_model_affinity_key %}
             - "--gpu-model-affinity-key={{ vice_operator_gpu_model_affinity_key }}"

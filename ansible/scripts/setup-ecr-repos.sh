@@ -11,15 +11,25 @@
 # Idempotent: safe to re-run. Each step checks for the existing resource
 # and updates in place.
 #
+# Prerequisites: aws, jq.
+#
 # Required environment variables:
 #   AWS_REGION         AWS region the EKS cluster runs in (e.g. us-east-1)
-#   ECR_REPOS_FILE     Path to a file with one repo per line. Each line may
-#                      optionally include a ":tag" suffix (e.g.
-#                      "de/vice-proxy:latest") — the tag is stripped here
-#                      since ECR repos are tag-agnostic. Same file works
-#                      with mirror-images-to-ecr.sh, which honors the tag.
-#                      Blank lines and '#' comments are ignored. Duplicate
-#                      repos (after tag-stripping) are de-duped.
+#   ECR_REPOS_FILE     Path to a JSON object mapping upstream image refs to
+#                      fully-qualified mirrored refs. Same file format that
+#                      vice-operator's --repos-file accepts and that
+#                      mirror-images-to-ecr.sh consumes; single source of
+#                      truth for all three callers. ECR repo names are
+#                      derived from each value: strip the registry host
+#                      and the tag, then de-dupe.
+#                      Example:
+#                        {
+#                          "harbor.cyverse.org/de/vice-proxy:latest":
+#                            "123456789012.dkr.ecr.us-east-1.amazonaws.com/de/vice-proxy:latest",
+#                          "harbor.cyverse.org/de/porklock:qa":
+#                            "123456789012.dkr.ecr.us-east-1.amazonaws.com/de/porklock:qa"
+#                        }
+#                      yields the ECR repos: de/vice-proxy, de/porklock.
 #
 # One of the following two must also be provided:
 #   NODE_ROLE_NAME     EKS node IAM role name to grant pull perms to
@@ -33,7 +43,7 @@
 #
 # Usage:
 #   AWS_REGION=us-east-1 \
-#   ECR_REPOS_FILE=repos.txt \
+#   ECR_REPOS_FILE=repos.json \
 #   EKS_CLUSTER_NAME=ua-ai-sandboxes \
 #     ./setup-ecr-repos.sh
 
@@ -52,8 +62,18 @@ require() {
 require AWS_REGION
 require ECR_REPOS_FILE
 
+command -v jq >/dev/null \
+  || fail "jq not found in PATH; install via 'dnf install jq' / 'brew install jq' / 'apt install jq'"
+
 if [[ ! -r "$ECR_REPOS_FILE" ]]; then
   fail "ECR_REPOS_FILE not readable: $ECR_REPOS_FILE"
+fi
+
+# Confirm the file is a JSON object before any other parsing — gives a
+# clear error instead of a confusing empty-list bail later.
+file_type=$(jq -er 'type' "$ECR_REPOS_FILE" 2>/dev/null || true)
+if [[ "$file_type" != "object" ]]; then
+  fail "$ECR_REPOS_FILE must be a JSON object of {upstream: mirrored} (got: ${file_type:-unparseable})"
 fi
 
 if [[ -z "${NODE_ROLE_NAME-}" ]]; then
@@ -82,11 +102,15 @@ if [[ "$IMAGE_TAG_MUTABILITY" != "MUTABLE" && "$IMAGE_TAG_MUTABILITY" != "IMMUTA
   fail "IMAGE_TAG_MUTABILITY must be MUTABLE or IMMUTABLE, got $IMAGE_TAG_MUTABILITY"
 fi
 
-# Parse the repo file: take the first whitespace-delimited token from each
-# non-blank, non-comment line, strip any ":tag" suffix (ECR repo names
-# don't carry tags), and de-dupe while preserving first-occurrence order.
+# Derive ECR repo names from the JSON object values: strip the registry
+# host (everything up to and including the first '/'), strip the tag
+# (everything from the last ':' onwards — the path between registry and
+# tag never contains ':'), then de-dupe in first-occurrence order so the
+# final log lines come out in input order.
 mapfile -t repos < <(
-  awk 'NF && $1 !~ /^#/ { sub(/:.*/, "", $1); if (!seen[$1]++) print $1 }' "$ECR_REPOS_FILE"
+  jq -r '.[]' "$ECR_REPOS_FILE" \
+    | sed -E 's|^[^/]+/||; s|:[^/]*$||' \
+    | awk '!seen[$0]++'
 )
 if [[ ${#repos[@]} -eq 0 ]]; then
   fail "no repo names found in $ECR_REPOS_FILE"
