@@ -4,15 +4,10 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: Builds dir
-      delegate_to: localhost
-      ansible.builtin.debug:
-        msg: "{{ build_json_dir }}"
-
-    - name: Read the build JSON file
+    - name: read the build JSON file
       delegate_to: localhost
       ansible.builtin.set_fact:
-        build_json: "{{ lookup('file', build_json_dir + '/app-exposer.json') | from_json }}"
+        build_json: "{{ lookup('file', 'vice-operator.json') | from_json }}"
 
     - name: Image tag
       delegate_to: localhost
