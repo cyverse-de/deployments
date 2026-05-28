@@ -166,28 +166,6 @@
   tags:
     - irods-csi-driver
 
-- name: deploy vice-operator 
-  hosts: k8s_controllers[0]
-  connection: local
-  gather_facts: false
-  become: false
-  roles:
-    - role: services/vice-operator
-  tags:
-    - vice-operator
-
-- name: deploy maintenance-page
-  hosts: k8s_controllers[0]
-  connection: local
-  gather_facts: false
-  become: false
-  roles:
-    - role: maintenance-page
-      tags: maintenance-page
-
-    - role: services/app-exposer
-      tags: app-exposer
-
 - name: deploy a single service
   hosts: k8s_controllers[0]
   connection: local
@@ -260,6 +238,7 @@
     - role: services/portal-conductor
     - role: services/portal2
     - role: services/formation
+    - role: services/vice-operator
 
 - name: set up UI haproxy
   become: true
