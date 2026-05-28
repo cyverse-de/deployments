@@ -17,7 +17,9 @@ kind: ConfigMap
 metadata:
   name: vice-operator-repos
   namespace: {{ vice_ns }}
-data: {{ lookup('ansible.builtin.file', 'files/repos.json') }}
+data:
+  repos: |
+{{ lookup('ansible.builtin.file', 'files/repos.json') | from_json | to_nice_json | indent(4, True) }}
 {% endif %}
 ---
 apiVersion: apps/v1
@@ -36,11 +38,25 @@ spec:
         app: vice-operator
     spec:
       serviceAccountName: vice-operator
+{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+      volumes:
+        - name: image-repos
+          configMap:
+            name: vice-operator-repos
+            items:
+              - key: repos
+                path: repos.json
+{% endif %}
       containers:
         - name: vice-operator
           image: "{{ build_json.builds[0].tag }}"
           imagePullPolicy: Always
           command: ["/vice-operator"]
+{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+          volumeMounts:
+            - name: image-repos
+              mountPath: /etc/cyverse/de
+{% endif %}
           env:
           - name: REGISTRY_PASSWORD
             valueFrom:
