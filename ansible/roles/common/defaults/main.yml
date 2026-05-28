@@ -447,9 +447,9 @@ jobs_data_transfer_image: harbor.cyverse.org/de/porklock
 jobs_data_transfer_tag: latest
 
 # JVM options used by the DE services
-jvm_opts_high: "-Xmx1G -Dlog4j2.formatMsgNoLookups=true"
-jvm_opts_low: "-Xmx512M -Dlog4j2.formatMsgNoLookups=true"
-jvm_opts_ui: "-Xmx1G -Djava.net.preferIPv4Stack=true"
+jvm_opts_high: "-XX:MaxRAMPercentage=70 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Dlog4j2.formatMsgNoLookups=true"
+jvm_opts_medium: "-XX:MaxRAMPercentage=60 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Dlog4j2.formatMsgNoLookups=true"
+jvm_opts_low: "-Xms128m -Xmx128m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Dlog4j2.formatMsgNoLookups=true"
 
 # PGP settings
 pgp_key_password: replace_me
