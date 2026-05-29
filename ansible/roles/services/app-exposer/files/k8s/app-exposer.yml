@@ -26,11 +26,11 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: app-exposer-configs
           secret:
-            secretName: service-configs
+            secretName: app-exposer-configs
             items:
-              - key: jobservices.yml
+              - key: app-exposer.yml
                 path: service.yml
         - name: nats-client-tls
           secret:
@@ -100,7 +100,7 @@ spec:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
-            - name: service-configs
+            - name: app-exposer-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true
             - name: nats-client-tls

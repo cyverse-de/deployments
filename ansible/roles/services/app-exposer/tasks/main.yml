@@ -156,8 +156,21 @@
             name: httproute-admin
             apiGroup: rbac.authorization.k8s.io
 
-    - name: Deploy app-exposer service
-      ansible.builtin.include_role:
+    - name: create the app-exposer-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-exposer-configs
+            namespace: "{{ ns }}"
+          data:
+            app-exposer.yml: "{{ lookup('template', 'app-exposer.yml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main
       vars:

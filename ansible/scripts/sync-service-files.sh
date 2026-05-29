@@ -2,14 +2,33 @@
 # Sync per-service build descriptors and service files from the sibling
 # de-releases repo into each role's files/ dir under ansible/roles/services/.
 #
-# Usage: sync-service-files.sh [<de-releases-dir>]
-# Override default location with $1 or $DE_RELEASES_DIR. Default assumes both
-# repos are checked out under the same parent directory.
+# Usage: sync-service-files.sh [--with-k8s] [<de-releases-dir>]
+# Override the de-releases location with the positional arg or $DE_RELEASES_DIR.
+# Default assumes both repos are checked out under the same parent directory.
+#
+# By default the k8s manifests under services/<name>/k8s/ are NOT copied: each
+# role now owns its own k8s manifest (e.g. to point at a per-service config
+# secret), so syncing would clobber those edits. Pass --with-k8s (or set
+# SYNC_K8S=1) to restore copying the k8s manifests from de-releases.
+#
+# Note: per-service config templates are not synced here. de-releases template
+# names don't map 1:1 to service names (and some templates are shared by several
+# services), so copying them into roles needs an explicit name mapping. Until
+# that exists, copy a service's template into its role's templates/ dir by hand.
 set -euo pipefail
+
+WITH_K8S="${SYNC_K8S:-0}"
+positional=()
+for arg in "$@"; do
+  case "$arg" in
+    --with-k8s) WITH_K8S=1 ;;
+    *) positional+=("$arg") ;;
+  esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROLES_DIR="$SCRIPT_DIR/../roles/services"
-DE_RELEASES="${1:-${DE_RELEASES_DIR:-$SCRIPT_DIR/../../../de-releases}}"
+DE_RELEASES="${positional[0]:-${DE_RELEASES_DIR:-$SCRIPT_DIR/../../../de-releases}}"
 
 [ -d "$DE_RELEASES/builds" ]   || { echo "missing $DE_RELEASES/builds"   >&2; exit 1; }
 [ -d "$DE_RELEASES/services" ] || { echo "missing $DE_RELEASES/services" >&2; exit 1; }
@@ -26,7 +45,11 @@ for role_dir in "$ROLES_DIR"/*/; do
   files_dir="${role_dir}files"
   mkdir -p "$files_dir"
   cp "$build_src" "$files_dir/${name}.json"
-  cp -R "$service_src/." "$files_dir/"
+  # Copy top-level service files (skaffold.yaml, etc.), but never the k8s dir here.
+  find "$service_src" -mindepth 1 -maxdepth 1 ! -name k8s -exec cp -R {} "$files_dir/" \;
+  if [ "$WITH_K8S" -eq 1 ] && [ -d "$service_src/k8s" ]; then
+    cp -R "$service_src/k8s" "$files_dir/"
+  fi
   echo "synced: $name"
 done
 
