@@ -199,19 +199,19 @@
                         containerPort: 8080
                     startupProbe:
                       httpGet:
-                        path: /health/live
+                        path: /auth/health/live
                         port: 9000
                       periodSeconds: 30
                       failureThreshold: 100
                     livenessProbe:
                       httpGet:
-                        path: /health/live
+                        path: /auth/health/live
                         port: 9000
                       periodSeconds: 30
                       failureThreshold: 10
                     readinessProbe:
                       httpGet:
-                        path: /health/ready
+                        path: /auth/health/ready
                         port: 9000
                       periodSeconds: 30
                       failureThreshold: 10
