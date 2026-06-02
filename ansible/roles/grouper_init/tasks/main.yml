@@ -341,10 +341,7 @@
                         key: timezone
 
                   - name: JAVA_TOOL_OPTIONS
-                    valueFrom:
-                      configMapKeyRef:
-                        name: java-tool-options
-                        key: high
+                    value: "-Xmx1G -Dlog4j2.formatMsgNoLookups=true"
                   - name: GROUPER_USE_SSL
                     value: "false"
 
@@ -458,10 +455,7 @@
                   - name: WEBAPPS_HOME
                     value: "/usr/src/app"
                   - name: JAVA_TOOL_OPTIONS
-                    valueFrom:
-                      configMapKeyRef:
-                        name: java-tool-options
-                        key: high
+                    value: "-Xmx1G -Dlog4j2.formatMsgNoLookups=true"
                   - name: GROUPER_USE_SSL
                     value: "false"
                   - name: GROUPER_WS_GROUPER_AUTH
