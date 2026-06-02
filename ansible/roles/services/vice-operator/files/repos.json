@@ -1,7 +1,6 @@
 {
-  "harbor.cyverse.org/de/vice-proxy:test" : "321128833491.dkr.ecr.us-east-1.amazonaws.com/de/vice-proxy:test",
-  "harbor.cyverse.org/de/porklock:latest" : "321128833491.dkr.ecr.us-east-1.amazonaws.com/de/porklock:latest",
-  "harbor.cyverse.org/de/vice-default-backend:qa" : "321128833491.dkr.ecr.us-east-1.amazonaws.com/de/vice-default-backend:qa",
-  "harbor.cyverse.org/vice/jupyterlab/pytorch:2.9.0" : "321128833491.dkr.ecr.us-east-1.amazonaws.com/vice/jupyterlab/pytorch:2.9.0",
-  "harbor.cyverse.org/vice/cli/gemma:e2b-24.04" : "321128833491.dkr.ecr.us-east-1.amazonaws.com/vice/cli/gemma:e2b-24.04"
+  "harbor.cyverse.org/de/vice-proxy:latest" : "735791927850.dkr.ecr.us-east-1.amazonaws.com/de/vice-proxy:latest",
+  "harbor.cyverse.org/de/porklock:latest" : "735791927850.dkr.ecr.us-east-1.amazonaws.com/de/porklock:latest",
+  "harbor.cyverse.org/vice/jupyterlab/pytorch:2.9.0" : "735791927850.dkr.ecr.us-east-1.amazonaws.com/vice/jupyterlab/pytorch:2.9.0",
+  "harbor.cyverse.org/vice/cli/gemma:e2b-24.04" : "735791927850.dkr.ecr.us-east-1.amazonaws.com/vice/cli/gemma:e2b-24.04"
 }
