@@ -1,0 +1,14 @@
+# Environment information.
+metadata.app.environment-name = {{ ns }}
+
+# Database settings.
+metadata.db.host     = {{ groups['dbms'][0] }}
+metadata.db.port     = {{ pg_listen_port }}
+metadata.db.name     = {{ metadata_db_name }}
+metadata.db.user     = {{ dbms_connection_user }}
+metadata.db.password = {{ dbms_connection_pass }}
+
+# AMQP settings
+metadata.amqp.uri                  = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+metadata.amqp.exchange.name        = de
+metadata.amqp.exchange.type        = topic

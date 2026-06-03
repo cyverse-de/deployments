@@ -24,9 +24,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: job-status-listener-configs
           secret:
-            secretName: service-configs
+            secretName: job-status-listener-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -34,7 +34,7 @@ spec:
         - name: job-status-listener
           image: harbor.cyverse.org/de/job-status-listener
           volumeMounts:
-            - name: service-configs
+            - name: job-status-listener-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:

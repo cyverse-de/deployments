@@ -17,9 +17,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: kifshare-configs
           secret:
-            secretName: service-configs
+            secretName: kifshare-configs
             items:
               - key: kifshare.properties
                 path: kifshare.properties
@@ -27,7 +27,7 @@ spec:
         - name: kifshare
           image: harbor.cyverse.org/de/kifshare
           volumeMounts:
-            - name: service-configs
+            - name: kifshare-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:

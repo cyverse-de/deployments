@@ -1,0 +1,9 @@
+# -*- mode: yaml -*-
+
+db:
+  uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ permissions_db_name }}?sslmode=disable"
+  schema: "permissions"
+
+grouperdb:
+  uri: "postgresql://{{ grouper_db_user }}:{{ grouper_db_pass | urlencode }}@{{ grouper_db_host }}:{{ grouper_db_port }}/{{ grouper_db_name }}?sslmode=disable"
+  folder_name_prefix: "{{ grouper_folder_name_prefix }}"

@@ -1,0 +1,92 @@
+{
+  "db": {
+    "host": "{{ portal_db_host }}",
+    "port": {{ portal_db_port }},
+    "name": "{{ portal_db_name }}",
+    "user": "{{ portal_db_user }}",
+    "password": "{{ portal_db_password }}",
+    "logging": false,
+    "sessionTable": "{{ portal_db_session_table}}"
+  },
+  "server": {
+    "port": 3000,
+    "isDevelopment": false
+  },
+  "session": {
+    "secret": "{{ portal_session_secret }}",
+    "ttl": {{ portal_session_ttl}},
+    "secureCookie": {{ portal_session_secure_cookie }}
+  },
+  "keycloak": {
+    "realm": "{{ portal_keycloak_realm }}",
+    "authUrl": "{{ portal_keycloak_auth_url }}",
+    "client": "{{ portal_keycloak_client }}",
+    "secret": "{{ portal_keycloak_secret }}"
+  },
+  "portalConductor": {
+    "url": "{{ portal_conductor_url }}",
+    "retries" : 5,
+    "auth" : {
+      "username" : "{{ portal_conductor_auth_username  }}",
+      "password" : "{{ portal_conductor_auth_password  }}"
+    },
+    "ssl" : {
+      "rejectUnauthorized" : false
+    }
+  },
+  "terrain": {
+    "url": "{{ portal_terrain_url }}",
+    "user": "{{ portal_terrain_user }}",
+    "password": "{{ portal_terrain_password }}"
+  },
+  "ui": {
+    "baseUrl": "{{ portal_ui_base_url }}",
+    "wsBaseUrl": "{{ portal_api_base_url }}"
+  },
+  "profile": {
+    "updatePeriod": {{ portal_profile_update_period }},
+    "warningPeriod": {{ portal_profile_warning_period }},
+    "updateText": "{{ portal_profile_update_text }}",
+    "warningText": "Y{{ portal_profile_warning_text }}"
+  },
+  "features": {
+    "intercomEnabled": {{ portal_intercom_enabled }}
+  },
+  "sentry": {
+    "dsn": "{{ portal_sentry_dsn }}"
+  },
+  "intercom": {
+    "appId": "{{ portal_intercom_app_id }}",
+    "token": "{{ portal_intercom_token }}",
+    "companyId": "{{ portal_intercom_company_id }}",
+    "adminUserPortalBotId": "{{ portal_intercom_admin_user_portal_bot_id }}",
+    "adminTier1AtmosphereId": "{{ portal_intercom_admin_tier1_atmosphere_id }}",
+    "adminTier1ScienceTeamId": "{{ portal_intercom_admin_tier1_science_team_id }}",
+    "adminTier1DataWatchId": "{{ portal_intercom_admin_tier1_data_watch_id }}"
+  },
+  "external" : {
+    "tourUrl" : "https://learning.cyverse.org/mooc/",
+    "googleAnalyticsId" : "{{ portal_google_analytics_id }}"
+  },
+  "security" : {
+    "hmacKey" : "{{ portal_hmac_key }}",
+    "uidNumberOffset" : {{ portal_uid_number_offset }}
+  },
+  "smtp" : {
+    "from" : "{{ portal_smtp_from }}",
+    "host" : "{{ portal_smtp_host }}",
+    "port" : {{ portal_smtp_port }}
+  },
+  "support" : {
+    "email" : "{{ portal_support_email }}"
+  },
+  "bcc": {
+    "newAccountConfirmation": "{{ portal_bcc_new_account_confirmation }}",
+    "passwordChangeRequest": "{{ portal_bcc_password_change_request }}",
+    "serviceAccessGranted": "{{ portal_bcc_service_access_granted }}",
+    "workshopEnrollmentRequest": "{{ portal_bcc_workshop_enrollment_request }}"
+  },
+  "honeypot": {
+    "divisor": {{ portal_honeypot_divisor }}
+  }
+}

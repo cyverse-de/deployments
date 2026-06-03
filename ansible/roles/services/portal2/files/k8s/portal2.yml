@@ -37,7 +37,7 @@ spec:
       volumes:
         - name: config-volume
           secret:
-            secretName: service-configs
+            secretName: portal2-configs
             items:
               - key: portal2.json
                 path: portal2.json
