@@ -37,9 +37,9 @@ spec:
         - name: accepted-keys
           secret:
             secretName: accepted-keys
-        - name: service-configs
+        - name: terrain-configs
           secret:
-            secretName: service-configs
+            secretName: terrain-configs
             items:
               - key: terrain.properties
                 path: terrain.properties
@@ -77,7 +77,7 @@ spec:
             - name: accepted-keys
               mountPath: /etc/iplant/crypto/accepted_keys
               readOnly: true
-            - name: service-configs
+            - name: terrain-configs
               mountPath: /etc/iplant/de
               readOnly: true
             - name: nats-client-tls-pkcs8
