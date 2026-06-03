@@ -173,4 +173,5 @@
             low: "{{ jvm_opts_low }}"
             medium: "{{ jvm_opts_medium }}"
             high: "{{ jvm_opts_high }}"
+            grouper: "{{ jvm_opts_grouper }}"
       when: load_configs is undefined or (load_configs | bool)
