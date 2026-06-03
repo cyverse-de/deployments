@@ -1,6 +1,24 @@
 ---
-- ansible.builtin.include_role:
-    name: deploy-service
-    tasks_from: main
-  vars:
-    project_name: de-webhooks
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the de-webhooks-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: de-webhooks-configs
+            namespace: "{{ ns }}"
+          data:
+            webhooks.yml: "{{ lookup('template', 'webhooks.yml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: de-webhooks

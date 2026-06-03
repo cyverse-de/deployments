@@ -1,0 +1,25 @@
+bulk-typer.environment-name     = {{ ns }}
+
+bulk-typer.type-attribute       = ipc-filetype
+bulk-typer.filetype-read-amount = 1024
+
+# iRODS configuration
+bulk-typer.irods.host        = {{ irods_host }}
+bulk-typer.irods.port        = 1247
+bulk-typer.irods.zone        = {{ irods_zone }}
+bulk-typer.irods.user        = {{ irods_user }}
+bulk-typer.irods.pass        = {{ irods_password }}
+
+bulk-typer.irods.home        = /{{ irods_zone }}/home
+
+# ICAT configuration
+bulk-typer.icat.host         = {{ icat_host }}
+bulk-typer.icat.port         = {{ icat_port }}
+bulk-typer.icat.user         = {{ icat_user }}
+bulk-typer.icat.password     = {{ icat_password }}
+bulk-typer.icat.db           = ICAT
+
+# AMQP settings
+bulk-typer.amqp.uri                  = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+bulk-typer.amqp.exchange.name        = de
+bulk-typer.amqp.qos                  = 1

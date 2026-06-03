@@ -24,9 +24,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: async-tasks-configs
           secret:
-            secretName: service-configs
+            secretName: async-tasks-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -62,7 +62,7 @@ spec:
             - --config
             - /etc/iplant/de/jobservices.yml
           volumeMounts:
-            - name: service-configs
+            - name: async-tasks-configs
               mountPath: /etc/iplant/de
               readOnly: true
           ports:

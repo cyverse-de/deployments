@@ -1,0 +1,53 @@
+{%- if irods_webdav_anon_uri %}
+data-info.anon-files-base-url        = {{ irods_webdav_anon_uri  }}
+data-info.anon-files-mappings        = {"/{{ irods_zone }}/home/shared/": "{{ irods_zone }}/projects/", "/{{ irods_zone }}/home/shared/commons_repo/curated/": "{{ irods_zone }}/commons/cyverse_curated/", "/{{ irods_zone }}/home/": "{{ irods_zone }}/home/"}
+{%- else %}
+data-info.anon-files-base-url        = {{ de_base_uri|string|regex_replace("\/$","") }}/anon-files
+data-info.anon-files-mappings        = {"/{{ irods_zone }}/": "{{ irods_zone }}/"}
+{%- endif %}
+
+data-info.anon-user                  = anonymous
+data-info.async-tasks.base-url       = {{ baseurls_async_tasks|string|regex_replace("\/$","") }}
+data-info.bad-chars                  = \u0060\u0027\u000A\u0009
+data-info.community-data             = /{{ irods_zone }}/home/shared
+data-info.copy-key                   = ipc-de-copy-from
+data-info.max-paths-in-request       = 1000
+data-info.notificationagent.base-url = {{ baseurls_notifications|string|regex_replace("\/$","") }}
+data-info.metadata.base-url          = {{ baseurls_metadata|string|regex_replace("\/$","") }}
+data-info.kifshare-download-template = \{\{url\}\}/d/\{\{ticket-id\}\}/\{\{filename\}\}
+data-info.kifshare-external-url      = {{ de_base_uri|string|regex_replace("\/$","") }}/dl
+data-info.perms-filter               = {{ irods_perms_filter | join(",") }}
+data-info.port                       = 60000
+
+# ICAT configuration
+data-info.icat.host           = {{ icat_host }}
+data-info.icat.port           = {{ icat_port }}
+data-info.icat.user           = {{ icat_user }}
+data-info.icat.password       = {{ icat_password }}
+data-info.icat.db             = ICAT
+
+# iRODS configuration
+data-info.irods.host          = {{ irods_host }}
+data-info.irods.port          = 1247
+data-info.irods.user          = {{ irods_user }}
+data-info.irods.password      = {{ irods_password }}
+data-info.irods.home          = /{{ irods_zone }}/home
+data-info.irods.zone          = {{ irods_zone }}
+data-info.irods.resc          =
+data-info.irods.max-retries   = 10
+data-info.irods.retry-sleep   = 1000
+data-info.irods.use-trash     = true
+data-info.irods.admin-users   = {{ irods_admin_users | join(",")}}
+
+# file typing configuration
+data-info.type-detect.type-attribute       = ipc-filetype
+
+# Path List Files
+data-info.path-list.ht.file-identifier          = # application/vnd.de.path-list+csv; version=1
+data-info.path-list.ht.info-type                = ht-analysis-path-list
+data-info.path-list.multi-input.file-identifier = # application/vnd.de.multi-input-path-list+csv; version=1
+data-info.path-list.multi-input.info-type       = multi-input-path-list
+
+# AMQP configuration
+data-info.amqp.uri = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+

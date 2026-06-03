@@ -1,0 +1,12 @@
+amqp:
+  uri: amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  exchange:
+    name: de
+    type: topic
+  routing: notification.*
+db:
+  uri: postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
+de:
+  base: {{ de_base_uri|string|regex_replace("\/$","")  }}
+user:
+  suffix: iplantcollaborative.org

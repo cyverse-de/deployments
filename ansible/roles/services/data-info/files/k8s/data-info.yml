@@ -27,9 +27,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: data-info-configs
           secret:
-            secretName: service-configs
+            secretName: data-info-configs
             items:
               - key: data-info.properties
                 path: data-info.properties
@@ -49,7 +49,7 @@ spec:
             - --config
             - /etc/iplant/de/data-info.properties
           volumeMounts:
-            - name: service-configs
+            - name: data-info-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:
