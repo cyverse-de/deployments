@@ -144,7 +144,7 @@
               spec:
                 containers:
                   - name: keycloak
-                    image: harbor.cyverse.org/de/keycloak:26.5
+                    image: "harbor.cyverse.org/de/keycloak:{{ keycloak_version }}"
                     args:
                       - "start"
                       - "--optimized"
@@ -314,13 +314,13 @@
               spec:
                 containers:
                   - name: kc
-                    image: harbor.cyverse.org/de/keycloak:26.5
+                    image: "harbor.cyverse.org/de/keycloak:{{ keycloak_version }}"
                     imagePullPolicy: Always
                     command:
                       - create-kc-admin.sh
                     env:
                       - name: KC_ADMIN_URL
-                        value: "http://keycloak"
+                        value: "http://keycloak/auth"
                       - name: KC_ADMIN_USER
                         valueFrom:
                           secretKeyRef:

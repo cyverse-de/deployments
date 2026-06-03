@@ -619,6 +619,14 @@ grouper_folder_name_prefix: "iplant:de:qa"
 pg_conf_path: "/etc/postgresql/{{dbms_postgresql_version}}/main"
 pg_db: postgres
 
+# Keycloak version to install if Keycloak is running in the Kubernetes cluster. The version of Keycloak installed by
+# our deployment playbooks is customized a little bit in order to improve startup times and to streamline deployment
+# automation, so the version selected must be a tag that is available in our Harbor container registry,
+# harbor.cyverse.org/de/keycloak.
+#
+# Currently supported values are: 26.5, 26.6
+keycloak_version: 26.6
+
 # Keycloak Configuration
 keycloak_server_uri: https://keycloak.example.org/auth
 keycloak_db_username: keycloak
