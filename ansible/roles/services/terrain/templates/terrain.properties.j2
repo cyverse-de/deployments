@@ -1,0 +1,174 @@
+# Connection details.
+terrain.app.listen-port = 60000
+
+# Environment information.
+terrain.app.environment-name = {{ ns }}
+
+# Route flags.
+terrain.routes.admin              = {{ admin_enabled }}
+terrain.routes.notifications      = {{ notifications_enabled }}
+terrain.routes.apps               = {{ apps_enabled }}
+terrain.routes.bags               = {{ bags_enabled }}
+terrain.routes.metadata           = {{ metadata_enabled }}
+terrain.routes.prefs              = {{ prefs_enabled }}
+terrain.routes.user-info          = {{ user_info_enabled }}
+terrain.routes.data               = {{ data_enabled }}
+terrain.routes.session            = {{ sessions_enabled }}
+terrain.routes.collaborator       = {{ collaborators_enabled }}
+terrain.routes.fileio             = {{ fileio_enabled }}
+terrain.routes.filesystem         = {{ filesystem_enabled }}
+terrain.routes.search             = {{ search_enabled }}
+terrain.routes.requests           = {{ requests_enabled }}
+terrain.routes.settings           = {{ settings_enabled }}
+terrain.routes.coge               = {{ coge_enabled }}
+terrain.routes.resource-usage-api = {{ resource_usage_api_enabled }}
+terrain.routes.qms-api            = {{ qms_api_enabled }}
+terrain.routes.data-usage-api     = {{ data_usage_api_enabled }}
+
+# CyVerse Email service connection settings.
+terrain.email.base-url           = {{ baseurls_iplant_email|string|regex_replace("\/$","") }}
+terrain.email.tool-request-dest  = {{ email_dest }}
+terrain.email.tool-request-src   = {{ email_src }}
+terrain.email.perm-id-req.dest   = {{ email_perm_id_request_dest }}
+terrain.email.perm-id-req.src    = {{ email_src }}
+terrain.email.support-email-dest = {{ email_support_dest }}
+terrain.email.support-email-src  = {{ email_src }}
+
+# Analyses connection settings
+terrain.analyses.base-uri = {{ baseurls_analyses|string|regex_replace("\/$","") }}
+
+# Apps connection settings
+terrain.apps.base-url = {{ baseurls_apps|string|regex_replace("\/$","") }}
+
+# Async Tasks connection settings
+terrain.async-tasks.base-url = {{ baseurls_async_tasks|string|regex_replace("\/$","") }}
+
+# Metadata connection settings
+terrain.metadata.base-url = {{ baseurls_metadata|string|regex_replace("\/$","") }}
+
+# Notification agent connection settings.
+terrain.notifications.base-url = {{ baseurls_notifications|string|regex_replace("\/$","") }}
+
+# The settings to use for authorization.
+terrain.authz.allowed-groups = {{ admin_groups }}
+
+# The domain name to append to the user id to get the fully qualified user id.
+terrain.uid.domain = {{ uid_domain }}
+
+# iplant-groups connection settings
+terrain.iplant-groups.base-url = {{ baseurls_iplant_groups|string|regex_replace("\/$","") }}
+
+# Permissions service connection settings
+terrain.permissions.base-url = {{ baseurls_permissions|string|regex_replace("\/$","") }}
+
+# Requests service connection settings
+terrain.requests.base-url = {{ baseurls_requests|string|regex_replace("\/$","") }}
+
+# Search service connection settings
+terrain.search.base-url = {{ baseurls_search|string|regex_replace("\/$","") }}
+
+# JEX connection settings
+terrain.jex.base-url = {{ baseurls_app_exposer|string|regex_replace("\/$","") }}/batch
+
+# Data-Store Elastic Search settings
+terrain.es.enabled        = {{ es_enabled }}
+terrain.infosquito.es-url = {{ es_base_uri|string|regex_replace("\/$","") }}
+terrain.es.username       = {{ es_username }}
+terrain.es.password       = {{ es_password }}
+terrain.es.index          = {{ es_index }}
+
+# App execution settings
+terrain.job-exec.default-output-folder = {{ de_default_output_folder }}
+
+# iRODS configuration
+terrain.irods.host          = {{ irods_host }}
+terrain.irods.port          = 1247
+terrain.irods.user          = {{ irods_user }}
+terrain.irods.pass          = {{ irods_password }}
+terrain.irods.home          = /{{ irods_zone }}/home
+terrain.irods.zone          = {{ irods_zone }}
+
+terrain.irods.max-retries   = 10
+terrain.irods.retry-sleep   = 1000
+terrain.irods.use-trash     = true
+terrain.irods.admin-users   = {{ irods_admin_users | join(",")  }}
+
+# ICAT configuration
+terrain.icat.host           = {{ icat_host }}
+terrain.icat.port           = {{ icat_port }}
+terrain.icat.user           = {{ icat_user }}
+terrain.icat.password       = {{ icat_password }}
+terrain.icat.db             = ICAT
+
+# Garnish configuration
+terrain.garnish.type-attribute = ipc-filetype
+
+# File IO settings
+terrain.fileio.url-import-app = 1E8F719B-0452-4D39-A2F3-8714793EE3E6
+
+# Filesystem settings
+terrain.data-info.base-url            = {{ baseurls_data_info|string|regex_replace("\/$","") }}
+terrain.fs.community-data             = /{{ irods_zone }}/home/shared
+terrain.fs.bad-names                  = cacheServiceTempDir
+terrain.fs.perms-filter               = {{ irods_perms_filter | join(",") }}
+terrain.fs.bad-chars                  = \u0060\u0027\u000A\u0009
+terrain.fs.max-paths-in-request       = 1000
+
+# Keycloak settings
+terrain.keycloak.base-uri = {{ keycloak_server_uri }}
+terrain.keycloak.realm = {{ keycloak_realm_name }}
+terrain.keycloak.client-id = {{ keycloak_client_id }}
+terrain.keycloak.client-secret = {{ keycloak_client_secret }}
+
+# Keycloak Admin API settings
+terrain.keycloak.admin-base-uri = {{ keycloak_admin_server_uri }}
+terrain.keycloak.admin-client-id = {{ keycloak_admin_client_id }}
+terrain.keycloak.admin-client-secret = {{ keycloak_admin_client_secret }}
+
+# COGE settings
+terrain.coge.user             = coge
+terrain.coge.data-folder-name = coge_data
+terrain.coge.base-url         = {{ de_coge_base_uri }}
+
+# Search settings
+terrain.search.default-limit = 200
+
+# User Preferences Settings
+terrain.preferences.host = {{ baseurls_user_info|string|regex_replace("\/$","") }}/preferences
+
+# User Sessions Settings
+terrain.sessions.host = {{ baseurls_user_info|string|regex_replace("\/$","") }}/sessions
+
+# Saved Searches Settings
+terrain.saved-searches.host = {{ baseurls_user_info|string|regex_replace("\/$","") }}/searches
+
+# Permanent ID Request Settings
+terrain.permanent-id.curators-group  = {{ perm_id_curators_group }}
+terrain.permanent-id.staging-dir     = /{{ irods_zone }}/home/shared/commons_repo/staging
+terrain.permanent-id.publish-dir     = /{{ irods_zone }}/home/shared/commons_repo/curated
+terrain.permanent-id.target-base-url = http://datacommons.cyverse.org/browse
+
+# Set data move timeout to just over 68 minutes = 4095 (2^12-1) seconds:
+# since the waiting thread doubles its sleep-seconds each time it polls
+# until the async task completes.
+terrain.permanent-id.async-move.wait-seconds.max = 4095
+
+# Permanent ID Request Metadata Attribute Settings
+terrain.permanent-id.attr.identifier          = identifier
+terrain.permanent-id.attr.publication-year    = publicationYear
+
+# Permanent ID Request DataCite API Settings
+terrain.permanent-id.datacite.base-url   = {{ perm_id_datacite_base_uri|string|regex_replace("\/$","") }}
+terrain.permanent-id.datacite.username   = {{ perm_id_datacite_user }}
+terrain.permanent-id.datacite.password   = {{ perm_id_datacite_password }}
+terrain.permanent-id.datacite.doi-prefix = {{ perm_id_datacite_doi_prefix }}
+
+# Dashboard Settings
+terrain.dashboard-aggregator.base-uri = {{ baseurls_dashboard_aggregator|string|regex_replace("\/$","") }}
+
+terrain.nats.urls = {{ nats_urls }}
+
+# Portal Conductor Settings
+terrain.portal-conductor.base-url = {{ portal_conductor_url }}
+terrain.portal-conductor.username = {{ portal_conductor_auth_username }}
+terrain.portal-conductor.password = {{ portal_conductor_auth_password }}
