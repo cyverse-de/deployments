@@ -1,6 +1,24 @@
 ---
-- ansible.builtin.include_role:
-    name: deploy-service
-    tasks_from: main
-  vars:
-    project_name: sonora
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the sonora-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: sonora-configs
+            namespace: "{{ ns }}"
+          data:
+            sonora.yaml: "{{ lookup('template', 'sonora.yaml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: sonora
