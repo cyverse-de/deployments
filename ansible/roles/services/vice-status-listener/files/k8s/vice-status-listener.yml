@@ -26,9 +26,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: vice-status-listener-configs
           secret:
-            secretName: service-configs
+            secretName: vice-status-listener-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -62,6 +62,6 @@ spec:
             - name: CLUSTER
               value: "1"
           volumeMounts:
-            - name: service-configs
+            - name: vice-status-listener-configs
               mountPath: /etc/iplant/de
               readOnly: true

@@ -28,9 +28,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: sonora-configs
           secret:
-            secretName: service-configs
+            secretName: sonora-configs
             items:
               - key: sonora.yaml
                 path: local.yaml
@@ -65,7 +65,7 @@ spec:
             - name: NODE_CONFIG_DIR
               value: "./config:/etc/iplant/de"
           volumeMounts:
-            - name: service-configs
+            - name: sonora-configs
               mountPath: /etc/iplant/de
               readOnly: true
           ports:

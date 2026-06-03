@@ -26,9 +26,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: timelord-configs
           secret:
-            secretName: service-configs
+            secretName: timelord-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -54,7 +54,7 @@ spec:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           volumeMounts:
-            - name: service-configs
+            - name: timelord-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:

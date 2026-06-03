@@ -26,9 +26,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: resource-usage-api-configs
           secret:
-            secretName: service-configs
+            secretName: resource-usage-api-configs
             items:
               - key: jobservices.yml
                 path: service.yml
@@ -80,7 +80,7 @@ spec:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
-            - name: service-configs
+            - name: resource-usage-api-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true
             - name: nats-client-tls

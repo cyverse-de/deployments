@@ -24,9 +24,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: search-configs
           secret:
-            secretName: service-configs
+            secretName: search-configs
             items:
               - key: search.yaml
                 path: search.yaml
@@ -34,7 +34,7 @@ spec:
         - name: search
           image: harbor.cyverse.org/de/search
           volumeMounts:
-            - name: service-configs
+            - name: search-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:
