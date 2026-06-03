@@ -14,9 +14,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: email-requests-configs
           secret:
-            secretName: service-configs
+            secretName: email-requests-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -52,6 +52,6 @@ spec:
             - --config
             - /etc/iplant/de/jobservices.yml
           volumeMounts:
-            - name: service-configs
+            - name: email-requests-configs
               mountPath: /etc/iplant/de
               readOnly: true

@@ -1,6 +1,24 @@
 ---
-- ansible.builtin.include_role:
-    name: deploy-service
-    tasks_from: main
-  vars:
-    project_name: jex-adapter
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the jex-adapter-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: jex-adapter-configs
+            namespace: "{{ ns }}"
+          data:
+            jobservices.yml: "{{ lookup('template', 'jobservices.yml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: jex-adapter

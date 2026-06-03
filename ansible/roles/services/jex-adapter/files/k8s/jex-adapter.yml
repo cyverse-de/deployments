@@ -26,9 +26,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: jex-adapter-configs
           secret:
-            secretName: service-configs
+            secretName: jex-adapter-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -42,7 +42,7 @@ spec:
         - name: jex-adapter
           image: harbor.cyverse.org/de/jex-adapter
           volumeMounts:
-            - name: service-configs
+            - name: jex-adapter-configs
               mountPath: /etc/iplant/de
               readOnly: true
             - name: nats-client-tls
