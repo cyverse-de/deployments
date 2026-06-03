@@ -1,0 +1,70 @@
+base_url: {{ de_base_uri|string|regex_replace("\/$","") }}
+terrain_url: {{ baseurls_terrain }}
+user_portal_url: {{ user_portal_base_uri|string|regex_replace("\/$","") }}
+support_email: {{ email_support_dest }}
+de_faq: {{ de_info_faq }}
+cyverse_url: {{ de_info_description }}
+queriesConcurrencyLimit: {{ de_queries_concurrency_limit }}
+db:
+  host: {{ groups['dbms'][0] }}
+  user: {{ dbms_connection_user }}
+  password: {{ dbms_connection_pass }}
+keycloak:
+  server_url: {{ keycloak_server_uri }}
+  realm: {{ keycloak_realm_name }}
+  client_id: {{ keycloak_client_id }}
+  client_secret: {{ keycloak_client_secret }}
+intercom:
+  app_id: {{ intercom_app_id }}
+  enabled: {{ intercom_enabled }}
+  company_id: {{ intercom_company_id }}
+  company_name: {{ intercom_company_name }}
+  user_profile_url: https://app.intercom.com/apps/{{ intercom_app_id }}/users/show?user_id=
+irods:
+  home_path: /{{ irods_zone }}/home
+  trash_path: /{{ irods_zone }}/trash/home
+  community_path: /{{ irods_zone }}/home/shared
+amqp:
+  amqp_uri: amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  exchange_name: de
+  exchange_durable: true
+  auto_delete: false
+admin:
+  group_attribute_name: {{ admin_attribute }}
+  groups: {{ admin_groups }}
+fileIdentifier:
+  htPathList: "# application/vnd.de.path-list+csv; version=1"
+  multiInputPathList: "# application/vnd.de.multi-input-path-list+csv; version=1"
+analytics:
+  enabled: {{ analytics_enabled }}
+  id: {{ analytics_id }}
+grouper:
+  allUsers: GrouperAll
+  admin: de_grouper
+services:
+  ontology_lookup_service:
+    base: https://www.ebi.ac.uk/ols/api/select
+  unified_astronomy_thesaurus:
+    base: https://vocabs.ands.org.au/repository/api/lda/aas/the-unified-astronomy-thesaurus/current/concept.json
+  local_contexts:
+    base: {{ de_services_local_contexts_base }}
+tools:
+  default_selected_max_cpus: 4
+  admin:
+    max_cpu_limit: {{ de_tools_admin_max_cpu_limit }}
+    max_memory_limit: {{ de_tools_admin_max_memory_limit }}
+    max_disk_limit: {{ de_tools_admin_max_disk_limit }}
+    max_gpu_limit: {{ de_tools_admin_max_gpu_limit }}
+  private:
+    max_gpu_limit: {{ de_tools_admin_max_gpu_limit }}
+unleash:
+  api_url: {{ unleash_base_url|string|regex_replace("\/$","") }}{{ unleash_api_path }}
+  client_secret: "{{ unleash_api_token }}"
+  maintenance_flag: {{ unleash_maintenance_flag }}
+username:
+  suffix: "{{ uid_domain }}"
+subscriptions:
+  checkout_url: {{ de_subscriptions_checkout_url|string|regex_replace("\/$","") }}
+  enforce: {{ de_subscriptions_enforce }}
+elastic:
+  enabled: {{ es_enabled }}
