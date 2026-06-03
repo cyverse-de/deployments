@@ -24,9 +24,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: notifications-configs
           secret:
-            secretName: service-configs
+            secretName: notifications-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -54,7 +54,7 @@ spec:
             - --config
             - /etc/iplant/de/jobservices.yml
           volumeMounts:
-            - name: service-configs
+            - name: notifications-configs
               mountPath: /etc/iplant/de
               readOnly: true
           ports:

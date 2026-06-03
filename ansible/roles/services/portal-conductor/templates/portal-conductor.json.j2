@@ -1,0 +1,61 @@
+{
+  "ssl": {
+    "enabled": true,
+    "cert_file": "/etc/ssl/certs/tls.crt",
+    "key_file": "/etc/ssl/certs/tls.key",
+    "port": 8443
+  },
+  "server": {
+    "http_port": 8000
+  },
+  "auth": {
+    "enabled": true,
+    "username": "{{ portal_conductor_auth_username | default('admin') }}",
+    "password": "{{ portal_conductor_auth_password }}",
+    "realm": "Portal Conductor API"
+  },
+  "ldap": {
+    "url": "{{ portal_ldap_host }}",
+    "user": "{{ portal_ldap_admin  }}",
+    "password": "{{ portal_ldap_password  }}",
+    "base_dn": "{{ portal_ldap_base_dn  }}",
+    "community_group": "community",
+    "everyone_group": "{{ portal_ldap_everyone_group  }}"
+  },
+  "irods": {
+    "host": "{{ irods_host }}",
+    "port": "{{ irods_port  }}",
+    "user": "{{ irods_user  }}",
+    "password": "{{ irods_password  }}",
+    "zone": "{{ irods_zone  }}",
+    "admin_user": "rodsadmin",
+    "ipcservices_user": "ipcservices"
+  },
+  "terrain": {
+    "url": "{{ portal_terrain_url  }}",
+    "user": "{{ portal_terrain_user }}",
+    "password": "{{ portal_terrain_password }}"
+  },
+  "mailman": {
+    "enabled": {{ portal_mailman_enabled }},
+    "url": "{{ portal_mailman_url  }}",
+    "password": "{{ portal_mailman_password }}"
+  },
+  "formation" : {
+    "base_url" : "{{ formation_api_url }}",
+    "keycloak" : {
+      "server_url" : "{{ formation_keycloak_server_uri }}",
+      "realm" : "{{ formation_keycloak_realm_name  }}",
+      "client_id" : "{{ formation_keycloak_client_id  }}",
+      "client_secret" : "{{ formation_keycloak_client_secret }}"
+    },
+    "user_deletion_app_name" : "{{ formation_user_deletion_app_name }}",
+    "system_id" : "de",
+    "timeout" : 240.0,
+    "verify_ssl" : {{ formation_verify_ssl }}
+  },
+  "smtp" : {
+    "host" : "{{ portal_smtp_host }}",
+    "port" : {{ portal_smtp_port }}
+  }
+}

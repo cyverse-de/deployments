@@ -27,9 +27,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: metadata-configs
           secret:
-            secretName: service-configs
+            secretName: metadata-configs
             items:
               - key: metadata.properties
                 path: metadata.properties
@@ -37,7 +37,7 @@ spec:
         - name: metadata
           image: harbor.cyverse.org/de/metadata
           volumeMounts:
-            - name: service-configs
+            - name: metadata-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:

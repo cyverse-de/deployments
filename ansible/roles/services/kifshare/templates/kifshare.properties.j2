@@ -1,0 +1,28 @@
+kifshare.irods.host = {{ irods_host }}
+kifshare.irods.port = 1247
+kifshare.irods.user = {{ irods_user }}
+kifshare.irods.password = {{ irods_password }}
+
+kifshare.irods.zone = {{ irods_zone }}
+
+kifshare.app.port = 60000
+kifshare.app.mode = prod
+kifshare.app.download-buffer-size = 100
+kifshare.app.footer-text = CyVerse is funded by a grant from the National Science Foundation Plant Science Cyberinfrastructure Collaborative (#DBI-0735191, #DBI-1265383).
+kifshare.app.resources-root = ./resources
+kifshare.app.images-dir = img
+kifshare.app.js-dir = js
+kifshare.app.css-dir = css
+kifshare.app.flash-dir = flash
+kifshare.app.favicon-path = resources/img/cyverse_logo.ico
+kifshare.app.client-cache-scope = public
+kifshare.app.client-cache-max-age = 604800
+
+kifshare.app.irods-url = https://pods.iplantcollaborative.org/wiki/display/start/Using+icommands
+kifshare.app.de-import-flags = \{\{url\}\}/d/\{\{ticket-id\}\}/\{\{filename\}\}
+kifshare.app.curl-flags = curl -o '\{\{filename\}\}' '\{\{url\}\}/d/\{\{ticket-id\}\}/\{\{filename\}\}'
+kifshare.app.wget-flags = wget '\{\{url}}/d/\{\{ticket-id\}\}/\{\{filename\}\}'
+kifshare.app.iget-flags = iget -t \{\{ticket-id\}\} '\{\{abspath\}\}'
+kifshare.app.css-files = resources/css/reset.css,resources/css/960.css,resources/css/kif.css
+kifshare.app.javascript-files = https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js,https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.7.0/mustache.min.js,resources/js/json2.js,resources/js/kif.js
+kifshare.amqp.uri = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
