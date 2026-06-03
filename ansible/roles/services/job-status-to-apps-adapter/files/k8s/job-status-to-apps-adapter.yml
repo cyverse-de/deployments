@@ -24,9 +24,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: job-status-to-apps-adapter-configs
           secret:
-            secretName: service-configs
+            secretName: job-status-to-apps-adapter-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -34,7 +34,7 @@ spec:
         - name: job-status-to-apps-adapter
           image: harbor.cyverse.org/de/job-status-to-apps-adapter
           volumeMounts:
-            - name: service-configs
+            - name: job-status-to-apps-adapter-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:

@@ -25,9 +25,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: qms-configs
           secret:
-            secretName: service-configs
+            secretName: qms-configs
             items:
               - key: jobservices.yml
                 path: service.yml
@@ -80,7 +80,7 @@ spec:
               memory: "256Mi"
               ephemeral-storage: "100Mi"
           volumeMounts:
-            - name: service-configs
+            - name: qms-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true
           ports:
