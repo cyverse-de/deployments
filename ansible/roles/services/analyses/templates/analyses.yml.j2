@@ -1,0 +1,2 @@
+db:
+  uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable"
