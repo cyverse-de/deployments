@@ -4,60 +4,8 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: Get the list of templates from the template directory
-      ansible.builtin.find:
-        paths: "{{ de_releases_dir }}/templates"
-        patterns: "*.j2"
-        file_type: file
-      register: template_list
-      tags:
-        - local-confgs
-
-    - name: Create a directory to output the rendered config files.
-      ansible.builtin.file:
-        path: "{{ rendered_configs_dir }}"
-        state: directory
-      tags:
-        - local-confgs
-
-    - name: Render each template
-      ansible.builtin.template:
-        src: "{{ item.path }}"
-        dest: "{{ [[rendered_configs_dir] + [item.path | basename | splitext | first]] | flatten | path_join }}"
-        mode: "0640"
-      loop: "{{ template_list.files }}"
-      tags:
-        - local-confgs
-
-    - name: Load configmap data
-      ansible.builtin.set_fact:
-        config_data: "{{ config_data | default({}) | combine({item | basename: lookup('file', item) | b64encode}) }}"
-      with_fileglob: "{{ rendered_configs_dir }}/*"
-      tags:
-        - local-confgs
-
-    - name: Load the configurations into the cluster
-      run_once: true
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: service-configs
-            namespace: "{{ ns }}"
-          data: "{{ config_data }}"
-      when: load_configs is undefined or (load_configs | bool)
-
-    - name: Remove the locally rendered files
-      run_once: true
-      ansible.builtin.file:
-        path: "{{ rendered_configs_dir }}"
-        state: absent
-      when: remove_local_configs is undefined or (remove_local_configs | bool)
-
-    - name: Create the configs secret
-      run_once: true
+    - name: create the configs secret
+      run_once: True
       kubernetes.core.k8s:
         state: present
         definition:
