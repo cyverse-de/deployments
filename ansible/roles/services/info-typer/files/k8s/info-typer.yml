@@ -17,9 +17,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: info-typer-configs
           secret:
-            secretName: service-configs
+            secretName: info-typer-configs
             items:
               - key: info-typer.properties
                 path: info-typer.properties
@@ -27,7 +27,7 @@ spec:
         - name: info-typer
           image: harbor.cyverse.org/de/info-typer
           volumeMounts:
-            - name: service-configs
+            - name: info-typer-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:

@@ -1,6 +1,24 @@
 ---
-- ansible.builtin.include_role:
-    name: deploy-service
-    tasks_from: main
-  vars:
-    project_name: infosquito2
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the infosquito2-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: infosquito2-configs
+            namespace: "{{ ns }}"
+          data:
+            infosquito2.yml: "{{ lookup('template', 'infosquito2.yml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: infosquito2

@@ -1,6 +1,24 @@
 ---
-- ansible.builtin.include_role:
-    name: deploy-service
-    tasks_from: main
-  vars:
-    project_name: iplant-groups
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: create the iplant-groups-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: iplant-groups-configs
+            namespace: "{{ ns }}"
+          data:
+            iplant-groups.properties: "{{ lookup('template', 'iplant-groups.properties.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: iplant-groups

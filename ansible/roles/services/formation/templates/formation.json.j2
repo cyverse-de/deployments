@@ -1,0 +1,28 @@
+{
+  "irods": {
+    "host": "{{ irods_host }}",
+    "port": "{{ irods_port }}",
+    "user": "{{ irods_user }}",
+    "password": "{{ irods_password }}",
+    "zone": "{{ irods_zone }}"
+  },
+  "keycloak": {
+    "server_url": "{{ keycloak_server_uri }}",
+    "realm": "{{ keycloak_realm_name }}",
+    "client_id": "{{ keycloak_client_id }}",
+    "client_secret": "{{ keycloak_client_secret }}",
+    "ssl_verify": true
+  },
+  "services": {
+    "apps_base_url": "http://apps",
+    "app_exposer_base_url": "http://app-exposer",
+    "permissions_base_url": "http://permissions"
+  },
+  "application": {
+    "user_suffix": "@{{ uid_domain }}",
+    "vice_domain": "{{ vice_domain }}",
+    "vice_url_check_timeout": 5.0,
+    "vice_url_check_retries": 3,
+    "vice_url_check_cache_ttl": 5.0
+  }
+}
