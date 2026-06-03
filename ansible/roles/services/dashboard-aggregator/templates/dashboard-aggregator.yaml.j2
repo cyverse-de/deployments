@@ -1,0 +1,41 @@
+listen_port: 3000
+
+db:
+  user: {{ dbms_connection_user }}
+  password: {{ dbms_connection_pass }}
+  host: {{ groups['dbms'][0] }}
+  port: {{ pg_listen_port }}
+  database: {{ de_db_name }}
+
+iplant_groups:
+  uri: {{ baseurls_iplant_groups|string|regex_replace("\/$","") }}
+
+logging:
+  level: info
+  label: dashboard-aggregator
+
+permissions:
+  public_group: iplant:de:{{ ns }}:users:de-users
+  uri: {{ baseurls_permissions|string|regex_replace("\/$","") }}
+
+website:
+  url: {{ dashboard_aggregator_website_url|string|regex_replace("\/$","") }}
+  feeds:
+    news: /news/rss.xml
+    events: /events/rss.xml
+
+videos:
+  url: https://www.youtube.com/feeds/videos.xml?channel_id=UC-gvdjTz9rq6RovZ57LoDDA
+
+apps:
+  favorites_group_index: 1
+  url: {{ baseurls_apps|string|regex_replace("\/$","") }}
+
+app-exposer:
+  url: {{ baseurls_app_exposer|string|regex_replace("\/$","") }}
+  user: dashboard-aggregator
+
+metadata:
+  url: {{ baseurls_metadata|string|regex_replace("\/$","") }}
+  featured_apps_attr: cyverse-blessed
+  featured_apps_value: true

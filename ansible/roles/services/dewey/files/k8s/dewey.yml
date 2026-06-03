@@ -17,9 +17,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: dewey-configs
           secret:
-            secretName: service-configs
+            secretName: dewey-configs
             items:
               - key: dewey.properties
                 path: dewey.properties
@@ -39,7 +39,7 @@ spec:
             - --config
             - /etc/iplant/de/dewey.properties
           volumeMounts:
-            - name: service-configs
+            - name: dewey-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:

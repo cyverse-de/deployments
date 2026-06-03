@@ -14,9 +14,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: de-mailer-configs
           secret:
-            secretName: service-configs
+            secretName: de-mailer-configs
             items:
               - key: emailservice.yml
                 path: emailservice.yml
@@ -52,7 +52,7 @@ spec:
             - --config
             - /etc/iplant/de/emailservice.yml
           volumeMounts:
-            - name: service-configs
+            - name: de-mailer-configs
               mountPath: /etc/iplant/de
               readOnly: true
           ports:

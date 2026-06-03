@@ -31,9 +31,9 @@ spec:
         - name: gpg-files
           secret:
             secretName: gpg-keys
-        - name: service-configs
+        - name: apps-configs
           secret:
-            secretName: service-configs
+            secretName: apps-configs
             items:
               - key: apps.properties
                 path: apps.properties
@@ -56,7 +56,7 @@ spec:
             - name: gpg-files
               mountPath: /etc/iplant/crypto
               readOnly: true
-            - name: service-configs
+            - name: apps-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:

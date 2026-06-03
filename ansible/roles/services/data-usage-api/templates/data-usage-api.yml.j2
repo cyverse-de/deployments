@@ -1,0 +1,20 @@
+db:
+  uri: postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
+  schema: public
+
+icat:
+  zone: {{ irods_zone }}
+  uri: postgresql://{{ icat_user }}:{{ icat_password | urlencode }}@{{ icat_host }}:{{ icat_port }}/ICAT?sslmode=disable
+  rootResources:
+  {% for resc in irods_quota_root_resources | split(",") %}
+  - {{ resc }}
+  {% endfor %}
+
+users:
+  domain: "{{ uid_domain }}"
+
+amqp:
+  uri: amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  exchange:
+    name: de
+    type: topic

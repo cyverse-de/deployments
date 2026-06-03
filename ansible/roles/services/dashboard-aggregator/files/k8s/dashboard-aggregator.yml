@@ -25,9 +25,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: dashboard-aggregator-configs
           secret:
-            secretName: service-configs
+            secretName: dashboard-aggregator-configs
             items:
               - key: dashboard-aggregator.yaml
                 path: service.yml
@@ -46,7 +46,7 @@ spec:
               memory: "3Gi"
               ephemeral-storage: "1Gi"
           volumeMounts:
-            - name: service-configs
+            - name: dashboard-aggregator-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true
           env:
