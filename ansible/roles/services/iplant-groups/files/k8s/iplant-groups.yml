@@ -30,9 +30,9 @@ spec:
         - name: gpg-files
           secret:
             secretName: gpg-keys
-        - name: service-configs
+        - name: iplant-groups-configs
           secret:
-            secretName: service-configs
+            secretName: iplant-groups-configs
             items:
               - key: iplant-groups.properties
                 path: iplant-groups.properties
@@ -55,7 +55,7 @@ spec:
             - name: gpg-files
               mountPath: /etc/iplant/crypto
               readOnly: true
-            - name: service-configs
+            - name: iplant-groups-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:

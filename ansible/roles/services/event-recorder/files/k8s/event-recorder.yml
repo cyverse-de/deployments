@@ -14,9 +14,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: event-recorder-configs
           secret:
-            secretName: service-configs
+            secretName: event-recorder-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -52,6 +52,6 @@ spec:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           volumeMounts:
-            - name: service-configs
+            - name: event-recorder-configs
               mountPath: /etc/iplant/de
               readOnly: true

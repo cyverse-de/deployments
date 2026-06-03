@@ -25,9 +25,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: discoenv-analyses-configs
           secret:
-            secretName: service-configs
+            secretName: discoenv-analyses-configs
             items:
               - key: jobservices.yml
                 path: jobservices.yml
@@ -66,7 +66,7 @@ spec:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           volumeMounts:
-            - name: service-configs
+            - name: discoenv-analyses-configs
               mountPath: /etc/iplant/de
               readOnly: true
             - name: nats-client-tls

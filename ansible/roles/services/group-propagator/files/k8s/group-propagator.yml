@@ -25,9 +25,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: group-propagator-configs
           secret:
-            secretName: service-configs
+            secretName: group-propagator-configs
             items:
               - key: group-propagator.yml
                 path: group-propagator.yml
@@ -60,6 +60,6 @@ spec:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           volumeMounts:
-            - name: service-configs
+            - name: group-propagator-configs
               mountPath: /etc/iplant/de
               readOnly: true

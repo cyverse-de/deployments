@@ -14,9 +14,9 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: infosquito2-configs
           secret:
-            secretName: service-configs
+            secretName: infosquito2-configs
             items:
               - key: infosquito2.yml
                 path: infosquito2.yml
@@ -49,6 +49,6 @@ spec:
             - --config
             - /etc/iplant/de/infosquito2.yml
           volumeMounts:
-            - name: service-configs
+            - name: infosquito2-configs
               mountPath: /etc/iplant/de
               readOnly: true

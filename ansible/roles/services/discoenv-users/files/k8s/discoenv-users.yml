@@ -26,9 +26,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: discoenv-users-configs
           secret:
-            secretName: service-configs
+            secretName: discoenv-users-configs
             items:
               - key: jobservices.yml
                 path: service.yml
@@ -75,7 +75,7 @@ spec:
                   name: configs
                   key: NATS_URLS
           volumeMounts:
-            - name: service-configs
+            - name: discoenv-users-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true
             - name: nats-client-tls

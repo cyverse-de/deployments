@@ -27,7 +27,7 @@ spec:
       volumes:
         - name: config-volume
           secret:
-            secretName: service-configs
+            secretName: formation-configs
             items:
               - key: formation.json
                 path: formation.json
