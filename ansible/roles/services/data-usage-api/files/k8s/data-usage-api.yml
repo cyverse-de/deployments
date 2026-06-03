@@ -26,9 +26,9 @@ spec:
               topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       volumes:
-        - name: service-configs
+        - name: data-usage-api-configs
           secret:
-            secretName: service-configs
+            secretName: data-usage-api-configs
             items:
               - key: data-usage-api.yml
                 path: data-usage-api.yml
@@ -75,7 +75,7 @@ spec:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
-            - name: service-configs
+            - name: data-usage-api-configs
               mountPath: /etc/iplant/de
               readOnly: true
             - name: nats-client-tls

@@ -1,0 +1,14 @@
+de:
+  base: {{ de_base_uri|string|regex_replace("\/$","") }}
+  admin: /admin
+  analyses: /analyses
+  apps: /apps
+  collections: /collections
+  data: /data/ds
+  doi: /doi
+  teams: /teams
+  tools: /tools
+  vice: /vice
+email:
+  fromAddress: {{ email_src }}
+  smtpHost: local-exim

@@ -23,9 +23,9 @@ spec:
                       - clockwork
               topologyKey: kubernetes.io/hostname
       volumes:
-        - name: service-configs
+        - name: clockwork-configs
           secret:
-            secretName: service-configs
+            secretName: clockwork-configs
             items:
               - key: clockwork.properties
                 path: clockwork.properties
@@ -45,7 +45,7 @@ spec:
             - --config
             - /etc/iplant/de/clockwork.properties
           volumeMounts:
-            - name: service-configs
+            - name: clockwork-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:

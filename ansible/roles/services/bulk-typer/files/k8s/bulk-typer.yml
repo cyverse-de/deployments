@@ -23,9 +23,9 @@ spec:
                       - bulk-typer
               topologyKey: kubernetes.io/hostname
       volumes:
-        - name: service-configs
+        - name: bulk-typer-configs
           secret:
-            secretName: service-configs
+            secretName: bulk-typer-configs
             items:
               - key: bulk-typer.properties
                 path: bulk-typer.properties
@@ -46,7 +46,7 @@ spec:
             - /etc/iplant/de/bulk-typer.properties
             - --periodic
           volumeMounts:
-            - name: service-configs
+            - name: bulk-typer-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:
