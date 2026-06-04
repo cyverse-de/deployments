@@ -1,0 +1,48 @@
+- name: rebuild {{ svc }} from its release ref
+  block:
+    - name: read the {{ svc }} build descriptor
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        release_descriptor: "{{ lookup('file', playbook_dir ~ '/roles/services/' ~ svc ~ '/files/' ~ svc ~ '.json') | from_json }}"
+
+    - name: capture the {{ svc }} image name and tag
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        release_image: "{{ release_descriptor.builds[0].imageName }}"
+        release_tag: "{{ release_descriptor.builds[0].tag }}"
+
+    # A descriptor tag is <imageName>:<ref>@sha256:<digest>; anchor on the image
+    # name so a digest-only tag (e.g. vice-operator, which reuses another image)
+    # yields an empty ref and is skipped rather than built from garbage.
+    - name: extract the release ref from the {{ svc }} tag
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        release_ref: >-
+          {{ (release_tag | regex_replace('^' ~ (release_image | regex_escape) ~ ':', '')
+                          | regex_replace('@sha256:.*$', ''))
+             if release_tag.startswith(release_image ~ ':') else '' }}
+
+    - name: note {{ svc }} skipped (no ref in descriptor)
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        rebuild_skipped: "{{ rebuild_skipped + [svc] }}"
+      when: release_ref | length == 0
+
+    - name: build and push {{ svc }} at {{ release_ref }}
+      ansible.builtin.include_role:
+        name: build-service
+      vars:
+        project_name: "{{ svc }}"
+        git_ref: "{{ release_ref }}"
+      when: release_ref | length > 0
+
+    - name: note {{ svc }} rebuilt
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        rebuilt: "{{ rebuilt + [svc] }}"
+      when: release_ref | length > 0
+  rescue:
+    - name: note {{ svc }} failed
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        rebuild_failed: "{{ rebuild_failed + [svc] }}"
