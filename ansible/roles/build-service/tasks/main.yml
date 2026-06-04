@@ -1,12 +1,20 @@
 ---
 - block:
-    - name: ensure source_repo is set
+    - name: locate the source repository
+      delegate_to: localhost
+      ansible.builtin.stat:
+        path: "{{ source_repo }}/.git"
+      register: source_repo_git
+
+    - name: ensure the source repository exists
       delegate_to: localhost
       ansible.builtin.assert:
         that:
-          - source_repo is defined
-          - source_repo | length > 0
-        fail_msg: "source_repo must be set to the path of the git repository to build"
+          - source_repo_git.stat.exists
+        fail_msg: >-
+          No git repository found at {{ source_repo }}. Set -e source_repo=/path/to/repo
+          for an exact path, or -e source_repo_dir=/parent/dir if your source repos are
+          checked out somewhere other than alongside the deployments repo.
 
     # Resolve absolute paths into the service role itself, independent of any
     # build_json_dir override that points deploys at a sibling de-releases repo.
