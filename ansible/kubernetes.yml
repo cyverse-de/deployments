@@ -176,10 +176,8 @@
   tasks:
     - name: Deploy a single named service
       ansible.builtin.include_role:
-       name: deploy-service
+       name: "services/{{ project }}"
        tasks_from: main
-      vars:
-        project_name: "{{ project }}"
       tags:
         - deploy
       when: "'deploy-single-service' in ansible_run_tags"
@@ -192,6 +190,7 @@
   tags:
     - deploy-all-services
   roles:
+    - role: services/openldap-docker
     - role: services/maintenance-page
     - role: services/analyses
     - role: services/app-exposer
