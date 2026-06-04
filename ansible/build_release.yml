@@ -1,0 +1,77 @@
+# Rebuilds the container images for a release from source.
+#
+# A release is defined by the git refs recorded in each service's build
+# descriptor (roles/services/<svc>/files/<svc>.json). For every selected
+# service this reads that ref, builds the source at it, pushes to the
+# configured registry, and rewrites the descriptor with the new digest.
+#
+# Variables:
+#   source_repo_dir: directory holding the service source repos
+#                    (default: the directory containing this deployments repo).
+#   services:        optional comma-separated list to limit the rebuild to a
+#                    subset of services (default: all).
+#   image_registry:  the target image registry (default: harbor.cyverse.org).
+#   force_rebuild:   bypass skaffold's artifact cache when true (default: false).
+#   push_images:     push the built images and update descriptors when true;
+#                    build only (no push, descriptors untouched) when false (default: true).
+#
+# The build ref comes from each descriptor, so git_ref is not an input here.
+# A `docker login` to the target registry must already be in place.
+
+---
+- name: rebuild a release from source
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: discover the service roles
+      delegate_to: localhost
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/roles/services"
+        file_type: directory
+        recurse: false
+      register: service_role_dirs
+
+    - name: compute the service set and the optional filter
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        all_services: "{{ service_role_dirs.files | map(attribute='path') | map('basename') | sort }}"
+        release_filter: "{{ services | default('') | split(',') | map('trim') | select | list }}"
+
+    - name: reject unknown service names in the filter
+      delegate_to: localhost
+      ansible.builtin.assert:
+        that:
+          - release_filter | difference(all_services) | length == 0
+        fail_msg: "Unknown service(s): {{ release_filter | difference(all_services) | join(', ') }}"
+      when: release_filter | length > 0
+
+    - name: select services and initialize the run accumulators
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        release_services: "{{ all_services if (release_filter | length == 0) else (all_services | intersect(release_filter)) }}"
+        rebuilt: []
+        rebuild_skipped: []
+        rebuild_failed: []
+
+    - name: rebuild each selected service at its release ref
+      ansible.builtin.include_tasks: tasks/rebuild_service.yml
+      loop: "{{ release_services }}"
+      loop_control:
+        loop_var: svc
+        label: "{{ svc }}"
+
+    - name: release rebuild summary
+      delegate_to: localhost
+      ansible.builtin.debug:
+        msg:
+          - "rebuilt ({{ rebuilt | length }}): {{ rebuilt | join(', ') }}"
+          - "skipped, no ref ({{ rebuild_skipped | length }}): {{ rebuild_skipped | join(', ') }}"
+          - "failed ({{ rebuild_failed | length }}): {{ rebuild_failed | join(', ') }}"
+
+    - name: fail the run if any service failed
+      delegate_to: localhost
+      ansible.builtin.fail:
+        msg: "{{ rebuild_failed | length }} service(s) failed: {{ rebuild_failed | join(', ') }}"
+      when: rebuild_failed | length > 0
