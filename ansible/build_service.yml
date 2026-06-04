@@ -11,6 +11,8 @@
 #   git_ref:         the git ref to build (default: main).
 #   image_registry:  the target image registry (default: harbor.cyverse.org).
 #   force_rebuild:   bypass skaffold's artifact cache when true (default: false).
+#   push_images:     push the built image and update the descriptor when true;
+#                    build only (no push, descriptor untouched) when false (default: true).
 #
 # A `docker login` to the target registry must already be in place.
 

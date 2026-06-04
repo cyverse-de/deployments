@@ -61,12 +61,17 @@
             regexp: 'harbor\.cyverse\.org'
             replace: "{{ image_registry }}"
 
-        - name: build and push the image, writing the build descriptor
+        # Push and write the descriptor only when push_images is set; otherwise
+        # just build the image locally (a verify/build-only run that leaves
+        # files/<svc>.json untouched, since an unpushed image has no registry digest).
+        - name: build the image{{ ' and push it, writing the build descriptor' if push_images | bool else ' without pushing' }}
           delegate_to: localhost
           run_once: true
           ansible.builtin.command:
             chdir: "{{ build_tmp.path }}/repo"
-            cmd: skaffold build {{ '--cache-artifacts=false ' if force_rebuild | bool else '' }}--tag {{ git_ref }} --push --file-output {{ build_json_path }}
+            cmd: >-
+              skaffold build
+              {{ '--cache-artifacts=false ' if force_rebuild | bool else '' }}--tag {{ git_ref }}{{ ' --push --file-output ' ~ build_json_path if push_images | bool else '' }}
       always:
         - name: remove the build worktree
           delegate_to: localhost
