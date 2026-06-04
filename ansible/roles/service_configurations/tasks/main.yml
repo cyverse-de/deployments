@@ -154,20 +154,6 @@
               - ::1
       when: load_configs is undefined or (load_configs | bool)
 
-    - name: Create the timezone configmap
-      run_once: true
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: timezone
-            namespace: "{{ ns }}"
-          data:
-            timezone: "{{ timezone }}"
-      when: load_configs is undefined or (load_configs | bool)
-
     - name: Create the java tool options configmap
       run_once: true
       kubernetes.core.k8s:

@@ -6,6 +6,8 @@
   ansible.builtin.include_tasks: ingress_nginx.yml
 - name: Include DE namespaces tasks
   ansible.builtin.include_tasks: de_namespaces.yml
+- name: Include timezone configmap tasks
+  ansible.builtin.include_tasks: timezone.yml
 - name: Include local exim tasks
   ansible.builtin.include_tasks: local_exim.yml
 - name: Include harbor tasks

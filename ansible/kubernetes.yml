@@ -88,6 +88,9 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
+    - role: openldap-docker
+      tags: openldap-docker
+
     - role: service_configurations
       tags: configure-services
 
@@ -190,7 +193,6 @@
   tags:
     - deploy-all-services
   roles:
-    - role: services/openldap-docker
     - role: services/maintenance-page
     - role: services/analyses
     - role: services/app-exposer
@@ -250,7 +252,7 @@
     - haproxy
     - ui-haproxy
 
-- name: Set up cronjobs
+- name: Set up additional services
   become: false
   gather_facts: false
   hosts: k8s_controllers[0]
