@@ -1,3 +1,17 @@
+# Builds service images and rewrites each roles/services/<svc>/files/<svc>.json.
+# Select a service with its tag, e.g. `--tags app-exposer`.
+#
+# Variables:
+#   source_repo_dir: directory holding the service source repos
+#                    (default: the directory containing this deployments repo).
+#   source_repo:     exact path to a service's source repo
+#                    (default: <source_repo_dir>/<service>).
+#   git_ref:         the git ref to build (default: main).
+#   image_registry:  the target image registry (default: harbor.cyverse.org).
+#   force_rebuild:   bypass skaffold's artifact cache when true (default: false).
+#
+# A `docker login` to the target registry must already be in place.
+
 ---
 - name: build services
   hosts: k8s_controllers[0]
