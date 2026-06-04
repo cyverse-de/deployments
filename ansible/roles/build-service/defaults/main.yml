@@ -1,7 +1,5 @@
 ---
-# Directory holding the service source repos. Defaults to the directory that
-# contains this deployments repo (i.e. sibling checkouts, .../cyverse-de/).
-source_repo_dir: "{{ (playbook_dir ~ '/../..') | realpath }}"
+# source_repo_dir is defined in the common role (a meta dependency).
 # Path to a service's source repo. Defaults to <source_repo_dir>/<service>;
 # override to point at an exact path when the checkout name differs.
 source_repo: "{{ source_repo_dir }}/{{ project_name }}"
