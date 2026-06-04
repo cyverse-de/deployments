@@ -451,6 +451,14 @@ jvm_opts_medium: "-XX:MaxRAMPercentage=60 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryErr
 jvm_opts_low: "-Xms128m -Xmx128m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Dlog4j2.formatMsgNoLookups=true"
 jvm_opts_grouper: "-Xmx1G -Dlog4j2.formatMsgNoLookups=true"
 
+# LDAP settings
+ldap_in_cluster: false
+ldap_dn_suffix: dc=example,dc=org
+ldap_root_pw: replace_me
+ldap_rootpw_hash: "{SSHA}replace_me_with_a_real_hash"
+ldap_de_grouper_pw_hash: "{SSHA}replace_me_with_a_real_hash"
+ldap_ldap_reader_pw_hash: "{SSHA}replace_me_with_a_real_hash"
+
 # PGP settings
 pgp_key_password: replace_me
 

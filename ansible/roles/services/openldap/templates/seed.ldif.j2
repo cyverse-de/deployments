@@ -1,0 +1,60 @@
+dn: {{ ldap_dn_suffix }}
+objectClass: domain
+dc: {{ ldap_dn_suffix.split(',')[0].split('=')[1] }}
+o: {{ ldap_dn_suffix.split(',')[0].split('=')[1] }}
+
+dn: ou=People,{{ ldap_dn_suffix }}
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,{{ ldap_dn_suffix }}
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=everyone,ou=Groups,{{ ldap_dn_suffix }}
+objectClass: posixGroup
+cn: everyone
+description: All users
+gidNumber: 10000
+memberUid: de_grouper
+memberUid: ldap_reader
+
+dn: cn=de_admins,ou=Groups,{{ ldap_dn_suffix }}
+objectClass: posixGroup
+cn: de_admins
+description: DE administrators
+gidNumber: 10001
+
+dn: uid=de_grouper,ou=People,{{ ldap_dn_suffix }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: de_grouper
+mail: de_grouper@example.org
+sn: Grouper
+givenName: DE
+cn: DE Grouper
+title: Other
+o: N/A
+departmentNumber: N/A
+uidNumber: 40000
+gidNumber: 10000
+homeDirectory: /home/de_grouper
+userPassword: {{ ldap_de_grouper_pw_hash }}
+
+dn: uid=ldap_reader,ou=People,{{ ldap_dn_suffix }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: ldap_reader
+mail: ldap_reader@example.org
+sn: Reader
+givenName: LDAP
+cn: LDAP Reader
+title: Other
+o: N/A
+departmentNumber: N/A
+uidNumber: 40001
+gidNumber: 10002
+homeDirectory: /home/ldap_reader
+userPassword: {{ ldap_ldap_reader_pw_hash }}
