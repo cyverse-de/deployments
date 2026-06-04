@@ -1,0 +1,9 @@
+---
+- name: build the metadata image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: metadata
+  tags:
+    - build

@@ -1,0 +1,9 @@
+---
+- name: build the de-mailer image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: de-mailer
+  tags:
+    - build

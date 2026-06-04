@@ -1,0 +1,9 @@
+---
+- name: build the user-info image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: user-info
+  tags:
+    - build

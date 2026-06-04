@@ -1,0 +1,4 @@
+---
+git_ref: main
+image_registry: harbor.cyverse.org
+force_rebuild: false

@@ -1,0 +1,9 @@
+---
+- name: build the check-resource-access image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: check-resource-access
+  tags:
+    - build
