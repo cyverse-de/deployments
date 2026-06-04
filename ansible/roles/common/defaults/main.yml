@@ -817,3 +817,63 @@ vice_cache_images:
 
 ingress_nginx_http_port: 31343
 ingress_nginx_https_port: 31344
+
+# Where source repos are cloned / built from (see clone_sources.yml). Defaults
+# to the directory containing this deployments repo (sibling checkouts).
+source_repo_dir: "{{ (playbook_dir ~ '/../..') | realpath }}"
+# Default GitHub org base URL for source repos.
+cyverse_repo_base: "https://github.com/cyverse-de"
+# Repos to clone into source_repo_dir (the local dir name == the entry). Most
+# live under cyverse_repo_base; entries in source_repo_urls override the URL.
+source_repos:
+  - analyses
+  - app-exposer
+  - apply-labels
+  - apps
+  - async-tasks
+  - bulk-typer
+  - check-resource-access
+  - clockwork
+  - dashboard-aggregator
+  - data-info
+  - data-usage-api
+  - de-mailer
+  - de-webhooks
+  - dewey
+  - discoenv-analyses
+  - discoenv-users
+  - email-requests
+  - event-recorder
+  - formation
+  - get-analysis-id
+  - group-propagator
+  - info-typer
+  - infosquito2
+  - iplant-groups
+  - jex-adapter
+  - job-status-listener
+  - job-status-recorder
+  - job-status-to-apps-adapter
+  - kifshare
+  - maintenance-page
+  - metadata
+  - notifications
+  - permissions
+  - portal-conductor
+  - portal2
+  - qms
+  - qms-adapter
+  - requests
+  - resource-usage-api
+  - search
+  - sonora
+  - subscriptions
+  - terrain
+  - timelord
+  - unleash
+  - user-info
+  - vice-default-backend
+  - vice-status-listener
+# Per-repo clone URL overrides for repos not under cyverse_repo_base.
+source_repo_urls:
+  qms: "https://github.com/cyverse/qms"
