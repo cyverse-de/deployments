@@ -1,0 +1,9 @@
+---
+- name: build the data-info image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: data-info
+  tags:
+    - build

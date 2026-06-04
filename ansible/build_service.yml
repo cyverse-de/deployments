@@ -1,0 +1,23 @@
+# Builds a single service image and rewrites roles/services/<project>/files/<project>.json.
+#
+# Used for CI/CD.
+#
+# Variables:
+#   project:        the name of the service to build.
+#   source_repo:    the path to the git repository containing the project source.
+#   git_ref:        the git ref to build (default: main).
+#   image_registry: the target image registry (default: harbor.cyverse.org).
+#
+# A `docker login` to the target registry must already be in place.
+
+---
+- hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - ansible.builtin.include_role:
+        name: "services/{{ project }}"
+        tasks_from: build
+      tags:
+        - build

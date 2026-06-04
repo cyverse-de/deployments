@@ -1,0 +1,9 @@
+---
+- name: build the resource-usage-api image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: resource-usage-api
+  tags:
+    - build

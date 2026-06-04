@@ -1,0 +1,9 @@
+---
+- name: build the get-analysis-id image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: get-analysis-id
+  tags:
+    - build
