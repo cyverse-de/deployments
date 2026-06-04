@@ -1,0 +1,75 @@
+---
+- block:
+    - name: ensure source_repo is set
+      delegate_to: localhost
+      ansible.builtin.assert:
+        that:
+          - source_repo is defined
+          - source_repo | length > 0
+        fail_msg: "source_repo must be set to the path of the git repository to build"
+
+    # Resolve absolute paths into the service role itself, independent of any
+    # build_json_dir override that points deploys at a sibling de-releases repo.
+    - name: resolve the service role paths
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        service_files_dir: "{{ playbook_dir }}/roles/services/{{ project_name }}/files"
+        build_json_path: "{{ playbook_dir }}/roles/services/{{ project_name }}/files/{{ project_name }}.json"
+
+    - name: create a temporary directory for the build worktree
+      delegate_to: localhost
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: "-{{ project_name }}-build"
+      register: build_tmp
+
+    - block:
+        - name: check out the requested ref in a worktree
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git worktree add --force --detach {{ build_tmp.path }}/repo {{ git_ref }}
+
+        # The deployments repo is the source of truth for skaffold.yaml and the
+        # k8s manifests, so overlay them onto the source tree before building.
+        - name: overlay the skaffold config from the service role
+          delegate_to: localhost
+          ansible.builtin.copy:
+            src: "{{ service_files_dir }}/skaffold.yaml"
+            dest: "{{ build_tmp.path }}/repo/skaffold.yaml"
+            remote_src: true
+
+        - name: overlay the k8s manifests from the service role
+          delegate_to: localhost
+          ansible.builtin.copy:
+            src: "{{ service_files_dir }}/k8s/"
+            dest: "{{ build_tmp.path }}/repo/k8s/"
+            remote_src: true
+
+        - name: point the image at the configured registry
+          delegate_to: localhost
+          ansible.builtin.replace:
+            path: "{{ build_tmp.path }}/repo/skaffold.yaml"
+            regexp: 'harbor\.cyverse\.org'
+            replace: "{{ image_registry }}"
+
+        - name: build and push the image, writing the build descriptor
+          delegate_to: localhost
+          run_once: true
+          ansible.builtin.command:
+            chdir: "{{ build_tmp.path }}/repo"
+            cmd: skaffold build {{ '--cache-artifacts=false ' if force_rebuild | bool else '' }}--tag {{ git_ref }} --push --file-output {{ build_json_path }}
+      always:
+        - name: remove the build worktree
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git worktree remove --force {{ build_tmp.path }}/repo
+
+        - name: remove the temporary build directory
+          delegate_to: localhost
+          ansible.builtin.file:
+            path: "{{ build_tmp.path }}"
+            state: absent
+  tags:
+    - build

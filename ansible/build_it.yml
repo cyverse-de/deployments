@@ -1,0 +1,295 @@
+---
+- name: build services
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - ansible.builtin.include_role:
+        name: services/maintenance-page
+        tasks_from: build
+        apply:
+          tags: maintenance-page
+      tags: maintenance-page
+    - ansible.builtin.include_role:
+        name: services/analyses
+        tasks_from: build
+        apply:
+          tags: analyses
+      tags: analyses
+    - ansible.builtin.include_role:
+        name: services/app-exposer
+        tasks_from: build
+        apply:
+          tags: app-exposer
+      tags: app-exposer
+    - ansible.builtin.include_role:
+        name: services/apply-labels
+        tasks_from: build
+        apply:
+          tags: apply-labels
+      tags: apply-labels
+    - ansible.builtin.include_role:
+        name: services/apps
+        tasks_from: build
+        apply:
+          tags: apps
+      tags: apps
+    - ansible.builtin.include_role:
+        name: services/async-tasks
+        tasks_from: build
+        apply:
+          tags: async-tasks
+      tags: async-tasks
+    - ansible.builtin.include_role:
+        name: services/bulk-typer
+        tasks_from: build
+        apply:
+          tags: bulk-typer
+      tags: bulk-typer
+    - ansible.builtin.include_role:
+        name: services/check-resource-access
+        tasks_from: build
+        apply:
+          tags: check-resource-access
+      tags: check-resource-access
+    - ansible.builtin.include_role:
+        name: services/clockwork
+        tasks_from: build
+        apply:
+          tags: clockwork
+      tags: clockwork
+    - ansible.builtin.include_role:
+        name: services/data-info
+        tasks_from: build
+        apply:
+          tags: data-info
+      tags: data-info
+    - ansible.builtin.include_role:
+        name: services/de-mailer
+        tasks_from: build
+        apply:
+          tags: de-mailer
+      tags: de-mailer
+    - ansible.builtin.include_role:
+        name: services/de-webhooks
+        tasks_from: build
+        apply:
+          tags: de-webhooks
+      tags: de-webhooks
+    - ansible.builtin.include_role:
+        name: services/dewey
+        tasks_from: build
+        apply:
+          tags: dewey
+      tags: dewey
+    - ansible.builtin.include_role:
+        name: services/discoenv-analyses
+        tasks_from: build
+        apply:
+          tags: discoenv-analyses
+      tags: discoenv-analyses
+    - ansible.builtin.include_role:
+        name: services/discoenv-users
+        tasks_from: build
+        apply:
+          tags: discoenv-users
+      tags: discoenv-users
+    - ansible.builtin.include_role:
+        name: services/email-requests
+        tasks_from: build
+        apply:
+          tags: email-requests
+      tags: email-requests
+    - ansible.builtin.include_role:
+        name: services/event-recorder
+        tasks_from: build
+        apply:
+          tags: event-recorder
+      tags: event-recorder
+    - ansible.builtin.include_role:
+        name: services/get-analysis-id
+        tasks_from: build
+        apply:
+          tags: get-analysis-id
+      tags: get-analysis-id
+    - ansible.builtin.include_role:
+        name: services/info-typer
+        tasks_from: build
+        apply:
+          tags: info-typer
+      tags: info-typer
+    - ansible.builtin.include_role:
+        name: services/infosquito2
+        tasks_from: build
+        apply:
+          tags: infosquito2
+      tags: infosquito2
+    - ansible.builtin.include_role:
+        name: services/iplant-groups
+        tasks_from: build
+        apply:
+          tags: iplant-groups
+      tags: iplant-groups
+    - ansible.builtin.include_role:
+        name: services/jex-adapter
+        tasks_from: build
+        apply:
+          tags: jex-adapter
+      tags: jex-adapter
+    - ansible.builtin.include_role:
+        name: services/job-status-listener
+        tasks_from: build
+        apply:
+          tags: job-status-listener
+      tags: job-status-listener
+    - ansible.builtin.include_role:
+        name: services/job-status-recorder
+        tasks_from: build
+        apply:
+          tags: job-status-recorder
+      tags: job-status-recorder
+    - ansible.builtin.include_role:
+        name: services/job-status-to-apps-adapter
+        tasks_from: build
+        apply:
+          tags: job-status-to-apps-adapter
+      tags: job-status-to-apps-adapter
+    - ansible.builtin.include_role:
+        name: services/kifshare
+        tasks_from: build
+        apply:
+          tags: kifshare
+      tags: kifshare
+    - ansible.builtin.include_role:
+        name: services/metadata
+        tasks_from: build
+        apply:
+          tags: metadata
+      tags: metadata
+    - ansible.builtin.include_role:
+        name: services/notifications
+        tasks_from: build
+        apply:
+          tags: notifications
+      tags: notifications
+    - ansible.builtin.include_role:
+        name: services/permissions
+        tasks_from: build
+        apply:
+          tags: permissions
+      tags: permissions
+    - ansible.builtin.include_role:
+        name: services/qms
+        tasks_from: build
+        apply:
+          tags: qms
+      tags: qms
+    - ansible.builtin.include_role:
+        name: services/qms-adapter
+        tasks_from: build
+        apply:
+          tags: qms-adapter
+      tags: qms-adapter
+    - ansible.builtin.include_role:
+        name: services/requests
+        tasks_from: build
+        apply:
+          tags: requests
+      tags: requests
+    - ansible.builtin.include_role:
+        name: services/resource-usage-api
+        tasks_from: build
+        apply:
+          tags: resource-usage-api
+      tags: resource-usage-api
+    - ansible.builtin.include_role:
+        name: services/data-usage-api
+        tasks_from: build
+        apply:
+          tags: data-usage-api
+      tags: data-usage-api
+    - ansible.builtin.include_role:
+        name: services/subscriptions
+        tasks_from: build
+        apply:
+          tags: subscriptions
+      tags: subscriptions
+    - ansible.builtin.include_role:
+        name: services/timelord
+        tasks_from: build
+        apply:
+          tags: timelord
+      tags: timelord
+    - ansible.builtin.include_role:
+        name: services/user-info
+        tasks_from: build
+        apply:
+          tags: user-info
+      tags: user-info
+    - ansible.builtin.include_role:
+        name: services/vice-default-backend
+        tasks_from: build
+        apply:
+          tags: vice-default-backend
+      tags: vice-default-backend
+    - ansible.builtin.include_role:
+        name: services/vice-status-listener
+        tasks_from: build
+        apply:
+          tags: vice-status-listener
+      tags: vice-status-listener
+    - ansible.builtin.include_role:
+        name: services/search
+        tasks_from: build
+        apply:
+          tags: search
+      tags: search
+    - ansible.builtin.include_role:
+        name: services/dashboard-aggregator
+        tasks_from: build
+        apply:
+          tags: dashboard-aggregator
+      tags: dashboard-aggregator
+    - ansible.builtin.include_role:
+        name: services/terrain
+        tasks_from: build
+        apply:
+          tags: terrain
+      tags: terrain
+    - ansible.builtin.include_role:
+        name: services/sonora
+        tasks_from: build
+        apply:
+          tags: sonora
+      tags: sonora
+    - ansible.builtin.include_role:
+        name: services/group-propagator
+        tasks_from: build
+        apply:
+          tags: group-propagator
+      tags: group-propagator
+    - ansible.builtin.include_role:
+        name: services/portal-conductor
+        tasks_from: build
+        apply:
+          tags: portal-conductor
+      tags: portal-conductor
+    - ansible.builtin.include_role:
+        name: services/portal2
+        tasks_from: build
+        apply:
+          tags: portal2
+      tags: portal2
+    - ansible.builtin.include_role:
+        name: services/formation
+        tasks_from: build
+        apply:
+          tags: formation
+      tags: formation
+    - ansible.builtin.include_role:
+        name: services/vice-operator
+        tasks_from: build
+        apply:
+          tags: vice-operator
+      tags: vice-operator

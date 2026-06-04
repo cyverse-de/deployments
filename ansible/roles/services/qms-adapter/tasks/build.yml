@@ -1,0 +1,9 @@
+---
+- name: build the qms-adapter image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: qms-adapter
+  tags:
+    - build
