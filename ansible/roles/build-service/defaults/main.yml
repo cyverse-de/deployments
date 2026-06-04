@@ -8,3 +8,4 @@ source_repo: "{{ source_repo_dir }}/{{ project_name }}"
 git_ref: main
 image_registry: harbor.cyverse.org
 force_rebuild: false
+push_images: true
