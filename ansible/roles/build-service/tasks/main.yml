@@ -32,6 +32,17 @@
       register: build_tmp
 
     - block:
+        # Refresh tags/branches so the requested ref (a release is built from
+        # tags) is present even when the local clone is stale. Best-effort: the
+        # build can still proceed from local refs if the fetch fails (offline).
+        - name: fetch the latest refs and tags
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git fetch --tags --force origin
+          changed_when: false
+          failed_when: false
+
         - name: check out the requested ref in a worktree
           delegate_to: localhost
           ansible.builtin.command:
