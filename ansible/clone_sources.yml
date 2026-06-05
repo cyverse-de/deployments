@@ -4,12 +4,13 @@
 # Variables (all default in the common role):
 #   source_repo_dir:   where to clone the repos (default: the directory
 #                      containing this deployments repo).
-#   cyverse_repo_base: default org base URL (default: https://github.com/cyverse-de).
+#   cyverse_repo_base: default org base URL (default: git@github.com:cyverse-de).
 #   source_repos:      the list of repos to clone.
 #   source_repo_urls:  per-repo URL overrides (e.g. qms -> cyverse org).
 #
-# Private repos need a git credential helper (e.g. `gh auth setup-git`) or an
-# SSH base URL via -e cyverse_repo_base=git@github.com:cyverse-de.
+# Cloning over SSH needs a configured GitHub SSH key. For HTTPS instead, set
+# -e cyverse_repo_base=https://github.com/cyverse-de (and a credential helper
+# such as `gh auth setup-git` for private repos).
 
 ---
 - name: clone the cyverse source repositories

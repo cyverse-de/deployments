@@ -122,6 +122,8 @@ For CI/CD, the standalone `deploy_service.yml` playbook deploys a single service
 ansible-playbook -i <inventory> -e project=<service> deploy_service.yml
 ```
 
+For building service images from source, rebuilding a release, cloning the source repositories, and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+
 # Common Tasks
 
 ## Add a Node to the Kubernetes Cluster
