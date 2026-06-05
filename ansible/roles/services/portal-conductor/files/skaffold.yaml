@@ -9,7 +9,8 @@ build:
     - "linux/amd64"
   tagPolicy:
     gitCommit: {}
-  local: {}
+  local:
+    useBuildkit: true
 manifests:
   rawYaml:
     - k8s/portal-conductor.yml
