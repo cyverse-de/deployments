@@ -821,8 +821,9 @@ ingress_nginx_https_port: 31344
 # Where source repos are cloned / built from (see clone_sources.yml). Defaults
 # to the directory containing this deployments repo (sibling checkouts).
 source_repo_dir: "{{ (playbook_dir ~ '/../..') | realpath }}"
-# Default GitHub org base URL for source repos.
-cyverse_repo_base: "https://github.com/cyverse-de"
+# Default GitHub org base URL for source repos. SSH by default; override with
+# -e cyverse_repo_base=https://github.com/cyverse-de for HTTPS clones.
+cyverse_repo_base: "git@github.com:cyverse-de"
 # Repos to clone into source_repo_dir (the local dir name == the entry). Most
 # live under cyverse_repo_base; entries in source_repo_urls override the URL.
 source_repos:
@@ -876,4 +877,4 @@ source_repos:
   - vice-status-listener
 # Per-repo clone URL overrides for repos not under cyverse_repo_base.
 source_repo_urls:
-  qms: "https://github.com/cyverse/qms"
+  qms: "git@github.com:cyverse/qms"
