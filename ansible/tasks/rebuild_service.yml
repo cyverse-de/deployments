@@ -13,13 +13,17 @@
 
     # A descriptor tag is <imageName>:<ref>@sha256:<digest>; anchor on the image
     # name so a digest-only tag (e.g. vice-operator, which reuses another image)
-    # yields an empty ref and is skipped rather than built from garbage.
+    # yields an empty ref and is skipped rather than built from garbage. The
+    # trailing -dirty (skaffold's gitCommit tagPolicy marks images built from an
+    # uncommitted tree) is never part of a real tag, so strip it to recover the
+    # clean tag the build came from.
     - name: extract the release ref from the {{ svc }} tag
       delegate_to: localhost
       ansible.builtin.set_fact:
         release_ref: >-
           {{ (release_tag | regex_replace('^' ~ (release_image | regex_escape) ~ ':', '')
-                          | regex_replace('@sha256:.*$', ''))
+                          | regex_replace('@sha256:.*$', '')
+                          | regex_replace('-dirty$', ''))
              if release_tag.startswith(release_image ~ ':') else '' }}
 
     - name: note {{ svc }} skipped (no ref in descriptor)
