@@ -21,3 +21,16 @@
   loop_control:
     label: "{{ item.item }}"
   when: not item.stat.exists
+
+# Already-cloned repos are not re-cloned, so refresh their tags/branches (a
+# release builds from tags). Non-destructive: updates refs only, not the tree.
+- name: fetch tags for already-cloned source repos
+  ansible.builtin.command:
+    chdir: "{{ source_repo_dir }}/{{ item.item }}"
+    cmd: git fetch --tags --force origin
+  loop: "{{ source_repo_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists
+  changed_when: false
+  failed_when: false
