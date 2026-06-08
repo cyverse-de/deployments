@@ -316,6 +316,7 @@ harbor_robot_name: harbor-robot
 harbor_robot_secret: replace_me
 
 # IRODS CSI Driver Vars
+irods_csi_driver_enabled: true
 irods_csi_driver_version: "0.11.4"
 irods_csi_driver_repo: https://cyverse.github.io/irods-csi-driver-helm/
 irods_csi_driver_namespace: irods-csi-driver
@@ -715,6 +716,7 @@ image_cache_mode: daemonset
 
 vice_operators_values: []
 vice_operator_cluster_config_secret: cluster-config-secret
+vice_operator_disable_spec_launch: false
 vice_operator_skip_gateway_creation: false
 vice_operator_gateway_name: vice
 vice_operator_gateway_namespace: vice-apps
@@ -758,6 +760,7 @@ vice_operator_ingress_pod_exceptions:
 vice_operator_egress_host_exceptions:
   - replace_me
 vice_operator_admin_entitlements: replace_me
+vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
 vice_api_keycloak_base_url: replace_me
 vice_api_keycloak_realm: replace_me
 vice_api_keycloak_client_id: replace_me

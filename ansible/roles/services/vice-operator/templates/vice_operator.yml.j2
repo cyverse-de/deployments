@@ -88,6 +88,14 @@ spec:
             - "--port={{ vice_operator_port }}"
             - "--loading-port={{ vice_operator_loading_port}}"
             - "--max-analyses={{ vice_operator_max_analyses }}"
+{% if not vice_operator_disable_spec_launch %}
+            - "--porklock-image={{ vice_file_transfers_image }}"
+            - "--porklock-tag={{ vice_file_transfers_tag }}"
+            - "--vice-proxy-image={{ vice_proxy_image }}"
+            - "--use-csi-driver={{ irods_csi_driver_enabled }}"
+            - "--irods-zone={{ irods_zone }}"
+            - "--gateway-provider={{ gateway_provider }}"
+{% endif %}
             - "--image-cache-mode={{ image_cache_mode | default('daemonset') }}"
 {% if image_cache_mode == 'cron' %}
             - "--image-cache-schedule={{ image_cache_schedule | default('0 2 * * *') }}"
