@@ -21,7 +21,7 @@
     - name: resolve the service role paths
       delegate_to: localhost
       ansible.builtin.set_fact:
-        service_files_dir: "{{ playbook_dir }}/roles/services/{{ project_name }}/files"
+        service_files_dir: "{{ playbook_dir }}/roles/services/{{ source_service }}/files"
         build_json_path: "{{ playbook_dir }}/roles/services/{{ project_name }}/files/{{ project_name }}.json"
 
     - name: create a temporary directory for the build worktree
