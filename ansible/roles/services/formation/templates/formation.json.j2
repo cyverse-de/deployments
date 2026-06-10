@@ -11,7 +11,8 @@
     "realm": "{{ keycloak_realm_name }}",
     "client_id": "{{ keycloak_client_id }}",
     "client_secret": "{{ keycloak_client_secret }}",
-    "ssl_verify": true
+    "ssl_verify": true,
+    "mcp_client_id" : "{{ formation_mcp_client_id }}"
   },
   "services": {
     "apps_base_url": "http://apps",
@@ -23,6 +24,8 @@
     "vice_domain": "{{ vice_domain }}",
     "vice_url_check_timeout": 5.0,
     "vice_url_check_retries": 3,
-    "vice_url_check_cache_ttl": 5.0
+    "vice_url_check_cache_ttl": 5.0,
+    "mcp_enabled" : {{ formation_mcp_enabled }},
+    "public_base_url" : "{{ formation_base_url }}"
   }
 }
