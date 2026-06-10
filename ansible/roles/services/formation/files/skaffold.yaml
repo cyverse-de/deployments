@@ -9,8 +9,7 @@ build:
     - "linux/amd64"
   tagPolicy:
     gitCommit: {}
-  local:
-    useBuildkit: true
+  local: {}
 manifests:
   rawYaml:
     - k8s/formation.yml
