@@ -272,6 +272,28 @@
                   - path:
                       type: PathPrefix
                       value: /formation
+              # RFC 8414/9728 root-form OAuth discovery paths for the MCP
+              # server; clients derive these from the issuer URL, so they
+              # must resolve at the host root rather than under /formation.
+              - backendRefs:
+                  - name: formation
+                    port: 80
+                filters:
+                  - type: ExtensionRef
+                    extensionRef:
+                      group: traefik.io
+                      kind: Middleware
+                      name: discoenv-cors-headers
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /.well-known/oauth-protected-resource/formation
+                  - path:
+                      type: PathPrefix
+                      value: /.well-known/oauth-authorization-server/formation
+                  - path:
+                      type: PathPrefix
+                      value: /.well-known/openid-configuration/formation
               - backendRefs:
                   - name: sonora
                     port: 80
@@ -355,6 +377,22 @@
                   - path:
                       type: PathPrefix
                       value: /formation
+              # RFC 8414/9728 root-form OAuth discovery paths for the MCP
+              # server; clients derive these from the issuer URL, so they
+              # must resolve at the host root rather than under /formation.
+              - backendRefs:
+                  - name: formation
+                    port: 80
+                matches:
+                  - path:
+                      type: PathPrefix
+                      value: /.well-known/oauth-protected-resource/formation
+                  - path:
+                      type: PathPrefix
+                      value: /.well-known/oauth-authorization-server/formation
+                  - path:
+                      type: PathPrefix
+                      value: /.well-known/openid-configuration/formation
               - backendRefs:
                   - name: sonora
                     port: 80
