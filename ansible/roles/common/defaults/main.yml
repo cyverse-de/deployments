@@ -224,8 +224,10 @@ formation_keycloak_client_id: replace_me
 formation_keycloak_client_secret: replace_me
 formation_user_deletion_app_name: portal-delete-user
 formation_verify_ssl: "false"
+formation_mcp_enabled: "true"
 formation_base_url: "https:{{ de_hostname }}/formation"
-formation_mcp_client_id: replace_me
+formation_mcp_client_id: mcp-client
+
 
 
 # GoCD settings
