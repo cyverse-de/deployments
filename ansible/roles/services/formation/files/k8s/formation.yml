@@ -52,13 +52,13 @@ spec:
               containerPort: 8000
           livenessProbe:
             httpGet:
-              path: /docs
+              path: /
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 5
           readinessProbe:
             httpGet:
-              path: /docs
+              path: /
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 5
