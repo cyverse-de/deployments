@@ -1,5 +1,7 @@
 # Ansible Playbooks
 
+For an overview of the required repositories, CI builds, and the production deployment process, see [docs/index.md](docs/index.md). For building service images from source, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+
 ## Required Ansible Collections
 
 - community.general
@@ -90,39 +92,52 @@ Keycloak is used for authentication/authorization and is installed inside the sa
 
 ## Services
 
-The Discovery Environment services are installed and upgraded through `kubernetes.yml`, selected by tag. The `deploy-service` role runs `skaffold deploy` for each service.
+Each Discovery Environment service has a self-contained role under `roles/services/<service>/` that carries everything needed to configure, build, and deploy it:
 
-Deploying all of the configurations and all of the services:
+| Path | Purpose |
+| --- | --- |
+| `templates/` | The service's configuration template (if it needs one), rendered into a per-service `<service>-configs` secret at deploy time |
+| `files/skaffold.yaml`, `files/k8s/` | The canonical skaffold config and Kubernetes manifests for the service |
+| `files/<service>.json` | The build descriptor recording the exact image (git ref + digest) to deploy |
+| `tasks/main.yml` | Creates the config secret and deploys the service (via the `deploy-service` role) |
+| `tasks/build.yml` | Builds the service image from source (via the `build-service` role) |
+
+A shared `configs` secret holding environment-style settings used by many services is managed separately by the `service_configurations` role under the `configure-services` tag.
+
+### Deploying services
+
+Set `KUBECONFIG` to the target cluster before deploying. `deploy_it.yml` deploys services selected by tag, where each service's tag matches its role name:
 
 ```bash
+# one service
+ansible-playbook -i <inventory> deploy_it.yml --tags terrain
+
+# several services
+ansible-playbook -i <inventory> deploy_it.yml --tags terrain,sonora
+```
+
+The same roles are wired into `kubernetes.yml` for full-environment runs:
+
+```bash
+# the shared configs secret plus all of the services
 ansible-playbook -i <inventory> --tags configure-services,deploy-all-services kubernetes.yml
-```
 
-Deploying just the service configurations:
-
-```bash
+# just the shared configs secret
 ansible-playbook -i <inventory> --tags configure-services kubernetes.yml
-```
 
-Deploying a single service, without the configurations (set `project` to the service name):
-
-```bash
-ansible-playbook -i <inventory> --tags deploy-single-service -e project=<service> kubernetes.yml
-```
-
-Deploying all of the services, without the configurations:
-
-```bash
+# all of the services
 ansible-playbook -i <inventory> --tags deploy-all-services kubernetes.yml
 ```
 
-For CI/CD, the standalone `deploy_service.yml` playbook deploys a single service. Set `project` to the service name and `KUBECONFIG` in the environment:
+For CI/CD, the standalone `deploy_service.yml` playbook deploys a single service. Set `project` to the service name:
 
 ```bash
 ansible-playbook -i <inventory> -e project=<service> deploy_service.yml
 ```
 
-For building service images from source, rebuilding a release, cloning the source repositories, and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+### Building services
+
+For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`, `build_service.yml`), rebuilding a release (`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
 # Common Tasks
 
