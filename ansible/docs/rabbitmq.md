@@ -4,13 +4,13 @@ These playbooks can be used to install and/or configure RabbitMQ for usage by th
 
 ## Playbooks
 
-### main.yml
+### rabbitmq.yml
 
 This playbook both installs and configures RabbitMQ.
 
-### configure.yml
+### rabbitmq_configure.yml
 
-This playbook only configures RabbitMQ, and is intended for use when the RabbitMQ host is installed separately, for example when iRODS and the DE share a broker.
+This playbook only configures RabbitMQ, and is intended for use when RabbitMQ is installed separately, for example when iRODS and the DE share a broker.
 
 ## Inventory Setup
 
@@ -19,8 +19,8 @@ This playbook only configures RabbitMQ, and is intended for use when the RabbitM
 rabbitmq-host.example.org
 ```
 
-The amqp-brokers group should include the host to install and/or configure RabbitMQ on.
+The `amqp-brokers` group should include the host to install and/or configure RabbitMQ on.
 
 ## Group Variable Setup
 
-The installation portion of these playbooks depends on the `amqp.admin_user` and `amqp.admin_password` variables. The configuration section depends on `amqp.de` and `amqp.irods`, which are definitions of vhosts.
+Both playbooks depend on the `amqp.admin_user` and `amqp.admin_password` variables. The configuration tasks additionally depend on `amqp.de` and `amqp.irods`, which are definitions of vhosts.
