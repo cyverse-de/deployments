@@ -4,9 +4,9 @@ This playbook is for copying TLS certificates to hosts.
 
 ## Playbooks
 
-### main.yml
+### tls_certs_main.yml
 
-Copies TLS certs to appropriate nodes.
+Copies the combined TLS cert to the proxy nodes.
 
 ## Inventory Setup
 
@@ -19,10 +19,12 @@ These inventories should match other playbooks used for deployment.
 
 ## Variable setup
 
-This playbook needs one variable, which most likely should be passed on the command line and not included in group vars: `combined_cert_src` should point to the `cyverse.combined` certificate to be used by HAProxy.
+This playbook needs one variable: `combined_cert_src`, the local path of the `cyverse.combined` certificate to be used
+by HAProxy. It defaults to `/etc/ssl/cyverse.combined` and most likely should be passed on the command line rather
+than set in group vars.
 
 ## Example
 
 ```
-ansible-playbook -i /home/user/inventory-repo/inventory/ -e combined_cert_src=/home/user/certificates-source/ssl/cyverse.combined -K main.yml
+ansible-playbook -i /home/user/inventory-repo/inventory/ -e combined_cert_src=/home/user/certificates-source/ssl/cyverse.combined -K tls_certs_main.yml
 ```

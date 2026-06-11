@@ -33,7 +33,7 @@ This is the tag-triggered CI build path, which runs on GitHub's systems. Images 
 At a high-level, our CI build process is as follows:
  - Commit and make changes in a branch.
  - Submit and merge PR with the changes.
- - Tag revisions with a new version in the format `v#.#.#` such as `v-1.0.1`.
+ - Tag revisions with a new version in the format `v#.#.#` such as `v1.0.1`.
  - Push tags.
  - `skaffold-build.yml` workflow is triggered, which builds the images on Github's systems.
  - The workflow generates a new build JSON file, which gets committed and pushed to the `builds` directory of the `de-releases` repository.
@@ -82,9 +82,9 @@ You'll need the following tools installed:
  - `k0sctl` at the latest stable version. See [https://github.com/k0sproject/k0sctl](https://github.com/k0sproject/k0sctl).
 
 
-First, make sure you have the production kubeconfig. To get it, go into the `prod-deployment` repository's top-level directory and make sure the `main` branch is up to date.
-
 ### Get the kubeconfig file
+First, make sure you have the production kubeconfig. To generate it, go into the private inventory repository's (`prod-deployment`) top-level directory and make sure the `main` branch is up to date.
+
 Then set the `K0S_SSH_USER` and `K0S_SSH_KEY_PATH` environment variables to the values appropriate for your local environment. For example:
 
 ```bash
@@ -111,7 +111,7 @@ k0sctl kubeconfig > ~/.kube/prod.conf
 ```
 
 ### Set the KUBECONFIG environment variable
-You'll also need a kubeconfig file for the production cluster. Set the `KUBECONFIG` environment variable to the path of the kubeconfig file.
+Set the `KUBECONFIG` environment variable to the path of the kubeconfig file generated above.
 
 For bash:
 ```bash
@@ -124,7 +124,7 @@ set -gx KUBECONFIG ~/.kube/prod.conf
 ```
 
 ### Database migrations
-You need to have the `migrate` command available in your PATH. You can get it from [https://github.com/golang-migrate/migrate](https://github.com/golang-migrate/migrate). Download the latest released version appropriate for your operating system and architecture and ensure that the `migrate` binary is in your PATH.
+Database migrations run as part of the `setup-databases` step below and require the `migrate` command (from `golang-migrate`, listed in the tools above) to be in your PATH.
 
 ### Where build descriptors are read from
 Deploys read each service's build descriptor (`<service>.json`) from `build_json_dir`, which defaults to the service's own role directory (`ansible/roles/services/<service>/files/`). An inventory may override `build_json_dir` to read descriptors from elsewhere instead; for example, the QA inventory points it at `../../de-releases/builds`, a `de-releases` checkout cloned alongside the `deployments` repository, which is where the QA CI flow publishes descriptors.

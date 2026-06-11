@@ -1,15 +1,15 @@
 # Deployment Playbooks for OpenLDAP
 
-The playbooks in this directory can be used to install OpenLDAP for the Discovery Environment (DE). This step can be
-skipped if an existing LDAP service will be used. Note: as of this writing, the DE has only been used with an OpenLDAP
-instance using an RFC 2307 schema.
+The `ldap_slapd.yml` playbook installs OpenLDAP for the Discovery Environment (DE). This step can be skipped if an
+existing LDAP service will be used. Note: as of this writing, the DE has only been used with an OpenLDAP instance
+using an RFC 2307 schema.
 
 ## Playbooks
 
-### slapd.yml
+### ldap_slapd.yml
 
-This playbook installs OpenLDAP itself. This is the only playbook required for this intallation step. After installing
-OpenLDAP itself, this playbook installs the RFC 2307 schema and defines the following entities:
+This playbook installs OpenLDAP itself. This is the only playbook required for this installation step. After
+installing OpenLDAP itself, this playbook installs the RFC 2307 schema and defines the following entities:
 
 | Entity      | Entity Type | Description                                                                  |
 | ------      | ----------- | -----------                                                                  |
@@ -23,7 +23,7 @@ OpenLDAP itself, this playbook installs the RFC 2307 schema and defines the foll
 
 ## Inventory Setup
 
-The inventory for this set of playbooks contains only the LDAP node itself:
+The inventory for this playbook contains only the LDAP node itself:
 
 ```
 [ldap]
@@ -32,7 +32,7 @@ ldap.example.org
 
 ## Group Variable Setup
 
-This set of playbooks requires a few group variables:
+This playbook requires a few group variables:
 
 | Variable                  | Description                                                |
 | --------                  | -----------                                                |
@@ -58,8 +58,8 @@ name is `dc=example,dc=org`, then the manager account is `cn=Manager,dc=example,
 
 ## Installing LDAP
 
-This installation invoves merely running the playbook:
+This installation involves merely running the playbook:
 
 ```
-$ ansible-playbook -i /path/to/inventory -K slapd.yml
+$ ansible-playbook -i /path/to/inventory -K ldap_slapd.yml
 ```
