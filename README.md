@@ -1,4 +1,4 @@
-_This repository has been archived and is now being maintained in a Git repository maintained by CyVerse._
+_This repository has been archived and is now maintained in a Git repository hosted by CyVerse._
 
 # deployments
 
@@ -11,6 +11,5 @@ are deployed using Ansible playbooks are OpenLDAP and Kubernetes.
 
 ## Kustomizations
 
-The [Kustomizations](kustomize) are currently used to deploy software that is used by the DE in Kubernetes. The only
-example we have of this at this time is Keycloak, but Kustomizations of other software components will be added in the
-future.
+The [Kustomizations](kustomize) are used to deploy third-party software that the DE relies on in Kubernetes,
+currently Keycloak and OpenEBS.
