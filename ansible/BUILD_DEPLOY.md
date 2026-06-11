@@ -62,6 +62,10 @@ checkout lives elsewhere or under a different name.
   (see [Cloning the source repositories](#cloning-the-source-repositories)).
 - For deploys, `KUBECONFIG` pointing at the target cluster.
 
+The examples below use `$QA_INVENTORY` for the path to the private inventory
+directory; see `.env.sample` for the environment variables a deployment shell
+typically sets.
+
 ## Cloning the source repositories
 
 `clone_sources.yml` clones every service's source repo into `source_repo_dir`,
@@ -146,6 +150,10 @@ For each selected service the `build-service` role:
    (only when pushing).
 8. Removes the worktree and temp directory.
 
+A service can build from another service's source repo: `source_service`
+(default: the service's own name) names the repo the build checks out. The only
+current override is `vice-operator`, whose role builds the `app-exposer` repo.
+
 The build **never commits** the changed descriptor — review and commit it
 yourself.
 
@@ -205,7 +213,8 @@ digest recorded in the descriptor.
 | Variable | Default | Applies to | Meaning |
 | --- | --- | --- | --- |
 | `source_repo_dir` | dir containing this repo (`../..`) | build, clone | where source repos are checked out |
-| `source_repo` | `<source_repo_dir>/<service>` | build | exact path to a service's source repo |
+| `source_repo` | `<source_repo_dir>/<source_service>` | build | exact path to a service's source repo |
+| `source_service` | the service's own name | build | which service's source repo to build from (e.g. `vice-operator` builds `app-exposer`) |
 | `git_ref` | `main` | `build_it`, `build_service` | git ref to build (release builds read it from the descriptor) |
 | `image_registry` | `harbor.cyverse.org` | build | target registry; rewritten into skaffold config |
 | `force_rebuild` | `false` | build | bypass skaffold's artifact cache (`--cache-artifacts=false`) |
@@ -214,7 +223,7 @@ digest recorded in the descriptor.
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | clone | default org base URL for clone URLs (SSH; override for HTTPS) |
 | `source_repos` | list in `common` | clone | repos to clone into `source_repo_dir` |
 | `source_repo_urls` | `{qms: cyverse/qms}` | clone | per-repo clone-URL overrides |
-| `build_json_dir` | inventory-dependent | deploy | directory deploys read descriptors from |
+| `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; inventories may override it (QA points at a `de-releases/builds` checkout) |
 
 ## Notes and troubleshooting
 
