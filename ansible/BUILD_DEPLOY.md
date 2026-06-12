@@ -91,12 +91,11 @@ The repo list (`source_repos`), default org (`cyverse_repo_base`), and overrides
 ## Building images
 
 Builds **never run by default** — they are gated behind tags or an explicit
-service selection. Three playbooks cover the build paths:
+service selection. Two playbooks cover the build paths:
 
 | Playbook | Use | Selection |
 | --- | --- | --- |
-| `build_it.yml` | Build one or more services interactively | `--tags <service>` |
-| `build_service.yml` | Build a single service (CI/CD) | `-e project=<service>` |
+| `build_it.yml` | Build one or more services | `--tags <service>` |
 | `build_release.yml` | Rebuild a whole release from descriptor refs | `-e services=<csv>` (optional) |
 
 ### Build a single service
@@ -109,12 +108,6 @@ Build several at once by repeating the tag:
 
 ```bash
 ansible-playbook -i "$QA_INVENTORY" build_it.yml --tags app-exposer,apps
-```
-
-The CI/CD equivalent keys on `project` instead of a tag:
-
-```bash
-ansible-playbook -i "$QA_INVENTORY" build_service.yml -e project=app-exposer
 ```
 
 ### Build at a specific ref
@@ -214,7 +207,7 @@ digest recorded in the descriptor.
 | `source_repo_dir` | dir containing this repo (`../..`) | build, clone | where source repos are checked out |
 | `source_repo` | `<source_repo_dir>/<source_service>` | build | exact path to a service's source repo |
 | `source_service` | the service's own name | build | which service's source repo to build from (e.g. `vice-operator` builds `app-exposer`) |
-| `git_ref` | `main` | `build_it`, `build_service` | git ref to build (release builds read it from the descriptor) |
+| `git_ref` | `main` | `build_it` | git ref to build (release builds read it from the descriptor) |
 | `image_registry` | `harbor.cyverse.org` | build | target registry; rewritten into skaffold config |
 | `force_rebuild` | `false` | build | bypass skaffold's artifact cache (`--cache-artifacts=false`) |
 | `push_images` | `true` | build | push and update the descriptor; when `false`, build only |
