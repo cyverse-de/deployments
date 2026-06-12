@@ -142,12 +142,6 @@ ansible-playbook -i <inventory> --tags configure-services kubernetes.yml
 ansible-playbook -i <inventory> --tags deploy-all-services kubernetes.yml
 ```
 
-For CI/CD, the standalone `deploy_service.yml` playbook deploys a single service. Set `project` to the service name:
-
-```bash
-ansible-playbook -i <inventory> -e project=<service> deploy_service.yml
-```
-
 ### Building services
 
 For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`, `build_service.yml`), rebuilding a release (`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).

@@ -197,7 +197,6 @@ named by `KUBECONFIG`.
 | Playbook | Use | Selection |
 | --- | --- | --- |
 | `deploy_it.yml` | Deploy one or more services | `--tags <service>` |
-| `deploy_service.yml` | Deploy a single service (CI/CD) | `-e project=<service>` |
 
 ```bash
 export KUBECONFIG=~/.kube/qa.conf
