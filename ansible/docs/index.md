@@ -28,7 +28,7 @@ Additionally, you will want access to our CI/CD systems at [cicd-qa.cyverse.org]
 
 ### Builds
 
-This is the tag-triggered CI build path, which runs on GitHub's systems. Images can also be built locally from source with the `build_it.yml`, `build_service.yml`, and `build_release.yml` playbooks; see [BUILD_DEPLOY.md](../BUILD_DEPLOY.md).
+This is the tag-triggered CI build path, which runs on GitHub's systems. Images can also be built locally from source with the `build_it.yml` and `build_release.yml` playbooks; see [BUILD_DEPLOY.md](../BUILD_DEPLOY.md).
 
 At a high-level, our CI build process is as follows:
  - Commit and make changes in a branch.

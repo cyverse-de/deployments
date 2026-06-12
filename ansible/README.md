@@ -144,7 +144,7 @@ ansible-playbook -i <inventory> --tags deploy-all-services kubernetes.yml
 
 ### Building services
 
-For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`, `build_service.yml`), rebuilding a release (`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`), rebuilding a release (`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
 # Common Tasks
 
