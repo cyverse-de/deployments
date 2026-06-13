@@ -181,6 +181,12 @@
             state: present
           when: ansible_os_family == "Debian"
 
+        - name: Enable iscsid on debian systems
+          ansible.builtin.service:
+            name: iscsid
+            state: started
+            enabled: true
+
         - name: Create the /etc/apt/keyrings directory
           ansible.builtin.file:
             path: /etc/apt/keyrings

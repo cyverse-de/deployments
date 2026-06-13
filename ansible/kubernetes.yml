@@ -88,6 +88,9 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
+    - role: longhorn
+      tags: longhorn
+
     - role: openldap-docker
       tags: openldap-docker
 

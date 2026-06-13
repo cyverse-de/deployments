@@ -23,13 +23,14 @@
       run_once: true
       ansible.builtin.command:
         chdir: "{{ de_releases_dir }}/services/{{ project_name }}"
-        argv:
-          - skaffold
-          - deploy
-          - "--namespace"
-          - "{{ deploy_ns | default(ns) }}"
-          - "--build-artifacts"
-          - "../../builds/{{ project_name }}.json"
-          - "--force"
-          - "--kubeconfig"
-          - "{{ lookup('env', 'KUBECONFIG') }}"
+        # deploy_profile is optional: when set, it activates a skaffold profile
+        # (e.g. a kustomize overlay) without affecting callers that don't set it.
+        argv: >-
+          {{
+            ['skaffold', 'deploy',
+             '--namespace', deploy_ns | default(ns),
+             '--build-artifacts', '../../builds/' + project_name + '.json',
+             '--force',
+             '--kubeconfig', lookup('env', 'KUBECONFIG')]
+            + (['--profile', deploy_profile] if deploy_profile is defined else [])
+          }}
