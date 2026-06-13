@@ -1,14 +1,23 @@
 ---
 - name: Deploy in-cluster OpenLDAP
+  delegate_to: localhost
+  run_once: true
   when: ldap_in_cluster | bool
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
+    - name: Create the namespace for openldap
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ ldap_ns }}"
+
     # The openldap-docker manifest mounts these two secrets; skaffold deploy only
     # applies the rawYaml manifest, so we render them here before deploying.
     - name: Create the openldap-config secret
-      delegate_to: localhost
-      run_once: true
-      environment:
-        KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s:
         state: present
         definition:
@@ -16,16 +25,12 @@
           kind: Secret
           metadata:
             name: openldap-config
-            namespace: "{{ ns }}"
+            namespace: "{{ ldap_ns }}"
           type: Opaque
           data:
             slapd.conf: "{{ lookup('template', 'slapd.conf.j2') | b64encode }}"
 
     - name: Create the openldap-seed secret
-      delegate_to: localhost
-      run_once: true
-      environment:
-        KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
       kubernetes.core.k8s:
         state: present
         definition:
@@ -33,7 +38,7 @@
           kind: Secret
           metadata:
             name: openldap-seed
-            namespace: "{{ ns }}"
+            namespace: "{{ ldap_ns }}"
           type: Opaque
           data:
             data.ldif: "{{ lookup('template', 'seed.ldif.j2') | b64encode }}"
@@ -44,3 +49,4 @@
         tasks_from: main
       vars:
         project_name: openldap-docker
+        deploy_ns: "{{ ldap_ns }}"
