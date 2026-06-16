@@ -346,7 +346,43 @@
 
 
 # =====================================================================
-# Phase 3: Kubernetes Node Preparation
+# Phase 3: HAProxy Load Balancer
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags haproxy` (installs
+# HAProxy on the `k8s_api_proxy` hosts and load-balances the Kubernetes
+# API, konnectivity, and controller-join ports across the hosts in the
+# `k8s_controllers` inventory group).
+#
+# Run this phase before the `create-cluster` pass — the controllers
+# register with each other through the load balancer, so it has to be in
+# place first.
+#
+# This phase runs the `haproxy` and `k8s_haproxy` roles. The base
+# `haproxy` role's configuration is fully static; only `k8s_haproxy`
+# consults the variable below. The controller backends are taken from
+# the `k8s_controllers` inventory group, not from a variable.
+#
+# The variable below has a default in `roles/common/defaults/main.yml`.
+# It is commented out so the file is a no-op as shipped — uncomment the
+# line to override the default.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Kubernetes API load balancing
+# ---------------------------------------------------------------------
+
+# TCP port the Kubernetes (k0s) API server listens on. HAProxy binds it
+# on the `k8s_api_proxy` hosts and balances it across every host in the
+# `k8s_controllers` group. Keep it in sync with the value used by the
+# `create-cluster` pass. The konnectivity (8132) and controller-join
+# (9443) ports are fixed and not configurable here.
+# Default: "6443"
+# k8s_api_port: "6443"
+
+
+# =====================================================================
+# Phase 4: Kubernetes Node Preparation
 # =====================================================================
 # Variables consulted by `kubernetes.yml --tags prep-nodes` (GPU drivers,
 # timezone, base node prep, firewalld, NVIDIA container toolkit).

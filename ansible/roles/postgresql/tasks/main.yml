@@ -25,7 +25,7 @@
     state: enabled
     port: "5432/tcp"
   when: active_firewall == "firewalld"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Install on Debian family systems
   when: ansible_os_family == "Debian"
@@ -65,4 +65,4 @@
         cmd: /usr/bin/postgresql-setup --initdb
         creates: "/var/lib/pgsql/data"
       notify:
-        - restart postgres
+        - Restart postgres

@@ -61,7 +61,7 @@
         regexp: "^(\\s*)([^#\\n]+\\s+)(\\w+\\s+)swap(\\s+.*)$"
         replace: "#\\1\\2\\3swap\\4"
         backup: true
-      notify: reboot host
+      notify: Reboot host
 
     - name: Set ip_forwarding to 1 via sysctl
       ansible.posix.sysctl:
@@ -70,7 +70,7 @@
         sysctl_set: true
         state: present
         reload: true
-      notify: reboot host
+      notify: Reboot host
 
     - name: Red hat family configuration
       when: ansible_os_family == "RedHat"
@@ -143,13 +143,13 @@
           become: true
           ansible.builtin.command: setenforce 0
           ignore_errors: true
-          notify: reboot host
+          notify: Reboot host
 
         - name: Set permissive mode for SELinux
           become: true
           ansible.builtin.shell: sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
           ignore_errors: true
-          notify: reboot host
+          notify: Reboot host
 
     # - name: add the kubernetes yum repository
     #   ansible.builtin.yum_repository:

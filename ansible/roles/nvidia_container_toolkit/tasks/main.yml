@@ -13,7 +13,7 @@
       - libnvidia-container-tools
       - libnvidia-container1
     state: present
-  notify: reboot host
+  notify: Reboot host
 
 - name: Configure the nvidia container toolkit runtime
   ansible.builtin.command:
@@ -27,4 +27,4 @@
       - --runtime
       - "{{ nvidia_container_toolkit_runtime }}"
     creates: "{{ nvidia_container_toolkit_runtime_config_path }}"
-  notify: reboot host
+  notify: Reboot host
