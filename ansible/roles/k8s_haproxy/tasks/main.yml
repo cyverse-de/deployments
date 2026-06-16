@@ -37,7 +37,7 @@
 #   notify:
 #     - restart haproxy
 
-- name: configure k8s haproxy settings
+- name: Configure k8s haproxy settings
   become: true
   ansible.builtin.blockinfile:
     dest: /etc/haproxy/haproxy.cfg

@@ -1,15 +1,16 @@
 ---
-- delegate_to: localhost
+- name: Install cert-manager via Helm
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: install the cert-manager helm repo
+    - name: Install the cert-manager helm repo
       kubernetes.core.helm_repository:
         name: jetstack
         repo_url: "https://charts.jetstack.io"
         state: present
 
-    - name: install the cert-manager chart
+    - name: Install the cert-manager chart
       kubernetes.core.helm:
         name: cert-manager
         chart_ref: jetstack/cert-manager
@@ -21,36 +22,36 @@
           prometheus:
             enabled: false
 
-    - name: wait for cert-manager deployment to be available
+    - name: Wait for cert-manager deployment to be available
       kubernetes.core.k8s_info:
         kind: Deployment
         namespace: cert-manager
         name: cert-manager
-        wait: yes
+        wait: true
         wait_timeout: 300
         wait_condition:
           type: Available
           status: "True"
           reason: MinimumReplicasAvailable
 
-    - name: wait for cert-manager-webhook deployment to be available
+    - name: Wait for cert-manager-webhook deployment to be available
       kubernetes.core.k8s_info:
         kind: Deployment
         namespace: cert-manager
         name: cert-manager-webhook
-        wait: yes
+        wait: true
         wait_timeout: 300
         wait_condition:
           type: Available
           status: "True"
           reason: MinimumReplicasAvailable
 
-    - name: wait for cert-manager-cainjector deployment to be available
+    - name: Wait for cert-manager-cainjector deployment to be available
       kubernetes.core.k8s_info:
         kind: Deployment
         namespace: cert-manager
         name: cert-manager-cainjector
-        wait: yes
+        wait: true
         wait_timeout: 300
         wait_condition:
           type: Available

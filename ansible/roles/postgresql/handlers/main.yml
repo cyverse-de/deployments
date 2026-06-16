@@ -1,15 +1,15 @@
 ---
-- name: restart postgres
+- name: Restart postgres
   ansible.builtin.service:
     name: postgresql
     state: restarted
 
-- name: reload postgres
+- name: Reload postgres
   ansible.builtin.service:
     name: postgresql
     state: reloaded
 
-- name: reload firewalld
+- name: Reload firewalld
   ansible.builtin.service:
     name: firewalld
     state: reloaded

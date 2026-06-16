@@ -1,14 +1,15 @@
 ---
-- delegate_to: localhost
+- name: Configure harbor image pull secret
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the harbor json file
+    - name: Create the harbor json file
       ansible.builtin.copy:
         dest: "harbor_login.json"
         content: "{}"
 
-    - name: add the credentials to the harbor json file
+    - name: Add the credentials to the harbor json file
       community.docker.docker_login:
         config_path: "./harbor_login.json"
         password: "{{ harbor_robot_secret }}"
@@ -16,7 +17,7 @@
         state: present
         username: "{{ harbor_robot_name }}"
 
-    - name: create the harbor image pull secret
+    - name: Create the harbor image pull secret
       kubernetes.core.k8s:
         state: present
         force: true
@@ -33,7 +34,7 @@
         - "{{ argo_ns }}"
         - "{{ vice_ns }}"
 
-    - name: remove the tempfile for the harbor login json
+    - name: Remove the tempfile for the harbor login json
       ansible.builtin.file:
         path: harbor_login.json
         state: absent

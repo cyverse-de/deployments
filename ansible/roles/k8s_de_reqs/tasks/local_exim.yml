@@ -1,9 +1,10 @@
 ---
-- delegate_to: localhost
+- name: Deploy local-exim mail relay
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the local-exim deployment
+    - name: Create the local-exim deployment
       kubernetes.core.k8s:
         state: present
         definition:
@@ -50,17 +51,17 @@
                             name: timezone
                             key: timezone
                       - name: EXIM_SMARTHOST
-                        value: "{{exim_smarthost}}"
+                        value: "{{ exim_smarthost }}"
                       - name: EXIM_PASSWORD
-                        value: "{{exim_password}}"
+                        value: "{{ exim_password }}"
                       - name: EXIM_ALLOWED_SENDERS
-                        value: "{{exim_allowed_senders}}"
+                        value: "{{ exim_allowed_senders }}"
                     ports:
                       - name: listen-port
                         containerPort: 25
 
-    - name: create local-exim service
-      run_once: True
+    - name: Create local-exim service
+      run_once: true
       kubernetes.core.k8s:
         state: present
         definition:

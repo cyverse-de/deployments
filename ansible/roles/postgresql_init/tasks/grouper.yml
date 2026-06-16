@@ -1,20 +1,21 @@
 ---
-- delegate_to: localhost
+- name: Initialize grouper database
+  delegate_to: localhost
   block:
-    - name: create the grouper user
+    - name: Create the grouper user
       community.postgresql.postgresql_user:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
+        login_db: "{{ pg_db }}"
         name: "{{ grouper_connection_user }}"
         password: "{{ grouper_connection_pass }}"
       when: create_user is defined and create_user
       tags:
         - update-databases
 
-    - name: create grouper database
+    - name: Create grouper database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"

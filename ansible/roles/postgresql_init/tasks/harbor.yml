@@ -1,13 +1,14 @@
 ---
-- delegate_to: localhost
+- name: Initialize harbor databases
+  delegate_to: localhost
   block:
-    - name: create the harbor database user
+    - name: Create the harbor database user
       community.postgresql.postgresql_user:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
+        login_db: "{{ pg_db }}"
         name: "{{ harbor_database_user }}"
         password: "{{ harbor_database_password }}"
       when: create_user is defined and create_user
@@ -15,7 +16,7 @@
         - harbor
         - update-databases
 
-    - name: create the harbor core database
+    - name: Create the harbor core database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -29,7 +30,7 @@
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
-    - name: create the harbor clair database
+    - name: Create the harbor clair database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -43,7 +44,7 @@
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
-    - name: create the harbor notary server database
+    - name: Create the harbor notary server database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -57,7 +58,7 @@
         template: "{{ template }}"
       when: create_dbs is defined and create_dbs
 
-    - name: create the harbor notary signer database
+    - name: Create the harbor notary signer database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"

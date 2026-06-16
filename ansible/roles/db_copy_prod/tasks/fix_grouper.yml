@@ -8,7 +8,7 @@
         login_port: "{{ prod_grouper_db_port | default('6432') }}"
         login_user: "{{ prod_grouper_db_user | default('grouper') }}"
         login_password: "{{ prod_grouper_db_pass }}"
-        db: "{{ prod_grouper_db_name | default('grouper') }}"
+        login_db: "{{ prod_grouper_db_name | default('grouper') }}"
         query: >
           SELECT group_id
           FROM grouper_groups_v
@@ -30,7 +30,7 @@
         login_port: "{{ grouper_db_port }}"
         login_user: "{{ grouper_connection_user }}"
         login_password: "{{ grouper_connection_pass }}"
-        db: "{{ grouper_db_name }}"
+        login_db: "{{ grouper_db_name }}"
         query: >
           SELECT group_id
           FROM grouper_groups_v
@@ -52,7 +52,7 @@
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ dbms_connection_user }}"
         login_password: "{{ dbms_connection_pass }}"
-        db: "{{ de_db_name }}"
+        login_db: "{{ de_db_name }}"
         query: >
           UPDATE permissions.subjects
           SET subject_id = %s

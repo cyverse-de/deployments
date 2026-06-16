@@ -1,16 +1,20 @@
 ---
-- delegate_to: localhost
+- name: Configure argo workflow resources
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - ansible.builtin.set_fact:
+    - name: Set repo_dir fact
+      ansible.builtin.set_fact:
         repo_dir: "{{ inventory_dir | dirname }}"
-    - ansible.builtin.set_fact:
+    - name: Set secrets_dir fact
+      ansible.builtin.set_fact:
         secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}/"
-    - debug:
+    - name: Print repo_dir and secrets_dir
+      ansible.builtin.debug:
         msg: "repo dir: '{{ repo_dir }}', secrets_dir: '{{ secrets_dir }}'"
 
-    - name: create the wc-data secret
+    - name: Create the wc-data secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -25,7 +29,7 @@
           data:
             test_data.txt: "{{ 'This file is a test of the data containers feature.' | b64encode }}"
 
-    - name: create the matlab secret
+    - name: Create the matlab secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -38,9 +42,9 @@
               IRODS.env: irods_auth/IRODS.env
           type: opaque
           data:
-            IRODS.env: "{{ lookup('file', secrets_dir + '/matlab_mcr_2017b-data/v1.0/irods_auth/IRODS.env' ) | b64encode }}"
+            IRODS.env: "{{ lookup('file', secrets_dir + '/matlab_mcr_2017b-data/v1.0/irods_auth/IRODS.env') | b64encode }}"
 
-    - name: create the ncbi-sra-submit-configs-1-2 secret
+    - name: Create the ncbi-sra-submit-configs-1-2 secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -69,11 +73,13 @@
             SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/SP.common.xsd') | b64encode }}"
             submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/submission.xsd') | b64encode }}"
             bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-create-comment.xml') | b64encode }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}"
+            bioproject-create-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-create-comment.xml') | b64encode }}
+            bioproject-update-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/submission.xml') | b64encode }}"
 
-    - name: create the ncbi-sra-submit-configs-test-1-2 secret
+    - name: Create the ncbi-sra-submit-configs-test-1-2 secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -96,17 +102,20 @@
           type: opaque
           data:
             init.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/__init__.py') | b64encode }}"
-            ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/ncbi_sra_submit_properties.py') | b64encode }}"
+            ncbi_sra_submit_properties.py: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/ncbi_sra_submit_properties.py') | b64encode }}
             bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/bioproject.xsd') | b64encode }}"
             biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/biosample.xsd') | b64encode }}"
             SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/SP.common.xsd') | b64encode }}"
             submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/submission.xsd') | b64encode }}"
             bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-create-comment.xml') | b64encode }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode }}"
+            bioproject-create-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-create-comment.xml') | b64encode }}
+            bioproject-update-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode }}
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/submission.xml') | b64encode }}"
 
-    - name: add the ncbi-sra-submit-ssh-key-data-latest secret
+    - name: Add the ncbi-sra-submit-ssh-key-data-latest secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -121,7 +130,7 @@
           data:
             id_rsa_ncbi: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-ssh-key-data/latest/ssh/id_rsa_ncbi') | b64encode }}"
 
-    - name: add the ncbi-submit-configs-prod secret
+    - name: Add the ncbi-submit-configs-prod secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -160,7 +169,7 @@
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/submission.xml') | b64encode }}"
             template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/template.sbt') | b64encode }}"
 
-    - name: add the ncbi-submit-configs-test-1-1 secret
+    - name: Add the ncbi-submit-configs-test-1-1 secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -193,13 +202,15 @@
             SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/SP.common.xsd') | b64encode }}"
             submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/submission.xsd') | b64encode }}"
             bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-create-comment.xml') | b64encode }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-update-comment.xml') | b64encode }}"
+            bioproject-create-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-create-comment.xml') | b64encode }}
+            bioproject-update-comment.xml: >-
+              {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-update-comment.xml') | b64encode }}
             genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/genome-metadata.xml') | b64encode }}"
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/submission.xml') | b64encode }}"
             template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/template.sbt') | b64encode }}"
 
-    - name: add the irods-config configmap
+    - name: Add the irods-config configmap
       kubernetes.core.k8s:
         state: present
         definition:
@@ -215,7 +226,7 @@
             IRODS_USER_PASSWORD: "{{ irods_password }}"
             IRODS_ZONE_NAME: "{{ irods_zone }}"
 
-    - name: set up webhook event source
+    - name: Set up webhook event source
       kubernetes.core.k8s:
         state: present
         definition:
@@ -249,7 +260,7 @@
                 endpoint: /vice
                 method: POST
 
-    - name: set up a logging sensor for the webhook event
+    - name: Set up a logging sensor for the webhook event
       kubernetes.core.k8s:
         state: present
         definition:
@@ -269,7 +280,7 @@
                   log:
                     intervalSeconds: 1
 
-    - name: set up a cleanup sensor for the webhook event
+    - name: Set up a cleanup sensor for the webhook event
       kubernetes.core.k8s:
         state: present
         definition:
@@ -287,7 +298,7 @@
               - template:
                   name: cleanup-batch-trigger
                   http:
-                    url: "http://app-exposer.{{ns}}/batch/cleanup"
+                    url: "http://app-exposer.{{ ns }}/batch/cleanup"
                     headers:
                       Content-Type: application/json
                     payload:
@@ -300,7 +311,7 @@
                   steps: 3
                   duration: 3s
 
-    - name: set up a job-status-listener sensor for the webhook event
+    - name: Set up a job-status-listener sensor for the webhook event
       kubernetes.core.k8s:
         state: present
         definition:
@@ -318,7 +329,7 @@
               - template:
                   name: send-to-job-status-listener
                   http:
-                    url: "http://job-status-listener.{{ns}}/status/batch"
+                    url: "http://job-status-listener.{{ ns }}/status/batch"
                     headers:
                       Content-Type: application/json
                     payload:

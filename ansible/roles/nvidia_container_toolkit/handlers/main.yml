@@ -1,4 +1,4 @@
 ---
-- name: reboot host
+- name: Reboot host
   ansible.builtin.reboot:
     reboot_timeout: 600

@@ -1,5 +1,5 @@
 ---
-- name: create the jaeger namespace
+- name: Create the jaeger namespace
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -11,7 +11,7 @@
       metadata:
         name: "{{ jaeger_namespace }}"
 
-- name: create the jaeger-collector deployment
+- name: Create the jaeger-collector deployment
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -60,7 +60,7 @@
                     path: "/"
                     port: 14269
 
-- name: create the jaeger-collector service
+- name: Create the jaeger-collector service
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -76,14 +76,14 @@
         selector:
           app: jaeger-collector
         ports:
-        - name: jaeger-grpc
-          port: 14250
-          targetPort: jaeger-grpc
-        - name: jaeger-http
-          port: 14268
-          targetPort: jaeger-http
+          - name: jaeger-grpc
+            port: 14250
+            targetPort: jaeger-grpc
+          - name: jaeger-http
+            port: 14268
+            targetPort: jaeger-http
 
-- name: create the jaeger-query deployment
+- name: Create the jaeger-query deployment
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -128,7 +128,7 @@
                     path: "/"
                     port: 16687
 
-- name: create the jaeger-query service
+- name: Create the jaeger-query service
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -144,11 +144,11 @@
         selector:
           app: jaeger-query
         ports:
-        - name: http-listen
-          port: 16686
-          targetPort: http-listen
+          - name: http-listen
+            port: 16686
+            targetPort: http-listen
 
-- name: set up the rollover cron job in the cluster
+- name: Set up the rollover cron job in the cluster
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -168,16 +168,16 @@
             template:
               spec:
                 containers:
-                - name: jaeger-rollover
-                  image: jaegertracing/jaeger-es-rollover:latest
-                  imagePullPolicy: IfNotPresent
-                  env:
-                  - name: CONDITIONS
-                    value: "{\"max_age\": \"3d\", \"max_docs\": 500000000}"
-                  command:
-                  - /go/bin/es-rollover
-                  - rollover
-                  - "{{ elasticsearch_server_urls }}"
-                  - --index-prefix
-                  - "{{ ns }}"
+                  - name: jaeger-rollover
+                    image: jaegertracing/jaeger-es-rollover:latest
+                    imagePullPolicy: IfNotPresent
+                    env:
+                      - name: CONDITIONS
+                        value: "{\"max_age\": \"3d\", \"max_docs\": 500000000}"
+                    command:
+                      - /go/bin/es-rollover
+                      - rollover
+                      - "{{ elasticsearch_server_urls }}"
+                      - --index-prefix
+                      - "{{ ns }}"
                 restartPolicy: OnFailure

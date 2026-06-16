@@ -1,9 +1,10 @@
 ---
-- delegate_to: localhost
+- name: Configure gateway API resources for the DE
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: define the self-siged CA certificate for the DE
+    - name: Define the self-siged CA certificate for the DE
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_ca_name }}"
@@ -28,7 +29,7 @@
               kind: ClusterIssuer
               group: cert-manager.io
 
-    - name: create the local certificate issuer for the DE
+    - name: Create the local certificate issuer for the DE
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_issuer_name }}"
@@ -43,7 +44,7 @@
             ca:
               secretName: "{{ de_tls_ca_name }}"
 
-    - name: create the locally signed TLS certificate for the DE
+    - name: Create the locally signed TLS certificate for the DE
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_cert_name }}"
@@ -66,7 +67,7 @@
               - localhost
               - "{{ de_hostname }}"
 
-    - name: create the TLS certificate for the DE using letsencrypt
+    - name: Create the TLS certificate for the DE using letsencrypt
       when: cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ de_tls_cert_name }}"
@@ -88,7 +89,7 @@
             dnsNames:
               - "{{ de_hostname }}"
 
-    - name: define the gateway for the DE
+    - name: Define the gateway for the DE
       kubernetes.core.k8s:
         state: present
         definition:
@@ -114,7 +115,7 @@
                       group: ""
                       name: "{{ de_tls_cert_name }}"
 
-    - name: define the CORS middleware for the DE
+    - name: Define the CORS middleware for the DE
       kubernetes.core.k8s:
         state: present
         definition:
@@ -146,7 +147,7 @@
               accessControlMaxAge: 86400
       when: gateway_provider == "traefik"
 
-    - name: define the CORS middleware for VICE
+    - name: Define the CORS middleware for VICE
       kubernetes.core.k8s:
         state: present
         definition:
@@ -178,7 +179,7 @@
               accessControlMaxAge: 86400
       when: gateway_provider == "traefik"
 
-    - name: define the routes for the DE when the gateway provider is Traefik
+    - name: Define the routes for the DE when the gateway provider is Traefik
       kubernetes.core.k8s:
         state: present
         definition:
@@ -312,7 +313,7 @@
                   backendRequest: "24h"
       when: gateway_provider == "traefik"
 
-    - name: define the routes for the DE when provider-specific customizations aren't needed.
+    - name: Define the routes for the DE when provider-specific customizations aren't needed.
       kubernetes.core.k8s:
         state: present
         definition:
@@ -406,7 +407,7 @@
       # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
       when: gateway_provider not in ["traefik"]
 
-    - name: create the locally signed TLS certificate for the user portal
+    - name: Create the locally signed TLS certificate for the user portal
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ user_portal_tls_cert_name }}"
@@ -429,7 +430,7 @@
               - localhost
               - "{{ portal_hostname }}"
 
-    - name: create the TLS certificate for the user portal using letsencrypt
+    - name: Create the TLS certificate for the user portal using letsencrypt
       when: cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ user_portal_tls_cert_name }}"
@@ -451,7 +452,7 @@
             dnsNames:
               - "{{ portal_hostname }}"
 
-    - name: define the gateway for the user portal
+    - name: Define the gateway for the user portal
       kubernetes.core.k8s:
         state: present
         definition:
@@ -477,7 +478,7 @@
                       group: ""
                       name: "{{ user_portal_tls_cert_name }}"
 
-    - name: define the routes for the user portal
+    - name: Define the routes for the user portal
       kubernetes.core.k8s:
         state: present
         definition:
@@ -496,7 +497,7 @@
                   - name: user-portal
                     port: 3000
 
-    - name: define the self-signed CA certificate for VICE
+    - name: Define the self-signed CA certificate for VICE
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_ca_name }}"
@@ -521,7 +522,7 @@
               kind: ClusterIssuer
               group: cert-manager.io
 
-    - name: create the locally signed certificate issuer for VICE
+    - name: Create the locally signed certificate issuer for VICE
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_issuer_name }}"
@@ -536,7 +537,7 @@
             ca:
               secretName: "{{ vice_tls_ca_name }}"
 
-    - name: create the locally signed TLS certificate for VICE
+    - name: Create the locally signed TLS certificate for VICE
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_cert_name }}"
@@ -559,7 +560,7 @@
               - localhost
               - "{{ vice_wildcard_fqdn }}"
 
-    - name: create the TLS certificate for VICE using letsencrypt
+    - name: Create the TLS certificate for VICE using letsencrypt
       when: cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: "{{ vice_tls_cert_name }}"
@@ -581,7 +582,7 @@
             dnsNames:
               - "{{ vice_wildcard_fqdn }}"
 
-    - name: define the gateway for VICE
+    - name: Define the gateway for VICE
       kubernetes.core.k8s:
         state: present
         definition:
@@ -619,7 +620,7 @@
                       group: ""
                       name: "{{ vice_tls_cert_name }}"
 
-    - name: define the default route for VICE
+    - name: Define the default route for VICE
       kubernetes.core.k8s:
         state: present
         definition:

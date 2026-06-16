@@ -1,10 +1,10 @@
 ---
-- name: configure maintenance-page
+- name: Configure maintenance-page
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the maintenance-page service account
+    - name: Create the maintenance-page service account
       kubernetes.core.k8s:
         state: present
         definition:
@@ -14,7 +14,7 @@
             name: maintenance-page
             namespace: "{{ ns }}"
 
-    - name: create the maintenance page cluster role
+    - name: Create the maintenance page cluster role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -23,14 +23,14 @@
           metadata:
             name: maintenance-page
           rules:
-              - apiGroups: [""]
-                resources: ["services"]
-                verbs: ["get", "create"]
-              - apiGroups: ["gateway.networking.k8s.io"]
-                resources: ["httproutes"]
-                verbs: ["get", "update"]
+            - apiGroups: [""]
+              resources: ["services"]
+              verbs: ["get", "create"]
+            - apiGroups: ["gateway.networking.k8s.io"]
+              resources: ["httproutes"]
+              verbs: ["get", "update"]
 
-    - name: create the ClusterRoleBinding for the maintenance-page
+    - name: Create the ClusterRoleBinding for the maintenance-page
       kubernetes.core.k8s:
         state: present
         definition:
@@ -46,8 +46,9 @@
             - kind: ServiceAccount
               name: maintenance-page
               namespace: "{{ ns }}"
-    
-    - ansible.builtin.include_role:
+
+    - name: Deploy maintenance-page service
+      ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main
       vars:

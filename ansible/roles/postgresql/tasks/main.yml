@@ -28,39 +28,41 @@
   notify: reload firewalld
 
 - name: Install on Debian family systems
+  when: ansible_os_family == "Debian"
+
   block:
-    - apt:
+    - name: Install postgresql packages
+      ansible.builtin.apt:
         update_cache: true
         pkg:
-          - "postgresql-{{dbms_postgresql_version}}"
-          - "postgresql-client-{{dbms_postgresql_version}}"
+          - "postgresql-{{ dbms_postgresql_version }}"
+          - "postgresql-client-{{ dbms_postgresql_version }}"
           - "python3-psycopg2"
         state: present
 
-    - name: configure | ensure postgres user owns home dir
-      file:
+    - name: Configure | ensure postgres user owns home dir
+      ansible.builtin.file:
         path: /var/lib/postgresql
         state: directory
         owner: postgres
         group: postgres
         recurse: true
-  when: ansible_os_family == "Debian"
-
-- name: install postgresql and postgresql-server
+- name: Install postgresql and postgresql-server
+  when: ansible_os_family == "RedHat"
   block:
-    - ansible.builtin.package:
+    - name: Install postgresql packages
+      ansible.builtin.package:
         state: present
         name: "{{ item }}"
       with_items:
-        - "postgresql-server-{{dbms_postgresql_version}}"
-        - "postgresql-{{dbms_postgresql_version}}"
+        - "postgresql-server-{{ dbms_postgresql_version }}"
+        - "postgresql-{{ dbms_postgresql_version }}"
         - "postgresql-contrib"
         - "python-psycopg2"
 
-    - name: red hat | run initdb
+    - name: Red hat | run initdb
       ansible.builtin.command:
         cmd: /usr/bin/postgresql-setup --initdb
         creates: "/var/lib/pgsql/data"
       notify:
         - restart postgres
-  when: ansible_os_family == "RedHat"

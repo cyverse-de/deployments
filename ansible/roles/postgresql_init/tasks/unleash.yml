@@ -1,5 +1,5 @@
 ---
-- name: create unleash database
+- name: Create unleash database
   delegate_to: localhost
   community.postgresql.postgresql_db:
     login_host: "{{ groups['dbms'][0] }}"

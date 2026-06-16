@@ -51,7 +51,7 @@
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ qms_db_name }}"
+        login_db: "{{ qms_db_name }}"
         name: "{{ item }}"
       with_items:
         - "uuid-ossp"

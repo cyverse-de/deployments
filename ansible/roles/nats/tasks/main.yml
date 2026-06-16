@@ -18,7 +18,7 @@
     kind: namespace
     api_version: v1
 
-- name: create the selfsigned-ca secret
+- name: Create the selfsigned-ca secret
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -45,7 +45,7 @@
           kind: ClusterIssuer
           group: cert-manager.io
 
-- name: create the ca-issuer issuer
+- name: Create the ca-issuer issuer
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -62,7 +62,7 @@
         ca:
           secretName: selfsigned-ca
 
-- name: create the nats-server-tls certificate
+- name: Create the nats-server-tls certificate
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -106,7 +106,7 @@
           - nats.{{ ns }}
           - nats
 
-- name: create the nats-client-tls certificate
+- name: Create the nats-client-tls certificate
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -145,7 +145,7 @@
           - nats.{{ ns }}
           - nats
 
-- name: create the nats values file from inline content
+- name: Create the nats values file from inline content
   delegate_to: localhost
   ansible.builtin.copy:
     content: |
@@ -223,13 +223,13 @@
     values_files:
       - "./values.yaml"
 
-- name: run the nsc-init.sh bash script with the namespace as an argument
+- name: Run the nsc-init.sh bash script with the namespace as an argument
   delegate_to: localhost
   ansible.builtin.command: "bash files/nsc-init.sh {{ ns }}"
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
 
-- name: get the name of the nats-box pod
+- name: Get the name of the nats-box pod
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -242,14 +242,14 @@
       - app.kubernetes.io/component=nats-box
   register: nats_box_pod
 
-- name: create a download temp directory locally.
+- name: Create a download temp directory locally.
   delegate_to: localhost
   ansible.builtin.tempfile:
     state: directory
     suffix: -downloads
   register: download_dir
 
-- name: copy the services.creds file from the nats-box pod to the local machine
+- name: Copy the services.creds file from the nats-box pod to the local machine
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -260,7 +260,7 @@
     namespace: "{{ ns }}"
     state: from_pod
 
-- name: create a secret named nats-services-creds containing the services.creds file
+- name: Create a secret named nats-services-creds containing the services.creds file
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -275,7 +275,7 @@
       data:
         services.creds: "{{ lookup('pipe', 'base64 ' + download_dir.path + '/services.creds') }}"
 
-- name: check if the nats-client-tls-pkcs8 secret exists
+- name: Check if the nats-client-tls-pkcs8 secret exists
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -285,10 +285,11 @@
     name: nats-client-tls-pkcs8
   register: pkcs8_result
 
-- debug:
+- name: Debug pkcs8 secret lookup result
+  ansible.builtin.debug:
     msg: "{{ pkcs8_result }}"
 
-- name: get the client tls.key file for nats
+- name: Get the client tls.key file for nats
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -301,13 +302,13 @@
       kubectl -n {{ ns }} create secret generic nats-client-tls-pkcs8 --from-file=tls.pkcs8
   when: (pkcs8_result.resources | length | int) == 0
 
-- name: remove local tls.pkcs8 file
+- name: Remove local tls.pkcs8 file
   delegate_to: localhost
   ansible.builtin.file:
     path: ./tls.pkcs8
     state: absent
 
-- name: delete the download directory
+- name: Delete the download directory
   delegate_to: localhost
   ansible.builtin.file:
     path: "{{ download_dir.path }}"

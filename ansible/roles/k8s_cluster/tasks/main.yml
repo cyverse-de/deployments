@@ -1,23 +1,27 @@
 ---
-- environment:
+- name: Apply k0sctl cluster configuration
+  environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
     SSH_KNOWN_HOSTS: /dev/null # Needed for some reason due to how we configure our connection to the hosts.
   block:
-    - ansible.builtin.set_fact:
+    - name: Set k0sctl yaml and kubeconfig paths
+      ansible.builtin.set_fact:
         yaml_path: "{{ [inventory_dir | dirname, 'k0sctl.yaml'] | path_join }}"
         kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') }}"
 
-    - debug:
+    - name: Debug path to k0sctl.yaml
+      ansible.builtin.debug:
         msg: "path to k0sctl.yaml: {{ yaml_path }}"
 
-    - ansible.builtin.shell:
+    - name: Apply k0sctl configuration
+      ansible.builtin.command:
         cmd: "k0sctl apply --config {{ yaml_path }}"
 
-    - name: write out kubeconfig
+    - name: Write out kubeconfig
       ansible.builtin.shell:
         cmd: "k0sctl kubeconfig --config {{ yaml_path }} > {{ kubeconfig_path }}"
 
-    - name: set the mode on the kubeconfig
+    - name: Set the mode on the kubeconfig
       ansible.builtin.file:
         path: "{{ kubeconfig_path }}"
         mode: "0600"

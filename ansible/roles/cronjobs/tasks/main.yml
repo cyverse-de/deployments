@@ -1,5 +1,5 @@
 ---
-- name: add pod-cleaner service account
+- name: Add pod-cleaner service account
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -13,7 +13,7 @@
         namespace: "{{ ns }}"
       automountServiceAccountToken: true
 
-- name: create the pod-cleaner role
+- name: Create the pod-cleaner role
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -30,7 +30,7 @@
           resources: ["pods"]
           verbs: ["get", "watch", "list", "delete"]
 
-- name: create the pod-cleaner role binding
+- name: Create the pod-cleaner role binding
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -49,9 +49,9 @@
       roleRef:
         kind: Role
         name: pod-cleaner
-        apiVersion: rbac.authorization.k8s.io/v1  
+        apiVersion: rbac.authorization.k8s.io/v1
 
-- name: add cronjob to clean failed pods
+- name: Add cronjob to clean failed pods
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -82,8 +82,8 @@
                     imagePullPolicy: IfNotPresent
                     args: ["delete", "pods", "--field-selector", "status.phase=Failed"]
 
-    
-- name: add cronjob to clean completed pods
+
+- name: Add cronjob to clean completed pods
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"

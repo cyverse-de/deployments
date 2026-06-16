@@ -1,9 +1,10 @@
 ---
-- delegate_to: localhost
+- name: Configure argo Kubernetes resources
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the argo namespace
+    - name: Create the argo namespace
       kubernetes.core.k8s:
         state: present
         definition:
@@ -12,7 +13,7 @@
           metadata:
             name: "{{ argo_ns }}"
 
-    - name: create the argo events namespace
+    - name: Create the argo events namespace
       kubernetes.core.k8s:
         state: present
         definition:
@@ -21,12 +22,12 @@
           metadata:
             name: argo-events
 
-    - name: install argo
+    - name: Install argo
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('template', 'install.yaml') | from_yaml_all }}"
 
-    - name: create argo-executor role
+    - name: Create argo-executor role
       kubernetes.core.k8s:
         state: present
         definition:
@@ -46,7 +47,7 @@
                 - apply
                 - patch
 
-    - name: create the argo-executor service account
+    - name: Create the argo-executor service account
       kubernetes.core.k8s:
         state: present
         definition:
@@ -56,7 +57,7 @@
             name: argo-executor
             namespace: "{{ argo_ns }}"
 
-    - name: create the argo-executor role-binding
+    - name: Create the argo-executor role-binding
       kubernetes.core.k8s:
         state: present
         definition:
@@ -75,17 +76,17 @@
               name: argo-executor
               namespace: "{{ argo_ns }}"
 
-    - name: install argo-events
+    - name: Install argo-events
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('template', 'argo_events_install.yaml') | from_yaml_all }}"
 
-    - name: install argo-events eventbus
+    - name: Install argo-events eventbus
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('template', 'argo_events_eventbus_install.yaml') | from_yaml_all }}"
 
-    - name: install argo-events sensor rbac
+    - name: Install argo-events sensor rbac
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('template', 'argo_events_sensor_rbac.yaml') | from_yaml_all }}"

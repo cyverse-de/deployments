@@ -1,25 +1,26 @@
-- name: ensure that tzdata is installed via package manager
+---
+- name: Ensure that tzdata is installed via package manager
   become: true
-  package:
-    name: 
+  ansible.builtin.package:
+    name:
       - tzdata
     state: latest
 # tzdata-java hasn't been available in ubuntu since 16.04 https://askubuntu.com/questions/795901/what-happened-to-tzdata-java-in-xenial-16-04
 
-- name: link the correct time zone to /etc/localtime
+- name: Link the correct time zone to /etc/localtime
   become: true
-  file:
+  ansible.builtin.file:
     path: /etc/localtime
     state: link
     src: "/usr/share/zoneinfo/{{ timezone }}"
     force: true
-    mode: 0644
+    mode: "0644"
 
-- name: set current time zone in /etc/timezone
+- name: Set current time zone in /etc/timezone
   become: true
-  template:
+  ansible.builtin.template:
     src: timezone.j2
     dest: /etc/timezone
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"

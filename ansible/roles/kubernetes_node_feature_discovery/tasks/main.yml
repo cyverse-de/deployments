@@ -1,21 +1,22 @@
 ---
-- delegate_to: localhost
+- name: Install node feature discovery and nVidia device plugin
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: install the node-feature-discovery helm repo
+    - name: Install the node-feature-discovery helm repo
       kubernetes.core.helm_repository:
         name: nfd
         repo_url: https://kubernetes-sigs.github.io/node-feature-discovery/charts
         state: present
 
-    - name: install the nVidia helm repo
+    - name: Install the nVidia helm repo
       kubernetes.core.helm_repository:
         name: nvdp
         repo_url: https://nvidia.github.io/k8s-device-plugin
         state: present
 
-    - name: install the node-feature-discovery chart
+    - name: Install the node-feature-discovery chart
       kubernetes.core.helm:
         name: node-feature-discovery
         chart_ref: nfd/node-feature-discovery
@@ -36,7 +37,7 @@
                 effect: NoSchedule
         wait: true
 
-    - name: install the nVidia device plugin chart
+    - name: Install the nVidia device plugin chart
       kubernetes.core.helm:
         name: nvidia-device-plugin
         chart_ref: nvdp/nvidia-device-plugin

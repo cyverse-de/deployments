@@ -1,16 +1,17 @@
 ---
-- delegate_to: localhost
+- name: Install and configure Keycloak
+  delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
-    - name: create the keycloak namespace
+    - name: Create the keycloak namespace
       kubernetes.core.k8s:
         name: "{{ keycloak_namespace }}"
         state: present
         kind: namespace
         api_version: v1
 
-    - name: create the keycloak secrets
+    - name: Create the keycloak secrets
       kubernetes.core.k8s:
         state: present
         definition:
@@ -26,7 +27,7 @@
             username: "{{ keycloak_db_username | b64encode }}"
             password: "{{ keycloak_db_password | b64encode }}"
 
-    - name: create the kc-selfsigned-ca secret
+    - name: Create the kc-selfsigned-ca secret
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-selfsigned-ca
@@ -51,7 +52,7 @@
               kind: ClusterIssuer
               group: cert-manager.io
 
-    - name: create the kc-ca-issuer issuer
+    - name: Create the kc-ca-issuer issuer
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-ca-issuer
@@ -66,7 +67,7 @@
             ca:
               secretName: kc-selfsigned-ca
 
-    - name: create the locally signed kc-tls certificate
+    - name: Create the locally signed kc-tls certificate
       when: not cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-tls
@@ -97,7 +98,7 @@
               - keycloak.{{ keycloak_namespace }}
               - keycloak
 
-    - name: create the kc-tls certificate signed by Let's Encrypt
+    - name: Create the kc-tls certificate signed by Let's Encrypt
       when: cert_manager_use_letsencrypt
       kubernetes.core.k8s:
         name: kc-tls
@@ -119,7 +120,7 @@
             dnsNames:
               - "{{ keycloak_hostname }}"
 
-    - name: install the keycloak deployment
+    - name: Install the keycloak deployment
       kubernetes.core.k8s:
         state: present
         wait: true
@@ -216,7 +217,7 @@
                       periodSeconds: 30
                       failureThreshold: 10
 
-    - name: install the keycloak service
+    - name: Install the keycloak service
       kubernetes.core.k8s:
         state: present
         definition:
@@ -237,7 +238,7 @@
               app: keycloak
             type: ClusterIP
 
-    - name: create the gateway for Keycloak
+    - name: Create the gateway for Keycloak
       kubernetes.core.k8s:
         state: present
         definition:
@@ -259,7 +260,7 @@
                       group: ""
                       name: kc-tls
 
-    - name: define the routes for Keycloak
+    - name: Define the routes for Keycloak
       kubernetes.core.k8s:
         state: present
         definition:
@@ -278,7 +279,7 @@
                   - name: keycloak
                     port: 80
 
-    - name: create the kcadmin secret
+    - name: Create the kcadmin secret
       kubernetes.core.k8s:
         state: present
         definition:
@@ -291,11 +292,11 @@
               app: keycloak
           type: Opaque
           data:
-            username: "{{ keycloak_admin_username | b64encode}}"
-            password: "{{ keycloak_admin_password | b64encode}}"
-            email: "{{ keycloak_admin_email | b64encode}}"
+            username: "{{ keycloak_admin_username | b64encode }}"
+            password: "{{ keycloak_admin_password | b64encode }}"
+            email: "{{ keycloak_admin_email | b64encode }}"
 
-    - name: create the permanent admin user
+    - name: Create the permanent admin user
       kubernetes.core.k8s:
         state: present
         wait: true
@@ -339,7 +340,7 @@
                 restartPolicy: Never
             backoffLimit: 4
 
-    - name: delete the permanent admin user creation jobs
+    - name: Delete the permanent admin user creation jobs
       kubernetes.core.k8s:
         state: absent
         api_version: batch/v1
@@ -347,7 +348,7 @@
         name: kc-create-admin-user
         namespace: "{{ keycloak_namespace }}"
 
-    - name: delete the kcadmin secret
+    - name: Delete the kcadmin secret
       kubernetes.core.k8s:
         state: absent
         api_version: v1

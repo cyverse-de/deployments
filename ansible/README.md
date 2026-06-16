@@ -4,7 +4,6 @@
 
 - community.general
 - kubernetes.core
-- community.crypto
 
 ## Database Initialization
 

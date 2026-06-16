@@ -9,7 +9,7 @@
     - install-postgres
     - databases
 
-- name: initialize dbs
+- name: Initialize dbs
   hosts: dbms
   become: false
   connection: local
@@ -19,7 +19,7 @@
     - setup-databases
     - databases
 
-- name: install GPU drivers
+- name: Install GPU drivers
   hosts: k8s_gpu_workers
   become: true
   roles:
@@ -31,7 +31,7 @@
 
 # so they can register through the load-balancer, otherwise
 # they won't be able to use it.
-- name: set the HAProxy load balancer
+- name: Set the HAProxy load balancer
   hosts: k8s_api_proxy
   become: true
   roles:
@@ -40,7 +40,7 @@
   tags:
     - haproxy
 
-- name: set up timezone settings.
+- name: Set up timezone settings.
   hosts: k8s_de_workers
   become: true
   gather_facts: true
@@ -51,7 +51,7 @@
     - prep-nodes
     - add-nodes
 
-- name: prepare the nodes
+- name: Prepare the nodes
   hosts: k8s_nodes
   become: true
   roles:
@@ -60,7 +60,7 @@
     - prep-nodes
     - add-nodes
 
-- name: set up firewall
+- name: Set up firewall
   hosts: k8s_nodes
   become: true
   roles:
@@ -71,7 +71,7 @@
     - firewall
 
 # Add a playbook/role to call 'k0sctl apply --config <path>'
-- name: set up the k0s cluster
+- name: Set up the k0s cluster
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
@@ -116,7 +116,7 @@
     - role: image_cache
       tags: image-cache
 
-- name: install the nvidia conttainer toolkit
+- name: Install the nvidia conttainer toolkit
   hosts: k8s_gpu_workers
   become: true
   roles:
@@ -127,12 +127,12 @@
     - prep-nodes
     - add-nodes
 
-- name: create the irods-csi-driver plugin directory
+- name: Create the irods-csi-driver plugin directory
   hosts: k8s_workers
   become: true
   gather_facts: false
   tasks:
-    - name: create the plugin directory
+    - name: Create the plugin directory
       ansible.builtin.file:
         state: directory
         path: /var/lib/k0s/kubelet/plugins/irods.csi.cyverse.org/
@@ -142,12 +142,12 @@
     - prep-nodes
     - add-nodes
 
-- name: create the irods-csi-driver plugins_registry directory
+- name: Create the irods-csi-driver plugins_registry directory
   hosts: k8s_workers
   become: true
   gather_facts: false
   tasks:
-    - name: create the plugin directory
+    - name: Create the plugin directory
       ansible.builtin.file:
         state: directory
         path: /var/lib/k0s/kubelet/plugins_registry/
@@ -157,7 +157,7 @@
     - prep-nodes
     - add-nodes
 
-- name: set up irods-csi-driver
+- name: Set up irods-csi-driver
   hosts: k8s_controllers[0]
   connection: local
   become: false
@@ -166,7 +166,7 @@
   tags:
     - irods-csi-driver
 
-- name: deploy a single service
+- name: Deploy a single service
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
@@ -174,16 +174,17 @@
   tags:
     - deploy-single-service
   tasks:
-    - ansible.builtin.include_role:
-        name: deploy-service
-        tasks_from: main
+    - name: Deploy a single named service
+      ansible.builtin.include_role:
+       name: deploy-service
+       tasks_from: main
       vars:
         project_name: "{{ project }}"
       tags:
         - deploy
       when: "'deploy-single-service' in ansible_run_tags"
 
-- name: deploy all services
+- name: Deploy all services
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
@@ -240,7 +241,7 @@
     - role: services/formation
     - role: services/vice-operator
 
-- name: set up UI haproxy
+- name: Set up UI haproxy
   become: true
   hosts: de_haproxy
   roles:
@@ -249,7 +250,7 @@
     - haproxy
     - ui-haproxy
 
-- name: set up cronjobs
+- name: Set up cronjobs
   become: false
   gather_facts: false
   hosts: k8s_controllers[0]

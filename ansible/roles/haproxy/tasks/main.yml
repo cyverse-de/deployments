@@ -1,20 +1,20 @@
 ---
-- name: check if haproxy is installed manually
+- name: Check if haproxy is installed manually
   ansible.builtin.stat:
     path: /usr/local/sbin/haproxy
   register: h
 
-- name: debug | haproxy_installed
+- name: Debug | Haproxy_installed
   ansible.builtin.debug:
     var: h
 
-- name: install | install haproxy
+- name: Install | Install haproxy
   ansible.builtin.package:
     name: haproxy
     state: present
   when: h.stat is not defined or not h.stat.exists
 
-- name: configure | download dhparam
+- name: Configure | Download dhparam
   ansible.builtin.get_url:
     url: https://ssl-config.mozilla.org/ffdhe2048.txt
     dest: /etc/ssl/dhparam
@@ -22,8 +22,8 @@
     group: root
     mode: "0644"
 
-- name: configure | template config
-  template:
+- name: Configure | Template config
+  ansible.builtin.template:
     src: haproxy.cfg.j2
     dest: /etc/haproxy/haproxy.cfg
     owner: root

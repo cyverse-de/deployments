@@ -1,20 +1,21 @@
 ---
-- delegate_to: localhost
+- name: Initialize keycloak database
+  delegate_to: localhost
   block:
-    - name: create the keycloak user
+    - name: Create the keycloak user
       community.postgresql.postgresql_user:
         login_host: "{{ groups['keycloak_dbms'][0] }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        db: "{{ pg_db }}"
+        login_db: "{{ pg_db }}"
         name: "{{ keycloak_db_username }}"
         password: "{{ keycloak_db_password }}"
       when: create_user is defined and create_user
       tags:
         - update-databases
 
-    - name: create the keycloak database
+    - name: Create the keycloak database
       community.postgresql.postgresql_db:
         login_host: "{{ groups['keycloak_dbms'][0] }}"
         port: "{{ pg_listen_port }}"

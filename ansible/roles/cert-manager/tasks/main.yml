@@ -1,3 +1,5 @@
 ---
-- ansible.builtin.include_tasks: install.yml
-- ansible.builtin.include_tasks: issuers.yml
+- name: Install cert-manager
+  ansible.builtin.include_tasks: install.yml
+- name: Configure cert-manager issuers
+  ansible.builtin.include_tasks: issuers.yml

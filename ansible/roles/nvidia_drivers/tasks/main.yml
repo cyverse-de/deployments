@@ -1,32 +1,32 @@
 ---
-- name: check for NVIDIA GPUs
+- name: Check for NVIDIA GPUs
   ansible.builtin.shell:
     cmd: "lspci | grep -e NVIDIA"
   changed_when: false
 
-- name: install system updates
+- name: Install system updates
   ansible.builtin.package:
     name: "*"
     state: latest
   notify: reboot host
 
-- name: enable additional DNF repositories
+- name: Enable additional DNF repositories
   community.general.dnf_config_manager:
     name:
       - crb
     state: enabled
 
-- name: install the epel-release repository
+- name: Install the epel-release repository
   ansible.builtin.package:
     name: epel-release
     state: present
 
-- name: stat the nvidia repo file
+- name: Stat the nvidia repo file
   ansible.builtin.stat:
     path: /etc/yum.repos.d/cuda-rhel9.repo
   register: cuda_repo
 
-- name: install the nvidia repo if not present
+- name: Install the nvidia repo if not present
   ansible.builtin.command:
     argv:
       - dnf
@@ -35,11 +35,11 @@
       - https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
   when: not cuda_repo.stat.exists
 
-- name: update the DNF cache
+- name: Update the DNF cache
   ansible.builtin.dnf:
     update_cache: true
 
-- name: get the kernel release
+- name: Get the kernel release
   ansible.builtin.command:
     argv:
       - uname
@@ -47,7 +47,7 @@
   register: uname
   changed_when: false
 
-- name: install driver dependencies
+- name: Install driver dependencies
   ansible.builtin.package:
     name:
       - "kernel-headers-{{ uname.stdout }}"
@@ -69,17 +69,17 @@
     state: present
   notify: reboot host
 
-- name: disable Nouveau drivers
+- name: Disable Nouveau drivers
   community.general.kernel_blacklist:
     name: nouveau
     state: present
 
-- name: omit Nouveau drivers from the boot process
+- name: Omit Nouveau drivers from the boot process
   ansible.builtin.copy:
     dest: /etc/dracut.conf.d/blacklist-nouveau.conf
     content: 'omit_drivers+=" nouveau "'
 
-- name: regenerate the initial RAM system
+- name: Regenerate the initial RAM system
   ansible.builtin.command:
     argv:
       - dracut
@@ -87,20 +87,20 @@
       - --force
   changed_when: false
 
-- name: regenerate module dependency files
+- name: Regenerate module dependency files
   ansible.builtin.command:
     argv:
       - depmod
       - -a
   changed_when: false
 
-- name: install the NVIDIA drivers
+- name: Install the NVIDIA drivers
   ansible.builtin.dnf:
     name: "@nvidia-driver:latest-dkms"
     state: present
   notify: reboot host
 
-- name: install CUDA development dependencies
+- name: Install CUDA development dependencies
   ansible.builtin.package:
     name:
       - freeglut-devel

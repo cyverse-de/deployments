@@ -1,5 +1,5 @@
 ---
-- name: install the irods CSI driver
+- name: Install the irods CSI driver
   delegate_to: localhost
   kubernetes.core.helm:
     create_namespace: true
@@ -16,7 +16,7 @@
             host: "{{ irods_csi_driver_host }}"
             port: "{{ irods_csi_driver_port | string }}"
             zone: "{{ irods_csi_driver_zone }}"
-            user: "{{ irods_csi_driver_user}}"
+            user: "{{ irods_csi_driver_user }}"
             password: "{{ irods_csi_driver_password }}"
             retainData: "{{ irods_csi_driver_retain_data }}"
             enforceProxyAccess: "{{ irods_csi_driver_enforce_proxy_access }}"
@@ -77,7 +77,7 @@
               kubectl.kubernetes.io/restartedAt: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
   when: irods_csi_helm is changed
 
-- name: define the storage class for the iRODS CSI driver
+- name: Define the storage class for the iRODS CSI driver
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   kubernetes.core.k8s:
