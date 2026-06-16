@@ -1,37 +1,96 @@
-# PostgreSQL Deployment Playbooks
+# PostgreSQL deployment
 
-This is a collection of playbooks for maintaining the DBMS for the CyVerse Discovery Environment.
+PostgreSQL is installed and initialized as part of the `kubernetes.yml`
+playbook. Two tagged passes handle it:
 
-## Tags
+* `install-postgres` — installs and configures the PostgreSQL server.
+* `setup-databases` — creates the roles and databases the DE services need, and
+  runs their schema migrations.
 
-* `no_testing` for tasks that shouldn't run within the containerized testing environment
-* `non_idempotent` for tasks that aren't idempotent
+The `databases` tag runs both passes.
 
-## Variables
+PostgreSQL 14 is the minimum supported version. The playbooks write `pg_hba.conf`
+rules that use `scram-sha-256` authentication, which relies on the SCRAM password
+hashing that PostgreSQL 14 and newer use by default.
 
-Variable                                | Required | Default       | Comments
---------------------------------------- | -------- | ------------- | --------
-`dbms_postgresql_version`               | no       | 14            | the PostgreSQL version to install
-`dbms_checkpoint_completion_target`     | no       | 0.9           | WAL checkpoint target duration fraction
-`dbms_checkpoint_timeout`               | no       | 15            | WAL checkpoint timeout in minutes
-`dbms_effective_cache_size`             | no       | _see comment_ | the value the query planner uses to estimate the total size of data caches in GiB, the default in 50% of the total memory
-`dbms_effective_io_concurrency`         | no       | 200           | the number of concurrent disk I/O operations that can be executed simultaneously
-`dbms_log_line_prefix`                  | no       | < %m %r >     | PostgreSQL log message prefix (see PostgreSQL documentation for possible values)
-`dbms_log_min_duration`                 | no       | 1000          | the number of milliseconds a query should take before it is logged in the DBMS logs. `-1` disables query logging
-`dbms_maintenance_work_mem`             | no       | 2             | the amount of memory in gibibytes for maintenance operations
-`dbms_max_connections`                  | no       | 1500          | the maximum number of connections allowed to the DBMS (change requires restart)
-`dbms_max_wal_senders`                  | no       | 120           | the maximum number of walsender processes (change requires restart)
-`dbms_max_wal_size`                     | no       | 8             | the maximum size of a WAL file in gibibytes
-`dbms_max_worker_processes`             | no       | _see comment_ | the maximum number of concurrent worker processes, default is the number of processors (change requires restart)
-`dbms_max_parallel_maintenance_workers` | no       | 2*            | the maximum number of parallel processes per maintenance operations, *must be no larger than `max_worker_processes`, so if that is 1, then the default is 1
-`dbms_max_parallel_workers_per_gather`  | no       | 2*            | the maximum number of parallel processes that can be started by a single gather or gather merge, *must be no larger than `max_worker_processes`, so if that is 1, then the default is 1
-`dbms_mem_num_huge_pages`               | no       | 60000         | the number of huge memory pages supported by the DBMS
-`dbms_min_wal_size`                     | no       | 2             | the minimum size of a WAL file in gibibytes
-`dbms_port`                             | no       | 5432          | the TCP port used by the DBMS (change requires restart)
-`dbms_random_page_cost`                 | no       | 1.1           | the query planning cost of a random page retrieval relative to other costs
-`dbms_reboot_allowed`                   | no       | false         | whether or not the playbooks are allowed to reboot the managed node
-`dbms_replication_password`             | maybe*   |               | the password for authenticating `dbms_replication_user`, *this is required if replication is being set up
-`dbms_replication_start`                | no       | false         | whether or not the role should start replication. WARNING: THIS WILL DESTROY THE CURRENT REPLICA
-`dbms_replication_user`                 | no       | postgres      | the DBMS user authorized to replicate the master node
-`dbms_wal_keep_segments`                | no       | 4000          | the number of WAL files held by the primary server for its replica servers
-`dbms_work_mem`                         | no       | 32            | the allowed memory in mebibytes for each sort and hash operation
+## Passes
+
+### install-postgres
+
+Runs against the `dbms` host group with `become: true`, via two roles:
+
+* `postgresql` — installs the PostgreSQL server and client packages and opens TCP
+  port 5432 on the active firewall (firewalld or ufw).
+* `postgresql_access` — adds the `host` rules to `pg_hba.conf`, sets
+  `listen_addresses` to `*`, and sets the `postgres` superuser password.
+
+This pass is **optional**: skip it when the deployment uses a PostgreSQL instance
+that was provisioned in advance, and run `setup-databases` directly against that
+instance instead.
+
+```bash
+ansible-playbook -i /path/to/inventory --tags=install-postgres kubernetes.yml
+```
+
+### setup-databases
+
+Runs locally (`connection: local`) and connects to the first host in the `dbms`
+inventory group. It runs the `postgresql_init` role, which:
+
+* creates the DE service roles and databases,
+* installs the PostgreSQL extensions those databases require (`uuid-ossp`,
+  `moddatetime`, `btree_gist`, ...), and
+* checks out the migration repositories and applies them with the `migrate` tool.
+
+The Discovery Environment databases (`de`, `notifications`, `metadata`) are always
+created. The Grouper, QMS, Unleash, Harbor, Keycloak, and User Portal databases
+are each created only when their feature toggle is enabled.
+
+This pass needs the `migrate` command (golang-migrate) on the control host's
+`PATH`. See [index.md](index.md) for tool requirements.
+
+```bash
+ansible-playbook -i /path/to/inventory --tags=setup-databases kubernetes.yml
+```
+
+## Inventory Setup
+
+```
+[dbms]
+db.example.org
+
+[keycloak_dbms]
+db.example.org
+```
+
+The `dbms` group holds the PostgreSQL host for the Discovery Environment
+databases. The `keycloak_dbms` group holds the host for the Keycloak database —
+it may be the same server or a separate one. Both passes use the first host
+listed in each group.
+
+## Group Variable Setup
+
+Every variable consulted by these passes has a default in
+`roles/common/defaults/main.yml`. The example inventory ships an annotated,
+copy-and-edit reference of them — grouped by pass — at
+`example/inventory/group_vars/all.yaml`. Copy that file into the private
+inventory repository and uncomment the values you need to override.
+
+The most commonly overridden variables are:
+
+Variable                          | Default      | Comments
+--------------------------------- | ------------ | --------
+`dbms_postgresql_version`          | `14`         | major version of the PostgreSQL packages to install; 14 is the minimum supported version
+`pg_login_password`               | `Chang3m3`   | password assigned to the `postgres` superuser
+`dbms_connection_user`            | `de`         | role that owns the Discovery Environment databases
+`dbms_connection_pass`            | `Ch@ng3M3`   | password for `dbms_connection_user`
+`dbms_allowed_remote_addresses`   | `[]`         | additional CIDR ranges granted access in `pg_hba.conf`
+
+See the example file for the rest, including the per-feature database names,
+owners, and migration repository refs.
+
+## Related playbooks
+
+`big_dumper.yml` (the `db_copy_prod` role) is a separate utility for copying
+production database contents; it is not part of the standard deployment flow
+described above.

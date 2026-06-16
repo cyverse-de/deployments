@@ -1,12 +1,34 @@
 ---
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Set firewall fact
+  ansible.builtin.set_fact:
+    active_firewall: >-
+      {% if ansible_facts.services['firewalld.service'] is defined
+          and ansible_facts.services['firewalld.service'].state == 'running' %}firewalld
+      {%- elif ansible_facts.services['ufw.service'] is defined
+            and ansible_facts.services['ufw.service'].state == 'running' %}ufw
+      {%- else %}none{% endif %}
+
+- name: Open postgresql port using ufw
+  community.general.ufw:
+    rule: allow
+    port: 5432
+    proto: tcp
+  when: active_firewall == "ufw"
+
+- name: Open postgresql port using firewalld
+  ansible.posix.firewalld:
+    permanent: true
+    zone: public
+    state: enabled
+    port: "5432/tcp"
+  when: active_firewall == "firewalld"
+  notify: reload firewalld
+
 - name: Install on Debian family systems
   block:
-    - name: open port 5432
-      community.general.ufw:
-        rule: allow
-        port: 5432
-        proto: tcp
-
     - apt:
         update_cache: true
         pkg:
@@ -26,15 +48,6 @@
 
 - name: install postgresql and postgresql-server
   block:
-    - name: open port 5432
-      ansible.posix.firewalld:
-        permanent: true
-        zone: public
-        state: enabled
-        port: "5432/tcp"
-      when: ansible_os_family == "RedHat"
-      notify: reload firewalld
-
     - ansible.builtin.package:
         state: present
         name: "{{ item }}"
@@ -45,10 +58,9 @@
         - "python-psycopg2"
 
     - name: red hat | run initdb
-      ansible.builtin.command: 
+      ansible.builtin.command:
         cmd: /usr/bin/postgresql-setup --initdb
         creates: "/var/lib/pgsql/data"
       notify:
         - restart postgres
   when: ansible_os_family == "RedHat"
-
