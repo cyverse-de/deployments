@@ -1,0 +1,54 @@
+# This is an example configuration file for a two-node cluster running both the
+# data store and the Discovery Environment.
+#
+# cworker.example.org serves as both a controller and a worker. All DE services
+# will run on this node in addition to the data store.
+#
+# worker.example.org serves as a Kubernetes worker node reserved for DE
+# analyses. The DE services will not run on this node.
+apiVersion: k0sctl.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: k0s-cluster
+spec:
+  hosts:
+    - ssh:
+        address: cworker.example.org
+        user: ${K0S_SSH_USER}
+        port: 1657
+        keyPath: ${K0S_SSH_KEY_PATH}
+      role: controller+worker
+      installFlags:
+        - --profile=irods-node
+    - ssh:
+        address: worker.example.org
+        user: ${K0S_SSH_USER}
+        port: 1657
+        keyPath: ${K0S_SSH_KEY_PATH}
+      role: worker
+      installFlags:
+        - "--labels analysis=true,vice=true"
+        - "--taints analysis=only:NoSchedule"
+  k0s:
+    version: v1.35.4+k0s.0
+    config:
+      spec:
+        api:
+          externalAddress: swcacti1.cyverse.org
+        network:
+          podCIDR: 10.42.0.0/16
+          serviceCIDR: 10.42.0.0/16
+          provider: calico
+          calico:
+            envVars:
+              IP_AUTODETECTION_METHOD: "interface=en.*"
+        workerProfiles:
+          - name: irods-node
+            values:
+              systemReserved:
+                cpu: "1"
+                memory: "8Gi"
+                ephemeral-storage: "800Gi"
+              kubeReserved:
+                cpu: "1"
+                memory: "2Gi"

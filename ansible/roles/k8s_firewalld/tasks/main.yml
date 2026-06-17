@@ -38,6 +38,27 @@
   notify: Reload firewalld
   when: active_firewall == "firewalld"
 
+- name: Open the ports
+  ansible.posix.firewalld:
+    permanent: true
+    immediate: true
+    state: enabled
+    port: "{{ item }}"
+    zone: internal
+  loop:
+    - "6443/tcp" # k8s api
+    - "2380/tcp" # etcd
+    - "10250/tcp" # kubelet
+    - "9443/tcp" # k0s join api
+    - "179/tcp" # bgp, worker-worker
+    - "8132/tcp" # konnectivity
+    - "112/tcp" # keepalived, possibly unnecessary
+    - "4789/udp" # Calico VXLAN Overlay
+    - "30000-32767/tcp" # nodeports
+    - "30000-32767/udp" # nodeports
+  notify: Reload firewalld
+  when: active_firewall == "firewalld"
+
 - name: Remove trusted subnets from public zone
   ansible.builtin.command: "firewall-cmd --zone=public --remove-source={{ item }} --permanent"
   loop:

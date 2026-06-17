@@ -245,6 +245,7 @@
   become: true
   hosts: de_haproxy
   roles:
+    - role: haproxy
     - role: ui_haproxy
   tags:
     - haproxy
