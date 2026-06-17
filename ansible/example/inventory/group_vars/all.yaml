@@ -502,3 +502,42 @@
 # There are no variables to uncomment in this section — it exists only
 # to document the prerequisites above.
 # =====================================================================
+
+
+# =====================================================================
+# In-cluster storage: Longhorn
+# =====================================================================
+# Installed by the `longhorn` role during the create-cluster phase (it
+# runs before `openldap-docker`, which depends on a persistent volume).
+# Longhorn provides replicated local block storage via a StorageClass
+# named `longhorn`. The class is NOT made the cluster default, so PVCs
+# must set `storageClassName: longhorn` explicitly.
+
+# Whether to install Longhorn.
+# Default: false
+# longhorn_enabled: true
+
+# Namespace Longhorn is installed into.
+# Default: longhorn-system
+# longhorn_namespace: longhorn-system
+
+# Longhorn Helm chart version.
+# Default: 1.12.0
+# longhorn_version: 1.12.0
+
+# Number of replicas per volume. The default adapts to the cluster size,
+# using the worker count capped at 3, so clusters with 1 or 2 nodes don't
+# end up with permanently degraded volumes. Set an explicit integer to
+# override.
+# Default: "{{ [groups['k8s_workers'] | length, 3] | min }}"
+# longhorn_replica_count: 3
+
+# On-node directory where Longhorn stores replica data.
+# Default: /var/lib/longhorn
+# longhorn_data_path: /var/lib/longhorn
+
+# Reclaim policy for the longhorn StorageClass. Retain keeps the data
+# when a PVC is deleted; set to Delete to reclaim it automatically.
+# Default: Retain
+# longhorn_reclaim_policy: Retain
+# =====================================================================

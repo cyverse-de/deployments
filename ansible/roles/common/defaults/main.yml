@@ -332,6 +332,20 @@ irods_csi_driver_cache_timeout_settings: '[{"path":"/","timeout":"-1ns","inherit
 irods_csi_driver_kubelet_dir: "/var/lib/k0s/kubelet"
 irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
 
+# Longhorn replicated block storage
+longhorn_enabled: false
+longhorn_namespace: longhorn-system
+longhorn_version: "1.12.0"
+longhorn_repo: https://charts.longhorn.io
+# Replicas adapt to cluster size, capped at 3 (a node count of 1 or 2 yields
+# 1 or 2 replicas so volumes don't stay degraded). Override per-environment.
+longhorn_replica_count: "{{ [groups['k8s_workers'] | length, 3] | min }}"
+longhorn_data_path: /var/lib/longhorn
+# Retain (vs the chart default Delete) so removing a PVC doesn't immediately
+# destroy the underlying data.
+longhorn_reclaim_policy: Retain
+longhorn_storage_class: longhorn
+
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd
 nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml
