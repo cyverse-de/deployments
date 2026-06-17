@@ -1,0 +1,39 @@
+include  /etc/openldap/schema/core.schema
+include  /etc/openldap/schema/cosine.schema
+include  /etc/openldap/schema/inetorgperson.schema
+include  /etc/openldap/schema/nis.schema
+
+pidfile /var/run/openldap/slapd.pid
+lastmod  on
+idletimeout 120
+Allow bind_v2
+loglevel packets stats args
+
+database   mdb
+suffix     "{{ ldap_dn_suffix }}"
+rootdn     "cn=Manager,{{ ldap_dn_suffix }}"
+rootpw     "{{ ldap_rootpw_hash }}"
+directory  /var/lib/openldap
+maxsize    1073741824
+index      objectClass,entryCSN,entryUUID eq,pres
+index      ou,cn,mail,sn,givenName eq,pres,sub
+index      uidNumber,gidNumber,loginShell eq,pres
+index      uid,memberUid eq,pres,sub
+
+sizelimit unlimited
+
+# users can authenticate and change their password
+access to attrs=userPassword
+      by self write
+      by anonymous auth
+      by * none
+
+
+access to
+    dn.subtree="ou=groups,{{ ldap_dn_suffix }}"
+      by * read
+
+
+access to *
+    by self write
+    by * read

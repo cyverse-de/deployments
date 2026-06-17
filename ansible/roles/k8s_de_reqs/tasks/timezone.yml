@@ -1,0 +1,16 @@
+---
+- name: Create the timezone configmap
+  delegate_to: localhost
+  run_once: true
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: timezone
+        namespace: "{{ ns }}"
+      data:
+        timezone: "{{ timezone }}"

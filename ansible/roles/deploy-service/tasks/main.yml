@@ -23,5 +23,13 @@
       run_once: true
       ansible.builtin.command:
         chdir: "{{ de_releases_dir }}/services/{{ project_name }}"
-        cmd: skaffold deploy --namespace "{{ ns }}" --build-artifacts "../../builds/{{ project_name }}.json" --force --kubeconfig "{{ lookup('env',
-          'KUBECONFIG') }}"
+        argv:
+          - skaffold
+          - deploy
+          - "--namespace"
+          - "{{ deploy_ns | default(ns) }}"
+          - "--build-artifacts"
+          - "../../builds/{{ project_name }}.json"
+          - "--force"
+          - "--kubeconfig"
+          - "{{ lookup('env', 'KUBECONFIG') }}"

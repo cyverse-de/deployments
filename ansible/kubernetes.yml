@@ -88,6 +88,9 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
+    - role: openldap-docker
+      tags: openldap-docker
+
     - role: service_configurations
       tags: configure-services
 
@@ -176,10 +179,8 @@
   tasks:
     - name: Deploy a single named service
       ansible.builtin.include_role:
-       name: deploy-service
+       name: "services/{{ project }}"
        tasks_from: main
-      vars:
-        project_name: "{{ project }}"
       tags:
         - deploy
       when: "'deploy-single-service' in ansible_run_tags"
@@ -251,7 +252,7 @@
     - haproxy
     - ui-haproxy
 
-- name: Set up cronjobs
+- name: Set up additional services
   become: false
   gather_facts: false
   hosts: k8s_controllers[0]
