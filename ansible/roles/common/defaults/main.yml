@@ -2,6 +2,21 @@
 k8s_version: "1.30"
 calico_version: "3.29.0"
 helm_version: "3.16.2"
+vice_base_domain: cyverse.run
+de_hostname: de.cyverse.org
+portal_hostname: user.cyverse.org
+keycloak_hostname: replace_me
+keycloak_server_uri: "https://{{keycloak_hostname}}/auth"
+keycloak_realm_name: replace_me
+registry_hostname: harbor.cyverse.org
+ldap_uri: replace_me
+ldap_base_db: replace_me
+email_src: replace_me@replace_me.replace_me
+email_dest: replace_me@replace_me.replace_me
+irods_host: data.cyverse.rocks
+irods_user: replace_me
+irods_zone: replace_me
+irods_password: replace_me
 
 # Common Variables
 ## Path to the Python interpreter on the managed nodes. Actually an Ansible configuration variable.
@@ -10,17 +25,11 @@ ansible_python_interpreter: /usr/bin/python3
 ## The path to the directory where tools will be installed.
 install_dir: /usr/local/bin # no trailing slash
 
-## The FQDN that the DE is accessible through.
-de_hostname: de.cyverse.org
-
 ## The wildcard FQDN that the UI needs (yeah, I dunno)
 ui_wildcard_fqdn: "*.cyverse.org"
 
 ## The wildcard FQDN that VICE apps are accessible through.
-vice_wildcard_fqdn: "*.cyverse.run"
-
-## The base domain that VICE domains are accessible through.
-vice_base_domain: cyverse.run
+vice_wildcard_fqdn: "*.{{ vice_base_domain }}"
 
 ## The local storage class to use for VICE apps.
 vice_local_storage_class: openebs-hostpath
@@ -156,7 +165,7 @@ de_amqp_password: replace_me
 de_amqp_host: replace_me
 de_amqp_port: replace_me
 de_amqp_vhost: replace_me
-de_base_uri: http://replace_me
+de_base_uri: "https://{{ de_hostname }}"
 de_coge_base_uri: https://genomevolution.org/coge/api/v1
 de_subscriptions_checkout_url: http://replace_me
 de_subscriptions_enforce: replace_me
@@ -210,8 +219,9 @@ es_index: replace_me
 es_enabled: true
 es_server_urls: https://abby.cyverse.org:31450
 
-formation_keycloak_server_uri: replace_me
-formation_keycloak_realm_name: replace_me
+formation_api_url: "https://{{ de_hostname }}/formation"
+formation_keycloak_server_uri: "{{ keycloak_server_uri }}"
+formation_keycloak_realm_name: "{{ keycloak_realm_name }}"
 formation_keycloak_client_id: replace_me
 formation_keycloak_client_secret: replace_me
 formation_user_deletion_app_name: portal-delete-user
@@ -219,8 +229,6 @@ formation_verify_ssl: "false"
 formation_mcp_enabled: "true"
 formation_base_url: "https://{{ de_hostname }}/formation"
 formation_mcp_client_id: mcp-client
-
-
 
 # GoCD settings
 gocd_enabled: false
@@ -259,10 +267,8 @@ infosquito_daynum: 4
 infosquito_prefix_length: 4
 
 ## Email settings
-email_src: replace_me@replace_me.replace_me
-email_dest: replace_me@replace_me.replace_me
-email_perm_id_request_dest: example@example.example
-email_support_dest: example@example.example
+email_perm_id_request_dest: "{{ email_dest }}"
+email_support_dest: "{{ email_dest }}"
 exim_smarthost: "127.0.0.1:25"
 exim_password: "127.0.0.1"
 exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
@@ -293,10 +299,10 @@ k8s_services_cidr: "10.43.0.0/16"
 
 # Harbor installation variables
 harbor_enabled: false
-harbor_url: harbor.cyverse.org
+harbor_url: "{{ registry_hostname }}"
 harbor_repo: https://helm.goharbor.io
 harbor_namespace: harbor
-harbor_fqdn: harbor.example.org
+harbor_fqdn: "{{ registry_hostname }}"
 harbor_storage_class: "longhorn"
 harbor_replicas: 2
 harbor_http_nodeport: 30002
@@ -318,17 +324,17 @@ irods_csi_driver_version: "0.11.4"
 irods_csi_driver_repo: https://cyverse.github.io/irods-csi-driver-helm/
 irods_csi_driver_namespace: irods-csi-driver
 irods_csi_driver_client: irodsfuse
-irods_csi_driver_host: data.cyverse.org
+irods_csi_driver_host: "{{ irods_host }}"
+irods_csi_driver_user: "{{ irods_user }}"
+irods_csi_driver_password: "{{ irods_password }}"
+irods_csi_driver_mount_path_white_list: "/{{ irods_zone }}/home"
+irods_csi_driver_cache_timeout_settings: '[{"path":"/","timeout":"-1ns","inherit":false},{"path":"/{{ irods_zone }}","timeout":"-1ns","inherit":false},{"path":"/{{ irods_zone }}/home","timeout":"1h","inherit":false},{"path":"/{{ irods_zone }}/home/shared","timeout":"1h","inherit":true}]'
 irods_csi_driver_port: 1247
-irods_csi_driver_zone: cyverse
-irods_csi_driver_user: not_a_user
-irods_csi_driver_password: not_a_password
+irods_csi_driver_zone: "{{ irods_zone }}"
 irods_csi_driver_retain_data: "false"
 irods_csi_driver_enforce_proxy_access: "true"
-irods_csi_driver_mount_path_white_list: "/not/a/path"
 irods_csi_driver_cache_size_max: 10737418240
 irods_csi_driver_data_root: "/irodsfs-pool"
-irods_csi_driver_cache_timeout_settings: '[{"path":"/","timeout":"-1ns","inherit":false},{"path":"/example","timeout":"-1ns","inherit":false},{"path":"/example/home","timeout":"1h","inherit":false},{"path":"/example/home/shared","timeout":"1h","inherit":true}]'
 irods_csi_driver_kubelet_dir: "/var/lib/k0s/kubelet"
 irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
 
@@ -416,10 +422,6 @@ irods_amqp_password: replace_me
 irods_amqp_host: replace_me
 irods_amqp_port: replace_me
 irods_amqp_vhost: replace_me
-irods_host: data.cyverse.rocks
-irods_user: replace_me
-irods_zone: replace_me
-irods_password: replace_me
 irods_port: "1247"
 irods_ipcservices_enabled: "true"
 irods_external_host: data.cyverse.rocks
@@ -498,16 +500,16 @@ unleash_db_user: replace_me
 unleash_db_password: replace_me
 
 # User Portal settings
-user_portal_base_uri: http://replace_me
+user_portal_base_uri: "https://{{ portal_hostname }}"
 portal_exim_smarthost: replace_me
 portal_exim_password: replace_me
 portal_exim_allowed_senders: replace_me
-portal_hostname: user.cyverse.org
+
 portal_namespace: cyverse-portal
 portal_secret: user-portal-config
-portal_ui_base_url: https://replace_me
-portal_api_base_url: https://replace_me/api
-portal_ws_base_url: wss://replace_me/ws
+portal_ui_base_url: "https://{{ portal_hostname }}"
+portal_api_base_url: "https://{{ portal_hostname }}/api"
+portal_ws_base_url: "wss://{{ portal_hostname }}/"
 portal_uid_number_offset: replace_me
 portal_hmac_key: "replace_me"
 portal_google_analytics_id: replace_me
@@ -518,21 +520,22 @@ portal_db_port: "5432"
 portal_db_name: portal
 portal_db_user: portal
 portal_db_password: replace_me
+portal_db_session_table: session
 portal_session_secret: "replace_me"
 portal_session_secure_cookie: "true"
-portal_keycloak_realm: replace_me
-portal_keycloak_auth_url: https://kc.cyverse.org/auth/
+portal_keycloak_realm: "{{ keycloak_realm_name }}"
+portal_keycloak_auth_url: "{{ keycloak_server_uri }}"
 portal_keycloak_client: replace_me
 portal_keycloak_secret: "replace_me"
-portal_ldap_host: ldap://replace_me
+portal_ldap_host: "{{ldap_uri}}"
 portal_ldap_admin: "replace_me"
 portal_ldap_password: "replace_me"
-portal_ldap_base_dn: replace_me
+portal_ldap_base_dn: "{{ ldap_base_dn }}"
 portal_ldap_everyone_group: replace_me
-portal_bcc_new_account_confirmation: replace_me@replace_me.org
-portal_bcc_password_change_request: replace_me@replace_me.org
-portal_bcc_service_access_granted: replace_me@replace_me.org
-portal_bcc_workshop_enrollment_request: replace_me@replace_me.org
+portal_bcc_new_account_confirmation: "{{ email_dest }}"
+portal_bcc_password_change_request: "{{ email_dest }}"
+portal_bcc_service_access_granted: "{{ email_dest }}"
+portal_bcc_workshop_enrollment_request: "{{ email_dest }}"
 portal_intercom_enabled: "false"
 portal_intercom_app_id: replace_me
 portal_intercom_token: replace_me
@@ -549,57 +552,23 @@ portal_bisque_user: replace_me
 portal_bisque_password: "replace_me"
 portal_smtp_host: local-exim
 portal_smtp_port: "25"
-portal_smtp_from: "replace_me@replace_me.org"
-portal_terrain_url: "https://de.cyverse.org/terrain"
+portal_smtp_from: "{{ email_src }}"
+portal_terrain_url: "https://{{ de_hostname }}/terrain/"
 portal_terrain_user: replace_me
 portal_terrain_password: replace_me
 portal_profile_update_period: "365"
 portal_profile_warning_period: "30"
 portal_profile_update_text: "We request that you update your profile information on an annual basis. Please do so now in order to proceed to the application."
 portal_profile_warning_text: "This is a reminder to update your profile information, please do so now."
-portal_support_email: "replace_me@replace_me.org"
-portal_db_session_table: session
+portal_support_email: "{{ email_dest }}"
 portal_session_ttl: "86400"
 portal_bcc_intercom:
 portal_honeypot_divisor: "7"
-portal_conductor_url: http://portal-conductor
+portal_conductor_url: https://portal-conductor
 
 # Portal-conductor authentication
 portal_conductor_auth_username: admin
 portal_conductor_auth_password: "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0kB.z8.6X2"  # Default password: admin
-
-# VICE settings
-vice_base_uri: https://cyverse.run
-vice_domain: ".cyverse.run"
-vice_file_transfers_image: harbor.cyverse.org/de/vice-file-transfers
-vice_file_transfers_tag: latest
-vice_image_pull_secret: vice-image-pull-secret
-vice_image_cache:
-  - harbor.cyverse.org/de/vice-proxy:latest
-  - harbor.cyverse.org/de/porklock:latest
-  - harbor.cyverse.org/de/vice-file-transfers:latest
-  - harbor.cyverse.org/vice/cli/bash:latest
-  - harbor.cyverse.org/legacy/datahog:beta
-  - harbor.cyverse.org/vice/jupyter/datascience:latest
-  - harbor.cyverse.org/vice/jupyter/rstudio:latest
-  - harbor.cyverse.org/vice/jupyter/geospatial:latest
-  - harbor.cyverse.org/vice/rstudio/rstudio
-  - harbor.cyverse.org/vice/rstudio/geospatial:latest
-  - harbor.cyverse.org/vice/rstudio/verse:latest
-  - harbor.cyverse.org/vice/rstudio/verse:latest
-  - harbor.cyverse.org/vice/vscode:latest
-  - harbor.cyverse.org/vice/xpra/qgis:20.04
-  - harbor.cyverse.org/vice/rstudio/stan:latest
-vice_use_csi_driver: true
-vice_default_cas_url: https://auth.cyverse.org/cas5
-vice_default_cas_validate: validate
-vice_use_case_chars_min: 60
-vice_default_backend_loading_page_template_string: 'https://qa.cyverse.org/vice/\{\{.URL\}\}'
-vice_namespace_egress_disallow:
-  - 10.43.0.0/8
-  - 128.196.254.64/32
-  - 131.153.56.98/32
-vice_default_time_limit_extension: "4h"
 
 # Admin settings
 admin_groups: core-services,dev,staff
@@ -652,14 +621,13 @@ pg_db: postgres
 keycloak_version: 26.6
 
 # Keycloak Configuration
-keycloak_server_uri: https://keycloak.example.org/auth
+keycloak_connection_url: "{{ ldap_uri }}"
 keycloak_db_username: keycloak
 keycloak_db_password: Ch@ng3M3
 keycloak_db_vendor: postgres
 keycloak_db_port: "5432"
 keycloak_db_name: keycloak
 keycloak_namespace: keycloak
-keycloak_realm_name: CyVerseTest
 keycloak_client_id: replace_me
 keycloak_client_secret: replace_me
 keycloak_vice_client_id: replace_me
@@ -669,10 +637,9 @@ keycloak_temp_admin_password: admin
 keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
 keycloak_admin_email: kcadmin@example.org
-keycloak_admin_server_uri: https://keycloak.example.org/auth
+keycloak_admin_server_uri: "{{ keycloak_server_uri }}"
 keycloak_admin_client_id: replace_me
 keycloak_admin_client_secret: replace_me
-keycloak_hostname: keycloak.example.org
 keycloak_hostname_strict: "false"
 keycloak_log_level: "info"
 keycloak_java_opts: "-server -Xms1024m -Xmx2048m -XX:MetaspaceSize=96m -XX:MaxMetaspaceSize=256m -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true -Dkeycloak.profile.feature.token_exchange=enabled -Djava.security.egd=file:/dev/urandom"
@@ -727,15 +694,48 @@ secrets_loader_ssl_filepaths: []
 
 tapis_key: replace_me
 tapis_secret: replace_me
-tapis_redirect_uri: replace_me
+tapis_redirect_uri: https://{{ de_hostname }}/oauth/callback/tapis
 tapis_storage_system: replace_me
-tapis_callback_base_uri: replace_me
+tapis_callback_base_uri: https://{{ de_hostname }}/terrain/callbacks/tapis-job
 tapis_read_timeout: 30000
 tapis_enabled: false
 tapis_jobs_enabled: false
 
 image_cache_mode: daemonset
 
+
+# VICE settings
+vice_base_uri: "https://{{ vice_base_domain }}"
+vice_domain: ".{{ vice_base_domain }}"
+vice_file_transfers_image: harbor.cyverse.org/de/vice-file-transfers
+vice_file_transfers_tag: latest
+vice_image_pull_secret: vice-image-pull-secret
+vice_image_cache:
+  - harbor.cyverse.org/de/vice-proxy:latest
+  - harbor.cyverse.org/de/porklock:latest
+  - harbor.cyverse.org/de/vice-file-transfers:latest
+  - harbor.cyverse.org/vice/cli/bash:latest
+  - harbor.cyverse.org/legacy/datahog:beta
+  - harbor.cyverse.org/vice/jupyter/datascience:latest
+  - harbor.cyverse.org/vice/jupyter/rstudio:latest
+  - harbor.cyverse.org/vice/jupyter/geospatial:latest
+  - harbor.cyverse.org/vice/rstudio/rstudio
+  - harbor.cyverse.org/vice/rstudio/geospatial:latest
+  - harbor.cyverse.org/vice/rstudio/verse:latest
+  - harbor.cyverse.org/vice/rstudio/verse:latest
+  - harbor.cyverse.org/vice/vscode:latest
+  - harbor.cyverse.org/vice/xpra/qgis:20.04
+  - harbor.cyverse.org/vice/rstudio/stan:latest
+vice_use_csi_driver: true
+vice_default_cas_url: https://auth.cyverse.org/cas5
+vice_default_cas_validate: validate
+vice_use_case_chars_min: 60
+vice_default_backend_loading_page_template_string: 'https://qa.cyverse.org/vice/\{\{.URL\}\}'
+vice_namespace_egress_disallow:
+  - 10.43.0.0/8
+  - 128.196.254.64/32
+  - 131.153.56.98/32
+vice_default_time_limit_extension: "4h"
 vice_operators_values: []
 vice_operator_cluster_config_secret: cluster-config-secret
 vice_operator_disable_spec_launch: false
@@ -760,31 +760,32 @@ vice_operator_gpu_model_mappings: []
 # eks.amazonaws.com/instance-gpu-name on EKS). Empty leaves the bundle's
 # canonical nvidia.com/gpu.product key untouched.
 vice_operator_gpu_model_affinity_key: ""
-vice_operator_base_url: https://cyverse.run
-vice_operator_public_base_url: https://replace_me
+vice_operator_base_url: "https://{{ vice_base_domain }}"
+vice_operator_public_base_url: "https://vice-api.{{ vice_base_domain }}"
 vice_operator_state_hmac_secret: "replace_me"
 vice_operator_disable_internet_access: false
-vice_operator_registry_server: harbor.cyverse.org
+vice_operator_registry_server: "{{ registry_hostname }}"
 vice_operator_registry_username: replace_me
 vice_operator_registry_password: replace_me
 vice_operator_pod_selector: app=vice-operator
 vice_operator_api_service_name: vice-operator
-vice_operator_api_auth_issuer_url: replace_me
+vice_operator_api_auth_issuer_url: "{{ keycloak_server_uri }}/realms/{{ keycloak_realm_name }}"
 vice_operator_disable_vice_proxy_auth: false
-vice_operator_keycloak_base_url: https://replace_me
+vice_operator_keycloak_base_url: "{{ keycloak_server_uri }}"
 vice_operator_keycloak_client_id: replace_me
 vice_operator_keycloak_client_secret: replace_me
 vice_operator_swagger_client_id: replace_me
 vice_operator_swagger_client_secret: replace_me
-vice_operator_keycloak_realm: replace_me
+vice_operator_keycloak_realm: "{{ keycloak_realm_name }}"
 vice_operator_ingress_pod_exceptions:
-  - kubernetes.io/metadata.name=traefik,app.kubernetes.io/name=traefik
+  - "kubernetes.io/metadata.name={{ ns }},de-app=app-exposer"
+  - "kubernetes.io/metadata.name={{ gateway_provider }},app.kubernetes.io/name={{ gateway_provider }}"
 vice_operator_egress_host_exceptions:
-  - replace_me
+  - "{{ irods_host }}"
 vice_operator_admin_entitlements: replace_me
 vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
-vice_api_keycloak_base_url: replace_me
-vice_api_keycloak_realm: replace_me
+vice_api_keycloak_base_url: "{{ keycloak_server_uri }}"
+vice_api_keycloak_realm: "{{ keycloak_realm_name }}"
 vice_api_keycloak_client_id: replace_me
 vice_api_keycloak_client_secret: replace_me
 
