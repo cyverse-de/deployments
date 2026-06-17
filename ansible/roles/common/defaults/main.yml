@@ -154,7 +154,7 @@ cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
 # Please see https://letsencrypt.org/docs/staging-environment/ for information on when to use the staging
 # environment.
 cert_manager_le_issuer_name: letsencrypt
-cert_manager_le_issuer_email: someone@example.org
+cert_manager_le_issuer_email: "{{ email_dest }}"
 cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
 cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
 
@@ -591,6 +591,7 @@ nats_client_cert_duration: 8766h # 1 year
 nats_client_cert_renew_before: 240h # 10 days
 
 # Grouper Variables
+grouper_version: v3.0.1-rc01
 grouper_client_auth: false # actual useful value
 grouper_loader_url: "{{ ldap_uri }}/{{ ldap_base_dn }}"
 grouper_loader_user: "{{ ldap_cn }},{{ ldap_base_dn }}"
@@ -697,7 +698,7 @@ secrets_loader_ssl_filepaths: []
 tapis_key: replace_me
 tapis_secret: replace_me
 tapis_redirect_uri: https://{{ de_hostname }}/oauth/callback/tapis
-tapis_storage_system: replace_me
+tapis_storage_system: "{{ irods_host }}"
 tapis_callback_base_uri: https://{{ de_hostname }}/terrain/callbacks/tapis-job
 tapis_read_timeout: 30000
 tapis_enabled: false
