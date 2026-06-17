@@ -10,13 +10,15 @@ keycloak_server_uri: "https://{{keycloak_hostname}}/auth"
 keycloak_realm_name: replace_me
 registry_hostname: harbor.cyverse.org
 ldap_uri: replace_me
-ldap_base_db: replace_me
+ldap_base_dn: replace_me
+ldap_cn: replace_me
 email_src: replace_me@replace_me.replace_me
 email_dest: replace_me@replace_me.replace_me
 irods_host: data.cyverse.rocks
 irods_user: replace_me
 irods_zone: replace_me
 irods_password: replace_me
+db_host: replace_me
 
 # Common Variables
 ## Path to the Python interpreter on the managed nodes. Actually an Ansible configuration variable.
@@ -515,7 +517,7 @@ portal_hmac_key: "replace_me"
 portal_google_analytics_id: replace_me
 portal_sentry_dsn: https://replace_me
 portal_workflow_image_id: "replace_me"
-portal_db_host: localhost
+portal_db_host: "{{ db_host }}"
 portal_db_port: "5432"
 portal_db_name: portal
 portal_db_user: portal
@@ -528,7 +530,7 @@ portal_keycloak_auth_url: "{{ keycloak_server_uri }}"
 portal_keycloak_client: replace_me
 portal_keycloak_secret: "replace_me"
 portal_ldap_host: "{{ldap_uri}}"
-portal_ldap_admin: "replace_me"
+portal_ldap_admin: "{{ ldap_cn }},{{ ldap_base_dn }}"
 portal_ldap_password: "replace_me"
 portal_ldap_base_dn: "{{ ldap_base_dn }}"
 portal_ldap_everyone_group: replace_me
@@ -590,12 +592,12 @@ nats_client_cert_renew_before: 240h # 10 days
 
 # Grouper Variables
 grouper_client_auth: false # actual useful value
-grouper_loader_url: ldap://not.a.ldap.server:389/dc=example,dc=org
-grouper_loader_user: uid=fake,ou=People,dc=example,dc=org
+grouper_loader_url: "{{ ldap_uri }}/{{ ldap_base_dn }}"
+grouper_loader_user: "{{ ldap_cn }},{{ ldap_base_dn }}"
 grouper_loader_password: l0lf@k3
 grouper_environment: qa # actual useful value
 grouper_ws_url: http://grouper-ws/grouper-ws # actual useful value
-grouper_db_host: fake.db.host
+grouper_db_host: "{{ db_host }}"
 grouper_db_port: 5432 # actual useful value
 grouper_db_name: grouper # actual useful value
 grouper_morph_string: n0tr34l
