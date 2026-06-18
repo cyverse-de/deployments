@@ -560,8 +560,9 @@
 # Default: letsencrypt
 # cert_manager_le_issuer_name: letsencrypt
 
-# Contact email registered with the ACME account.
-# Default: someone@example.org
+# Contact email registered with the ACME account. Defaults to the shared
+# `email_dest` address; set either one.
+# Default: "{{ email_dest }}"
 # cert_manager_le_issuer_email: someone@example.org
 
 # ACME directory URL. Defaults to the production endpoint; switch to the
@@ -693,8 +694,9 @@
 # Default: "*.cyverse.org"
 # ui_wildcard_fqdn: "*.cyverse.org"
 
-# Wildcard FQDN for VICE apps, added to the Traefik certificate.
-# Default: "*.cyverse.run"
+# Wildcard FQDN for VICE apps, added to the Traefik certificate. Derived
+# from `vice_base_domain` below; override only to break that link.
+# Default: "*.{{ vice_base_domain }}"
 # vice_wildcard_fqdn: "*.cyverse.run"
 
 # Base domain for VICE apps, added to the Traefik certificate.
@@ -729,8 +731,9 @@
 # resulting dockerconfigjson Secret into the argo and VICE namespaces so
 # pods can pull private images.
 
-# Harbor registry URL.
-# Default: harbor.cyverse.org
+# Harbor registry URL. Defaults to the shared `registry_hostname`
+# (harbor.cyverse.org); set either one.
+# Default: "{{ registry_hostname }}"
 # harbor_url: harbor.cyverse.org
 
 # Harbor robot account username.
