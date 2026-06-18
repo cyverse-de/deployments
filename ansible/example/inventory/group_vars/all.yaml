@@ -1,5 +1,153 @@
 ---
 # =====================================================================
+# Global settings (umbrella variables)
+# =====================================================================
+# These identity and endpoint variables are consumed throughout the
+# deployment. Most other defaults in `roles/common/defaults/main.yml`
+# interpolate from them, so setting one here propagates everywhere it is
+# referenced. They are not tied to a single `--tags` pass — they apply to
+# every phase below.
+#
+# The values that ship as `replace_me` have to be set for a real
+# deployment; the rest carry working CyVerse defaults you can override.
+#
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Identity
+# ---------------------------------------------------------------------
+
+# Namespace the Discovery Environment services run in. Also the basis for
+# `env`, and woven into namespaced names (AMQP vhosts, the Grouper folder
+# prefix, the VICE gateway namespace, ...). Phase 7 is where this
+# namespace is actually created.
+# Default: qa
+# ns: qa
+
+# Deployment environment label. Derived from `ns`; used in AMQP vhosts
+# (e.g. /{{ env }}/de), the Grouper folder prefix, and similar. Override
+# only to decouple the label from the namespace.
+# Default: "{{ ns }}"
+# env: qa
+
+
+# ---------------------------------------------------------------------
+# Public hostnames and domains
+# ---------------------------------------------------------------------
+
+# FQDN the DE web app is served at. Drives de_base_uri, the formation and
+# Tapis URLs, the portal's terrain URL, and more.
+# Default: de.cyverse.org
+# de_hostname: de.cyverse.org
+
+# FQDN the user portal is served at. Drives the portal UI/API/WS base
+# URLs and user_portal_base_uri.
+# Default: user.cyverse.org
+# portal_hostname: user.cyverse.org
+
+# Base domain VICE apps are served under. Drives vice_wildcard_fqdn,
+# vice_domain, vice_base_uri, and the VICE operator base URLs.
+# Default: cyverse.run
+# vice_base_domain: cyverse.run
+
+# Container registry hostname. Drives harbor_url, harbor_fqdn,
+# harbor_external_domain, and the VICE operator registry server.
+# Default: harbor.cyverse.org
+# registry_hostname: harbor.cyverse.org
+
+
+# ---------------------------------------------------------------------
+# Keycloak
+# ---------------------------------------------------------------------
+
+# FQDN of the Keycloak server. No working default — set it.
+# Default: replace_me
+# keycloak_hostname: keycloak.cyverse.org
+
+# Base auth URI for Keycloak. Derived from keycloak_hostname; drives the
+# formation, VICE, and portal Keycloak URLs. Override only for a
+# non-standard auth path.
+# Default: "https://{{ keycloak_hostname }}/auth"
+# keycloak_server_uri: https://keycloak.cyverse.org/auth
+
+# Keycloak realm the DE clients live in. No working default — set it.
+# Default: replace_me
+# keycloak_realm_name: CyVerse
+
+
+# ---------------------------------------------------------------------
+# LDAP
+# ---------------------------------------------------------------------
+# Consumed by the portal, Grouper, and Keycloak. All three ship as
+# replace_me and have to be set when those components are enabled.
+
+# LDAP connection URI (e.g. ldap://ldap.example.org:389).
+# Default: replace_me
+# ldap_uri: ldap://ldap.example.org:389
+
+# LDAP base DN (e.g. dc=example,dc=org).
+# Default: replace_me
+# ldap_base_dn: dc=example,dc=org
+
+# CN of the LDAP bind/admin account (combined with ldap_base_dn for the
+# full bind DN).
+# Default: replace_me
+# ldap_cn: cn=admin
+
+
+# ---------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------
+
+# From-address for outbound DE mail. Drives portal_smtp_from.
+# Default: replace_me@replace_me.replace_me
+# email_src: noreply@cyverse.org
+
+# Destination/contact address. Drives the cert-manager ACME email, the
+# permanent-ID and support destinations, and the portal BCC addresses.
+# Default: replace_me@replace_me.replace_me
+# email_dest: support@cyverse.org
+
+
+# ---------------------------------------------------------------------
+# iRODS
+# ---------------------------------------------------------------------
+
+# iRODS host the data store is reached at. Drives the iRODS CSI driver
+# host, the external host, the WebDAV anon URI, the Tapis storage system,
+# and a VICE operator egress exception.
+# Default: data.cyverse.rocks
+# irods_host: data.cyverse.rocks
+
+# iRODS account username for the CSI driver.
+# Default: replace_me
+# irods_user: de-irods
+
+# iRODS zone. Drives the CSI driver zone, mount-path whitelist, and cache
+# timeout settings.
+# Default: replace_me
+# irods_zone: iplant
+
+# Password for the iRODS account.
+# Default: replace_me
+# irods_password: replace_me
+
+
+# ---------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------
+
+# PostgreSQL host the application services connect to. Drives
+# portal_db_host and grouper_db_host. (The Phase 1/2 database passes use
+# the `dbms` inventory group, not this variable.)
+# Default: replace_me
+# db_host: db.cyverse.org
+
+
+# =====================================================================
 # Phase 1: PostgreSQL Installation (optional)
 # =====================================================================
 # Variables consulted by `kubernetes.yml --tags install-postgres`
@@ -677,14 +825,10 @@
 # ---------------------------------------------------------------------
 # DE namespaces and TLS hostnames
 # ---------------------------------------------------------------------
-# `ns` and `vice_ns` are the core DE/VICE namespaces consumed throughout
-# the rest of the deployment; this is the phase that creates them. The
-# wildcard FQDNs and base domain are baked into the Traefik certificate's
-# DNS names.
-
-# Namespace the Discovery Environment services run in.
-# Default: qa
-# ns: qa
+# This phase creates the `ns` and `vice_ns` namespaces. `ns` and
+# `vice_base_domain` are documented in the global settings section at the
+# top of this file; the wildcard FQDNs below are baked into the Traefik
+# certificate's DNS names (along with `vice_base_domain`).
 
 # Namespace VICE (interactive) apps run in.
 # Default: vice-apps
@@ -695,13 +839,10 @@
 # ui_wildcard_fqdn: "*.cyverse.org"
 
 # Wildcard FQDN for VICE apps, added to the Traefik certificate. Derived
-# from `vice_base_domain` below; override only to break that link.
+# from `vice_base_domain` (see the global settings section); override
+# only to break that link.
 # Default: "*.{{ vice_base_domain }}"
 # vice_wildcard_fqdn: "*.cyverse.run"
-
-# Base domain for VICE apps, added to the Traefik certificate.
-# Default: cyverse.run
-# vice_base_domain: cyverse.run
 
 
 # ---------------------------------------------------------------------
