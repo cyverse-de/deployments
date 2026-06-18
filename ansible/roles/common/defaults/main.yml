@@ -1,4 +1,5 @@
 ---
+ns: qa
 k8s_version: "1.30"
 calico_version: "3.29.0"
 helm_version: "3.16.2"
@@ -19,6 +20,8 @@ irods_user: replace_me
 irods_zone: replace_me
 irods_password: replace_me
 db_host: replace_me
+
+env: "{{ ns }}"
 
 # Common Variables
 ## Path to the Python interpreter on the managed nodes. Actually an Ansible configuration variable.
@@ -74,8 +77,6 @@ argo_events_ns: argo-events
 ## The namespace containing Argo Workflows, which is also where batch analyses run.
 argo_ns: argo
 
-## The namespace containing the Discovery Environment services.
-ns: qa
 
 ## The namespaces containing the running VICE apps.
 vice_ns: vice-apps
@@ -165,8 +166,8 @@ dashboard_aggregator_website_url: https://cyverse.org
 de_amqp_user: replace_me
 de_amqp_password: replace_me
 de_amqp_host: replace_me
-de_amqp_port: replace_me
-de_amqp_vhost: replace_me
+de_amqp_port: 5672
+de_amqp_vhost: "/{{ env }}/de"
 de_base_uri: "https://{{ de_hostname }}"
 de_coge_base_uri: https://genomevolution.org/coge/api/v1
 de_subscriptions_checkout_url: http://replace_me
@@ -195,6 +196,7 @@ de_tls_cert_renew_before: "240h"
 user_portal_tls_cert_name: "user-portal-tls"
 user_portal_tls_cert_duration: "2160h"
 user_portal_tls_cert_renew_before: "240h"
+user_portal_base_uri: "https://{{ portal_hostname }}"
 
 # VICE TLS settings
 vice_tls_ca_name: "vice-selfsigned-ca"
@@ -319,6 +321,7 @@ harbor_database_password: "Ch@ng3M3"
 harbor_image_pull_secret: vice-image-pull-secret
 harbor_robot_name: harbor-robot
 harbor_robot_secret: replace_me
+harbor_external_domain: "{{ registry_hostname }}"
 
 # IRODS CSI Driver Vars
 irods_csi_driver_enabled: true
@@ -422,12 +425,12 @@ intercom_company_name: replace_me
 irods_amqp_user: replace_me
 irods_amqp_password: replace_me
 irods_amqp_host: replace_me
-irods_amqp_port: replace_me
-irods_amqp_vhost: replace_me
+irods_amqp_port: 5672
+irods_amqp_vhost: "/{{ env }}/data-store"
 irods_port: "1247"
 irods_ipcservices_enabled: "true"
-irods_external_host: data.cyverse.rocks
-irods_webdav_anon_uri: https://data.cyverse.rocks/dav-anon
+irods_external_host: "{{ irods_host }}"
+irods_webdav_anon_uri: "https://{{ irods_host }}/dav-anon"
 irods_quota_root_resources: mainIngestRes,mainReplRes
 irods_admin_users:
   - de-irods
@@ -502,7 +505,6 @@ unleash_db_user: replace_me
 unleash_db_password: replace_me
 
 # User Portal settings
-user_portal_base_uri: "https://{{ portal_hostname }}"
 portal_exim_smarthost: replace_me
 portal_exim_password: replace_me
 portal_exim_allowed_senders: replace_me
@@ -529,7 +531,7 @@ portal_keycloak_realm: "{{ keycloak_realm_name }}"
 portal_keycloak_auth_url: "{{ keycloak_server_uri }}"
 portal_keycloak_client: replace_me
 portal_keycloak_secret: "replace_me"
-portal_ldap_host: "{{ldap_uri}}"
+portal_ldap_host: "{{ ldap_uri }}"
 portal_ldap_admin: "{{ ldap_cn }},{{ ldap_base_dn }}"
 portal_ldap_password: "replace_me"
 portal_ldap_base_dn: "{{ ldap_base_dn }}"
@@ -596,7 +598,7 @@ grouper_client_auth: false # actual useful value
 grouper_loader_url: "{{ ldap_uri }}/{{ ldap_base_dn }}"
 grouper_loader_user: "{{ ldap_cn }},{{ ldap_base_dn }}"
 grouper_loader_password: l0lf@k3
-grouper_environment: qa # actual useful value
+grouper_env: "{{ env }}" # actual useful value
 grouper_ws_url: http://grouper-ws/grouper-ws # actual useful value
 grouper_db_host: "{{ db_host }}"
 grouper_db_port: 5432 # actual useful value
@@ -609,7 +611,7 @@ grouper_gsh_image_version: v3.0.0 # actual useful value
 grouper_ws_replicas: 2
 grouper_loader_replicas: 1
 grouper_tag: v3.0.0
-grouper_folder_name_prefix: "iplant:de:qa"
+grouper_folder_name_prefix: "iplant:de:{{ env }}"
 
 # PostgreSQL Installation and Configuration Variables
 pg_conf_path: "/etc/postgresql/{{dbms_postgresql_version}}/main"
@@ -641,7 +643,7 @@ keycloak_admin_username: kcadmin
 keycloak_admin_password: notreal
 keycloak_admin_email: kcadmin@example.org
 keycloak_admin_server_uri: "{{ keycloak_server_uri }}"
-keycloak_admin_client_id: replace_me
+keycloak_admin_client_id: de-admin-api-qa
 keycloak_admin_client_secret: replace_me
 keycloak_hostname_strict: "false"
 keycloak_log_level: "info"
@@ -744,7 +746,7 @@ vice_operator_cluster_config_secret: cluster-config-secret
 vice_operator_disable_spec_launch: false
 vice_operator_skip_gateway_creation: false
 vice_operator_gateway_name: vice
-vice_operator_gateway_namespace: vice-apps
+vice_operator_gateway_namespace: "{{ ns }}"
 vice_operator_port: 10000
 vice_operator_loading_port: 8080
 vice_operator_max_analyses: 0
@@ -775,22 +777,23 @@ vice_operator_api_service_name: vice-operator
 vice_operator_api_auth_issuer_url: "{{ keycloak_server_uri }}/realms/{{ keycloak_realm_name }}"
 vice_operator_disable_vice_proxy_auth: false
 vice_operator_keycloak_base_url: "{{ keycloak_server_uri }}"
-vice_operator_keycloak_client_id: replace_me
-vice_operator_keycloak_client_secret: replace_me
-vice_operator_swagger_client_id: replace_me
-vice_operator_swagger_client_secret: replace_me
+vice_operator_keycloak_client_id: vice-users
+vice_operator_keycloak_client_secret: vice-users-secret-replace_me
+vice_operator_swagger_client_id: vice-swagger
+vice_operator_swagger_client_secret: vice-swagger-secret-replace_me
 vice_operator_keycloak_realm: "{{ keycloak_realm_name }}"
 vice_operator_ingress_pod_exceptions:
   - "kubernetes.io/metadata.name={{ ns }},de-app=app-exposer"
   - "kubernetes.io/metadata.name={{ gateway_provider }},app.kubernetes.io/name={{ gateway_provider }}"
 vice_operator_egress_host_exceptions:
   - "{{ irods_host }}"
+  - "{{ registry_hostname }}"
 vice_operator_admin_entitlements: replace_me
 vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
 vice_api_keycloak_base_url: "{{ keycloak_server_uri }}"
 vice_api_keycloak_realm: "{{ keycloak_realm_name }}"
-vice_api_keycloak_client_id: replace_me
-vice_api_keycloak_client_secret: replace_me
+vice_api_keycloak_client_id: vice-api
+vice_api_keycloak_client_secret: vice-api-secret-replace_me
 
 vice_cache_images:
   - harbor.cyverse.org/de/vice-proxy:qa
