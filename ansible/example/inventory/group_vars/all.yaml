@@ -505,13 +505,84 @@
 
 
 # =====================================================================
+# Phase 6: cert-manager
+# =====================================================================
+# Variables consulted when cert-manager's issuers are created. The
+# `cert-manager` tag (`kubernetes.yml --tags cert-manager`) installs the
+# cert-manager Helm chart, which takes no group_vars; the issuers that
+# consume the variables below are applied later, during the DE
+# prerequisites pass.
+#
+# cert-manager always creates a self-signed default `Issuer` and a
+# self-signed default `ClusterIssuer` — NATS and Traefik rely on them for
+# in-cluster certificate chains. Setting `cert_manager_use_letsencrypt`
+# additionally creates a Let's Encrypt ACME `ClusterIssuer` that solves
+# DNS-01 challenges through Route53 (the only DNS provider currently
+# supported, using long-term AWS access keys).
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Let's Encrypt / Route53
+# ---------------------------------------------------------------------
+# Apart from the toggle, these variables only take effect when
+# `cert_manager_use_letsencrypt` is true. See
+# https://cert-manager.io/docs/configuration/acme/dns01/route53/ for the
+# IAM policy the access key needs.
+
+# Whether to create the Let's Encrypt ACME ClusterIssuer in addition to
+# the self-signed issuers.
+# Default: false
+# cert_manager_use_letsencrypt: true
+
+# AWS region for the Route53 DNS-01 solver.
+# Default: us-east-1
+# cert_manager_le_aws_region: us-east-1
+
+# AWS access key ID stored in the Route53 credentials secret.
+# Default: replace_me
+# cert_manager_le_aws_access_key_id: replace_me
+
+# AWS secret access key stored in the Route53 credentials secret.
+# Default: replace_me
+# cert_manager_le_aws_secret_access_key: replace_me
+
+# Name of the Secret (in the cert-manager namespace) holding the Route53
+# credentials.
+# Default: cert-manager-letsencrypt-aws-creds
+# cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
+
+# Name of the Let's Encrypt ClusterIssuer.
+# Default: letsencrypt
+# cert_manager_le_issuer_name: letsencrypt
+
+# Contact email registered with the ACME account.
+# Default: someone@example.org
+# cert_manager_le_issuer_email: someone@example.org
+
+# ACME directory URL. Defaults to the production endpoint; switch to the
+# staging endpoint (https://acme-staging-v02.api.letsencrypt.org/directory)
+# while testing to avoid hitting production rate limits.
+# Default: https://acme-v02.api.letsencrypt.org/directory
+# cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
+
+# Name of the Secret cert-manager stores the ACME account private key in.
+# Default: letsencrypt-issuer-key
+# cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
+
+
+# =====================================================================
 # In-cluster storage: Longhorn
 # =====================================================================
-# Installed by the `longhorn` role during the create-cluster phase (it
-# runs before `openldap-docker`, which depends on a persistent volume).
-# Longhorn provides replicated local block storage via a StorageClass
-# named `longhorn`. The class is NOT made the cluster default, so PVCs
-# must set `storageClassName: longhorn` explicitly.
+# Installed by the `longhorn` role (it runs before `openldap-docker`,
+# which depends on a persistent volume). Longhorn provides replicated
+# local block storage via a StorageClass named `longhorn`. The class is
+# not made the cluster default, so PVCs must set
+# `storageClassName: longhorn` explicitly.
 
 # Whether to install Longhorn.
 # Default: false
