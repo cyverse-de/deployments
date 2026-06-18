@@ -576,6 +576,181 @@
 
 
 # =====================================================================
+# Phase 7: DE Prerequisites
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags de-reqs` (runs the
+# `k8s_de_reqs` role: installs the gateway/ingress controllers, creates
+# the DE and VICE namespaces and the cert-manager issuers, writes the
+# timezone ConfigMap, deploys the local-exim mail relay, and creates the
+# Harbor image-pull secret).
+#
+# Run this phase after cert-manager (Phase 6) — the issuers and the
+# traefik certificates created here depend on the cert-manager CRDs. The
+# cert-manager issuer variables (`cert_manager_*`) are applied during
+# this pass but are documented under Phase 6.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear in
+# roughly the order they are first consulted during the pass.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Gateway / ingress provider
+# ---------------------------------------------------------------------
+
+# Which gateway controller to install. When set to "traefik" the Traefik
+# subsection below applies; other values skip the Traefik tasks. The
+# ingress-nginx controller is installed regardless of this setting.
+# Default: traefik
+# gateway_provider: traefik
+
+
+# ---------------------------------------------------------------------
+# Traefik (only when gateway_provider == "traefik")
+# ---------------------------------------------------------------------
+# Traefik issues its TLS certificate through cert-manager using the
+# self-signed `default-cluster-issuer` created in the issuers step, so
+# cert-manager must already be installed.
+
+# Version tag of the Kubernetes Gateway API CRDs applied before Traefik.
+# Default: v1.4.0
+# gateway_api_crd_version: v1.4.0
+
+# Namespace Traefik and its certificates are installed into.
+# Default: traefik
+# traefik_namespace: traefik
+
+# Name of the self-signed CA Certificate (and its backing Secret).
+# Default: traefik-selfsigned-ca
+# traefik_ca_name: traefik-selfsigned-ca
+
+# Validity period of the self-signed CA certificate.
+# Default: 8766h
+# traefik_ca_duration: 8766h
+
+# How long before CA expiry cert-manager renews it.
+# Default: 240h
+# traefik_ca_renew_before: 240h
+
+# Name of the CA-backed Issuer that signs the Traefik TLS certificate.
+# Default: traefik-ca-issuer
+# traefik_issuer_name: traefik-ca-issuer
+
+# Name of the Traefik TLS Certificate (and its backing Secret).
+# Default: traefik-tls
+# traefik_cert_name: traefik-tls
+
+# Validity period of the Traefik TLS certificate.
+# Default: 2160h
+# traefik_cert_duration: 2160h
+
+# How long before TLS expiry cert-manager renews it.
+# Default: 240h
+# traefik_cert_renew_before: 240h
+
+# NodePort Traefik exposes for plain HTTP.
+# Default: 31380
+# traefik_http_port: 31380
+
+# NodePort Traefik exposes for HTTPS.
+# Default: 31383
+# traefik_https_port: 31383
+
+
+# ---------------------------------------------------------------------
+# ingress-nginx
+# ---------------------------------------------------------------------
+# The ingress-nginx controller is installed in every de-reqs run.
+
+# NodePort the ingress-nginx controller exposes for plain HTTP.
+# Default: 31343
+# ingress_nginx_http_port: 31343
+
+# NodePort the ingress-nginx controller exposes for HTTPS.
+# Default: 31344
+# ingress_nginx_https_port: 31344
+
+
+# ---------------------------------------------------------------------
+# DE namespaces and TLS hostnames
+# ---------------------------------------------------------------------
+# `ns` and `vice_ns` are the core DE/VICE namespaces consumed throughout
+# the rest of the deployment; this is the phase that creates them. The
+# wildcard FQDNs and base domain are baked into the Traefik certificate's
+# DNS names.
+
+# Namespace the Discovery Environment services run in.
+# Default: qa
+# ns: qa
+
+# Namespace VICE (interactive) apps run in.
+# Default: vice-apps
+# vice_ns: vice-apps
+
+# Wildcard FQDN for the DE web UI, added to the Traefik certificate.
+# Default: "*.cyverse.org"
+# ui_wildcard_fqdn: "*.cyverse.org"
+
+# Wildcard FQDN for VICE apps, added to the Traefik certificate.
+# Default: "*.cyverse.run"
+# vice_wildcard_fqdn: "*.cyverse.run"
+
+# Base domain for VICE apps, added to the Traefik certificate.
+# Default: cyverse.run
+# vice_base_domain: cyverse.run
+
+
+# ---------------------------------------------------------------------
+# local-exim mail relay
+# ---------------------------------------------------------------------
+# Deploys a small exim relay (in the `ns` namespace) that DE services
+# send outbound mail through. It reuses the `timezone` value documented
+# under Phase 4 for the container clock.
+
+# Upstream smarthost (host:port) exim forwards mail to.
+# Default: "127.0.0.1:25"
+# exim_smarthost: "127.0.0.1:25"
+
+# Password exim authenticates to the smarthost with.
+# Default: "127.0.0.1"
+# exim_password: "127.0.0.1"
+
+# CIDR/host list allowed to relay mail through exim.
+# Default: "172.17.0.0/24:127.0.0.1"
+# exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
+
+
+# ---------------------------------------------------------------------
+# Harbor image-pull secret
+# ---------------------------------------------------------------------
+# Logs in to the Harbor registry with a robot account and writes the
+# resulting dockerconfigjson Secret into the argo and VICE namespaces so
+# pods can pull private images.
+
+# Harbor registry URL.
+# Default: harbor.cyverse.org
+# harbor_url: harbor.cyverse.org
+
+# Harbor robot account username.
+# Default: harbor-robot
+# harbor_robot_name: harbor-robot
+
+# Secret/token for the Harbor robot account.
+# Default: replace_me
+# harbor_robot_secret: replace_me
+
+# Name of the image-pull Secret created in the argo and VICE namespaces.
+# Default: vice-image-pull-secret
+# vice_image_pull_secret: vice-image-pull-secret
+
+# Namespace for Argo Workflows; receives a copy of the pull secret.
+# Default: argo
+# argo_ns: argo
+
+
+# =====================================================================
 # In-cluster storage: Longhorn
 # =====================================================================
 # Installed by the `longhorn` role (it runs before `openldap-docker`,
