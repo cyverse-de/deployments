@@ -85,6 +85,11 @@
     - role: cert-manager
       tags: cert-manager
 
+    - role: argo
+      tags:
+        - argo
+        - de-reqs
+
     - role: k8s_de_reqs
       tags: de-reqs
 
@@ -275,9 +280,6 @@
     - role: jaeger
       tags: jaeger
       when: "'jaeger' in ansible_run_tags"
-
-    - role: argo
-      tags: argo
 
     - role: argo_resources
       tags:

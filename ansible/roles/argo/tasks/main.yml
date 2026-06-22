@@ -20,7 +20,7 @@
           apiVersion: v1
           kind: Namespace
           metadata:
-            name: argo-events
+            name: "{{ argo_events_ns }}"
 
     - name: Install argo
       kubernetes.core.k8s:

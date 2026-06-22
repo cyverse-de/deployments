@@ -866,6 +866,22 @@
 
 
 # ---------------------------------------------------------------------
+# Argo Installation
+# ---------------------------------------------------------------------
+# The Discovery Environment uses Argo Workflows to run non-interactive
+# analyses. The only configurable settings at this time are the names
+# of the namespaces.
+
+# Namespace for Argo Workflows
+# Default: argo
+# argo_ns: argo
+
+# Namespace for Argo Events
+# Default: argo-events
+# argo_events_ns: argo-events
+
+
+# ---------------------------------------------------------------------
 # Harbor image-pull secret
 # ---------------------------------------------------------------------
 # Logs in to the Harbor registry with a robot account and writes the
@@ -888,11 +904,6 @@
 # Name of the image-pull Secret created in the argo and VICE namespaces.
 # Default: vice-image-pull-secret
 # vice_image_pull_secret: vice-image-pull-secret
-
-# Namespace for Argo Workflows; receives a copy of the pull secret.
-# Default: argo
-# argo_ns: argo
-
 
 # =====================================================================
 # In-cluster storage: Longhorn
