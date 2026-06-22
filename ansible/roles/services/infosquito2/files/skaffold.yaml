@@ -5,6 +5,10 @@ metadata:
 build:
   artifacts:
     - image: harbor.cyverse.org/de/infosquito2
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
   platforms:
     - "linux/amd64"
   tagPolicy:

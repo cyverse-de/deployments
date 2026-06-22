@@ -12,7 +12,9 @@
 #   push_images:     push the built image and update the descriptor when true;
 #                    build only (no push, descriptor untouched) when false (default: true).
 #
-# A `docker login` to the target registry must already be in place.
+# A `docker login` to the target registry must already be in place. Builds run
+# through a custom buildx builder that reads/writes a `<image>:cache` registry
+# layer cache; the role creates a container-driver `de-builder` automatically.
 
 ---
 - name: build services

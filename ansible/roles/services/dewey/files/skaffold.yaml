@@ -11,4 +11,8 @@ build:
     gitCommit: {}
   artifacts:
   - image: harbor.cyverse.org/de/dewey
+    custom:
+      buildCommand: ./buildx-build.sh
+      dependencies:
+        paths: ["**"]
   local: {}
