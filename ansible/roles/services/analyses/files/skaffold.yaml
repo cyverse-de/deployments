@@ -5,6 +5,10 @@ metadata:
 build:
   artifacts:
     - image: harbor.cyverse.org/de/analyses
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
   tagPolicy:
     gitCommit: {}
   local: {}

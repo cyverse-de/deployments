@@ -65,12 +65,35 @@
             dest: "{{ build_tmp.path }}/repo/k8s/"
             remote_src: true
 
+        # The service skaffold.yaml uses a custom builder that runs this script,
+        # so it has to be present at the build context root the build runs from.
+        - name: overlay the shared buildx build script
+          delegate_to: localhost
+          ansible.builtin.copy:
+            src: buildx-build.sh
+            dest: "{{ build_tmp.path }}/repo/buildx-build.sh"
+            mode: "0755"
+
         - name: point the image at the configured registry
           delegate_to: localhost
           ansible.builtin.replace:
             path: "{{ build_tmp.path }}/repo/skaffold.yaml"
             regexp: 'harbor\.cyverse\.org'
             replace: "{{ image_registry }}"
+
+        # The custom builder pushes a mode=max registry cache, which needs a
+        # container-driver buildx builder (the default `docker` driver can't
+        # export one). Create it if absent and make it the active builder.
+        - name: ensure a container-driver buildx builder exists
+          delegate_to: localhost
+          ansible.builtin.command: docker buildx create --name de-builder --driver docker-container
+          changed_when: false
+          failed_when: false
+
+        - name: select the buildx builder
+          delegate_to: localhost
+          ansible.builtin.command: docker buildx use de-builder
+          changed_when: false
 
         # Push and write the descriptor only when push_images is set; otherwise
         # just build the image locally (a verify/build-only run that leaves
