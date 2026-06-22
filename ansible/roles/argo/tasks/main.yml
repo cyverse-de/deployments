@@ -70,7 +70,6 @@
             apiGroup: rbac.authorization.k8s.io
             kind: ClusterRole
             name: argo-executor
-            namespace: "{{ argo_ns }}"
           subjects:
             - kind: ServiceAccount
               name: argo-executor
