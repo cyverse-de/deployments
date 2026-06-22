@@ -11,4 +11,8 @@ build:
     gitCommit: {}
   artifacts:
   - image: harbor.cyverse.org/de/get-analysis-id
+    custom:
+      buildCommand: ./buildx-build.sh
+      dependencies:
+        paths: ["**"]
   local: {}

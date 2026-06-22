@@ -5,9 +5,10 @@ metadata:
 build:
   artifacts:
     - image: harbor.cyverse.org/de/kifshare
-      docker:
-        cacheFrom:
-          - harbor.cyverse.org/de/kifshare:cache
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
   tagPolicy:
     gitCommit: {}
   local: {}

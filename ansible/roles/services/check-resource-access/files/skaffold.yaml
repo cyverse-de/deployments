@@ -5,6 +5,10 @@ metadata:
 build:
   artifacts:
     - image: harbor.cyverse.org/de/check-resource-access
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
   platforms:
     - "linux/amd64"
   tagPolicy:

@@ -56,6 +56,13 @@ checkout lives elsewhere or under a different name.
 ## Prerequisites
 
 - **Docker** with **BuildKit** available, and **skaffold** on `PATH`.
+- A **container-driver `buildx` builder** for push builds. Each service builds
+  through a custom builder (`roles/build-service/files/buildx-build.sh`) that
+  reads and writes a `<image>:cache` registry layer cache, and exporting that
+  cache needs a container-driver builder — the default `docker` driver cannot.
+  The build role creates and selects a `de-builder` builder automatically; you
+  only need `docker buildx` available. (Build-only/verify runs that don't push
+  skip the cache export and work on any builder.)
 - A `docker login` to the target registry (default `harbor.cyverse.org`) must
   already be in place — pushes use the ambient Docker credentials.
 - The service source repos cloned under `source_repo_dir`
@@ -134,14 +141,21 @@ For each selected service the `build-service` role:
    checkout itself is never modified.
 3. `git fetch --tags` first, so a requested release tag resolves even if the
    clone is stale.
-4. Overlays the service role's `skaffold.yaml` and `k8s/` onto the worktree.
+4. Overlays the service role's `skaffold.yaml`, `k8s/`, and the shared
+   `buildx-build.sh` onto the worktree.
 5. Rewrites `harbor.cyverse.org` in the overlaid skaffold config to
    `image_registry`.
-6. Runs `skaffold build` (with `--cache-artifacts=false` when `force_rebuild`,
-   and `--push --file-output <descriptor>` when `push_images`).
-7. Rewrites `roles/services/<service>/files/<service>.json` with the new digest
+6. Ensures a container-driver `de-builder` buildx builder exists and selects it.
+7. Runs `skaffold build` (with `--cache-artifacts=false` when `force_rebuild`,
+   and `--push --file-output <descriptor>` when `push_images`). The skaffold
+   config uses a custom builder that runs `buildx-build.sh`, which builds with
+   `docker buildx` and a **mode=max `<image>:cache` registry layer cache** — so
+   the dependency-download stage of multi-stage builds (e.g. Clojure
+   Maven/Clojars) is reused across builds instead of re-fetched from upstream.
+   The cache is read on every build and re-exported only on a push build.
+8. Rewrites `roles/services/<service>/files/<service>.json` with the new digest
    (only when pushing).
-8. Removes the worktree and temp directory.
+9. Removes the worktree and temp directory.
 
 A service can build from another service's source repo: `source_service`
 (default: the service's own name) names the repo the build checks out. The only
@@ -227,18 +241,6 @@ to point at a separate releases checkout (the QA inventory points it at a siblin
 `de-releases/builds` directory). If a freshly built image isn't picked up on
 deploy, confirm the descriptor was published to the location `build_json_dir`
 resolves to.
-
-### `the --mount option requires BuildKit`
-
-The service's Dockerfile uses a BuildKit feature (e.g.
-`RUN --mount=type=cache,...`), but skaffold's local builder used the legacy
-Docker builder. Enable BuildKit in that service's `files/skaffold.yaml`:
-
-```yaml
-build:
-  local:
-    useBuildkit: true
-```
 
 ### A release tag won't check out
 
