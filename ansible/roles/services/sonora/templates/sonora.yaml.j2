@@ -57,10 +57,6 @@ tools:
     max_gpu_limit: {{ de_tools_admin_max_gpu_limit }}
   private:
     max_gpu_limit: {{ de_tools_admin_max_gpu_limit }}
-unleash:
-  api_url: {{ unleash_base_url|string|regex_replace("\/$","") }}{{ unleash_api_path }}
-  client_secret: "{{ unleash_api_token }}"
-  maintenance_flag: {{ unleash_maintenance_flag }}
 username:
   suffix: "{{ uid_domain }}"
 subscriptions:
