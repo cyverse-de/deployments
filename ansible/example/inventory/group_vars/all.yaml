@@ -1,5 +1,153 @@
 ---
 # =====================================================================
+# Global settings (umbrella variables)
+# =====================================================================
+# These identity and endpoint variables are consumed throughout the
+# deployment. Most other defaults in `roles/common/defaults/main.yml`
+# interpolate from them, so setting one here propagates everywhere it is
+# referenced. They are not tied to a single `--tags` pass — they apply to
+# every phase below.
+#
+# The values that ship as `replace_me` have to be set for a real
+# deployment; the rest carry working CyVerse defaults you can override.
+#
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Identity
+# ---------------------------------------------------------------------
+
+# Namespace the Discovery Environment services run in. Also the basis for
+# `env`, and woven into namespaced names (AMQP vhosts, the Grouper folder
+# prefix, the VICE gateway namespace, ...). Phase 7 is where this
+# namespace is actually created.
+# Default: qa
+# ns: qa
+
+# Deployment environment label. Derived from `ns`; used in AMQP vhosts
+# (e.g. /{{ env }}/de), the Grouper folder prefix, and similar. Override
+# only to decouple the label from the namespace.
+# Default: "{{ ns }}"
+# env: qa
+
+
+# ---------------------------------------------------------------------
+# Public hostnames and domains
+# ---------------------------------------------------------------------
+
+# FQDN the DE web app is served at. Drives de_base_uri, the formation and
+# Tapis URLs, the portal's terrain URL, and more.
+# Default: de.cyverse.org
+# de_hostname: de.cyverse.org
+
+# FQDN the user portal is served at. Drives the portal UI/API/WS base
+# URLs and user_portal_base_uri.
+# Default: user.cyverse.org
+# portal_hostname: user.cyverse.org
+
+# Base domain VICE apps are served under. Drives vice_wildcard_fqdn,
+# vice_domain, vice_base_uri, and the VICE operator base URLs.
+# Default: cyverse.run
+# vice_base_domain: cyverse.run
+
+# Container registry hostname. Drives harbor_url, harbor_fqdn,
+# harbor_external_domain, and the VICE operator registry server.
+# Default: harbor.cyverse.org
+# registry_hostname: harbor.cyverse.org
+
+
+# ---------------------------------------------------------------------
+# Keycloak
+# ---------------------------------------------------------------------
+
+# FQDN of the Keycloak server. No working default — set it.
+# Default: replace_me
+# keycloak_hostname: keycloak.cyverse.org
+
+# Base auth URI for Keycloak. Derived from keycloak_hostname; drives the
+# formation, VICE, and portal Keycloak URLs. Override only for a
+# non-standard auth path.
+# Default: "https://{{ keycloak_hostname }}/auth"
+# keycloak_server_uri: https://keycloak.cyverse.org/auth
+
+# Keycloak realm the DE clients live in. No working default — set it.
+# Default: replace_me
+# keycloak_realm_name: CyVerse
+
+
+# ---------------------------------------------------------------------
+# LDAP
+# ---------------------------------------------------------------------
+# Consumed by the portal, Grouper, and Keycloak. All three ship as
+# replace_me and have to be set when those components are enabled.
+
+# LDAP connection URI (e.g. ldap://ldap.example.org:389).
+# Default: replace_me
+# ldap_uri: ldap://ldap.example.org:389
+
+# LDAP base DN (e.g. dc=example,dc=org).
+# Default: replace_me
+# ldap_base_dn: dc=example,dc=org
+
+# CN of the LDAP bind/admin account (combined with ldap_base_dn for the
+# full bind DN).
+# Default: replace_me
+# ldap_cn: cn=admin
+
+
+# ---------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------
+
+# From-address for outbound DE mail. Drives portal_smtp_from.
+# Default: replace_me@replace_me.replace_me
+# email_src: noreply@cyverse.org
+
+# Destination/contact address. Drives the cert-manager ACME email, the
+# permanent-ID and support destinations, and the portal BCC addresses.
+# Default: replace_me@replace_me.replace_me
+# email_dest: support@cyverse.org
+
+
+# ---------------------------------------------------------------------
+# iRODS
+# ---------------------------------------------------------------------
+
+# iRODS host the data store is reached at. Drives the iRODS CSI driver
+# host, the external host, the WebDAV anon URI, the Tapis storage system,
+# and a VICE operator egress exception.
+# Default: data.cyverse.rocks
+# irods_host: data.cyverse.rocks
+
+# iRODS account username for the CSI driver.
+# Default: replace_me
+# irods_user: de-irods
+
+# iRODS zone. Drives the CSI driver zone, mount-path whitelist, and cache
+# timeout settings.
+# Default: replace_me
+# irods_zone: iplant
+
+# Password for the iRODS account.
+# Default: replace_me
+# irods_password: replace_me
+
+
+# ---------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------
+
+# PostgreSQL host the application services connect to. Drives
+# portal_db_host and grouper_db_host. (The Phase 1/2 database passes use
+# the `dbms` inventory group, not this variable.)
+# Default: replace_me
+# db_host: db.cyverse.org
+
+
+# =====================================================================
 # Phase 1: PostgreSQL Installation (optional)
 # =====================================================================
 # Variables consulted by `kubernetes.yml --tags install-postgres`
@@ -560,8 +708,9 @@
 # Default: letsencrypt
 # cert_manager_le_issuer_name: letsencrypt
 
-# Contact email registered with the ACME account.
-# Default: someone@example.org
+# Contact email registered with the ACME account. Defaults to the shared
+# `email_dest` address; set either one.
+# Default: "{{ email_dest }}"
 # cert_manager_le_issuer_email: someone@example.org
 
 # ACME directory URL. Defaults to the production endpoint; switch to the
@@ -574,6 +723,187 @@
 # Default: letsencrypt-issuer-key
 # cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
 
+
+# =====================================================================
+# Phase 7: DE Prerequisites
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags de-reqs` (runs the
+# `k8s_de_reqs` role: installs the gateway/ingress controllers, creates
+# the DE and VICE namespaces and the cert-manager issuers, writes the
+# timezone ConfigMap, deploys the local-exim mail relay, and creates the
+# Harbor image-pull secret).
+#
+# Run this phase after cert-manager (Phase 6) — the issuers and the
+# traefik certificates created here depend on the cert-manager CRDs. The
+# cert-manager issuer variables (`cert_manager_*`) are applied during
+# this pass but are documented under Phase 6.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear in
+# roughly the order they are first consulted during the pass.
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+# Gateway / ingress provider
+# ---------------------------------------------------------------------
+
+# Which gateway controller to install. When set to "traefik" the Traefik
+# subsection below applies; other values skip the Traefik tasks. The
+# ingress-nginx controller is installed regardless of this setting.
+# Default: traefik
+# gateway_provider: traefik
+
+
+# ---------------------------------------------------------------------
+# Traefik (only when gateway_provider == "traefik")
+# ---------------------------------------------------------------------
+# Traefik issues its TLS certificate through cert-manager using the
+# self-signed `default-cluster-issuer` created in the issuers step, so
+# cert-manager must already be installed.
+
+# Version tag of the Kubernetes Gateway API CRDs applied before Traefik.
+# Default: v1.4.0
+# gateway_api_crd_version: v1.4.0
+
+# Namespace Traefik and its certificates are installed into.
+# Default: traefik
+# traefik_namespace: traefik
+
+# Name of the self-signed CA Certificate (and its backing Secret).
+# Default: traefik-selfsigned-ca
+# traefik_ca_name: traefik-selfsigned-ca
+
+# Validity period of the self-signed CA certificate.
+# Default: 8766h
+# traefik_ca_duration: 8766h
+
+# How long before CA expiry cert-manager renews it.
+# Default: 240h
+# traefik_ca_renew_before: 240h
+
+# Name of the CA-backed Issuer that signs the Traefik TLS certificate.
+# Default: traefik-ca-issuer
+# traefik_issuer_name: traefik-ca-issuer
+
+# Name of the Traefik TLS Certificate (and its backing Secret).
+# Default: traefik-tls
+# traefik_cert_name: traefik-tls
+
+# Validity period of the Traefik TLS certificate.
+# Default: 2160h
+# traefik_cert_duration: 2160h
+
+# How long before TLS expiry cert-manager renews it.
+# Default: 240h
+# traefik_cert_renew_before: 240h
+
+# NodePort Traefik exposes for plain HTTP.
+# Default: 31380
+# traefik_http_port: 31380
+
+# NodePort Traefik exposes for HTTPS.
+# Default: 31383
+# traefik_https_port: 31383
+
+
+# ---------------------------------------------------------------------
+# ingress-nginx
+# ---------------------------------------------------------------------
+# The ingress-nginx controller is installed in every de-reqs run.
+
+# NodePort the ingress-nginx controller exposes for plain HTTP.
+# Default: 31343
+# ingress_nginx_http_port: 31343
+
+# NodePort the ingress-nginx controller exposes for HTTPS.
+# Default: 31344
+# ingress_nginx_https_port: 31344
+
+
+# ---------------------------------------------------------------------
+# DE namespaces and TLS hostnames
+# ---------------------------------------------------------------------
+# This phase creates the `ns` and `vice_ns` namespaces. `ns` and
+# `vice_base_domain` are documented in the global settings section at the
+# top of this file; the wildcard FQDNs below are baked into the Traefik
+# certificate's DNS names (along with `vice_base_domain`).
+
+# Namespace VICE (interactive) apps run in.
+# Default: vice-apps
+# vice_ns: vice-apps
+
+# Wildcard FQDN for the DE web UI, added to the Traefik certificate.
+# Default: "*.cyverse.org"
+# ui_wildcard_fqdn: "*.cyverse.org"
+
+# Wildcard FQDN for VICE apps, added to the Traefik certificate. Derived
+# from `vice_base_domain` (see the global settings section); override
+# only to break that link.
+# Default: "*.{{ vice_base_domain }}"
+# vice_wildcard_fqdn: "*.cyverse.run"
+
+
+# ---------------------------------------------------------------------
+# local-exim mail relay
+# ---------------------------------------------------------------------
+# Deploys a small exim relay (in the `ns` namespace) that DE services
+# send outbound mail through. It reuses the `timezone` value documented
+# under Phase 4 for the container clock.
+
+# Upstream smarthost (host:port) exim forwards mail to.
+# Default: "127.0.0.1:25"
+# exim_smarthost: "127.0.0.1:25"
+
+# Password exim authenticates to the smarthost with.
+# Default: "127.0.0.1"
+# exim_password: "127.0.0.1"
+
+# CIDR/host list allowed to relay mail through exim.
+# Default: "172.17.0.0/24:127.0.0.1"
+# exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
+
+
+# ---------------------------------------------------------------------
+# Argo Installation
+# ---------------------------------------------------------------------
+# The Discovery Environment uses Argo Workflows to run non-interactive
+# analyses. The only configurable settings at this time are the names
+# of the namespaces.
+
+# Namespace for Argo Workflows
+# Default: argo
+# argo_ns: argo
+
+# Namespace for Argo Events
+# Default: argo-events
+# argo_events_ns: argo-events
+
+
+# ---------------------------------------------------------------------
+# Harbor image-pull secret
+# ---------------------------------------------------------------------
+# Logs in to the Harbor registry with a robot account and writes the
+# resulting dockerconfigjson Secret into the argo and VICE namespaces so
+# pods can pull private images.
+
+# Harbor registry URL. Defaults to the shared `registry_hostname`
+# (harbor.cyverse.org); set either one.
+# Default: "{{ registry_hostname }}"
+# harbor_url: harbor.cyverse.org
+
+# Harbor robot account username.
+# Default: harbor-robot
+# harbor_robot_name: harbor-robot
+
+# Secret/token for the Harbor robot account.
+# Default: replace_me
+# harbor_robot_secret: replace_me
+
+# Name of the image-pull Secret created in the argo and VICE namespaces.
+# Default: vice-image-pull-secret
+# vice_image_pull_secret: vice-image-pull-secret
 
 # =====================================================================
 # In-cluster storage: Longhorn

@@ -659,6 +659,9 @@ keycloak_ephemeral_storage_limit: "2Gi"
 keycloak_proxy_headers: "xforwarded"
 keycloak_http_enabled: "true"
 
+# Gateway API CRD version
+gateway_api_crd_version: v1.4.0
+
 # Gateway provider configuration
 gateway_provider: "traefik"
 gateway_class_name: "traefik"

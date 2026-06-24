@@ -4,6 +4,11 @@
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
+    - name: Install Gateway API CRDs
+      kubernetes.core.k8s:
+        state: present
+        src: https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml
+
     - name: Create traefik namespace
       kubernetes.core.k8s:
         name: "{{ traefik_namespace }}"
@@ -132,8 +137,3 @@
             default:
               defaultCertificate:
                 secretName: "{{ traefik_cert_name }}"
-
-    - name: Install Gateway API CRDs
-      kubernetes.core.k8s:
-        state: present
-        src: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
