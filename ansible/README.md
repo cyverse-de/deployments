@@ -1,55 +1,65 @@
 # Ansible Playbooks
 
+For an overview of the required repositories, CI builds, and the production deployment process, see [docs/index.md](docs/index.md). For building service images from source, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+
 ## Required Ansible Collections
 
+- community.crypto
 - community.general
 - kubernetes.core
+- ansible.posix
+
+These (and the required roles) can be installed with `ansible-galaxy install -r requirements.yml`.
 
 ## Database Initialization
 
-The following databases are created by the `postgresql_init.yml` playbook:
+Databases are created and migrated by the `postgresql_init` role, which runs in `kubernetes.yml` under the
+`setup-databases` tag:
 
-| Database      | Owner    | Auto Init    | Auto Migrate |
-| ------------- | -------- | ------------ | ------------ |
-| de            | de       | no           | no           |
-| notifications | de       | no           | no           |
-| metadata      | de       | no           | no           |
-| de_releases   | de       | no           | no           |
-| grouper       | grouper  | yes          | ?            |
-| qms           | de       | configurable | configurable |
-| unleash       | de       | yes          | ?            |
-| keycloak      | keycloak | yes          | ?            |
+```bash
+ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
+```
 
-The owner users are configurable through the `dbms_connection_user` and `grouper_connection_user` group_vars.
+| Database                  | Owner                   | Enabled by      | Migrations |
+| ------------------------- | ----------------------- | --------------- | ---------- |
+| de                        | `dbms_connection_user`  | always          | yes        |
+| notifications             | `dbms_connection_user`  | always          | yes        |
+| metadata                  | `dbms_connection_user`  | always          | yes        |
+| grouper                   | `grouper_connection_user` | `grouper` var | no — Grouper initializes its own schema |
+| qms                       | `dbms_connection_user`  | `qms` var       | yes        |
+| unleash                   | `dbms_connection_user`  | `unleash` var   | no — Unleash initializes its own schema |
+| keycloak                  | `keycloak_db_username`  | `keycloak` var  | no — Keycloak manages its own schema |
+| harbor_core, harbor_clair | `harbor_database_user`  | `harbor` var    | no         |
+| portal                    | `portal_db_user`        | `portal` var    | yes        |
 
-Migrations are run for the `de`, `metadata`, `notifications`, and `de_releases` databases. The `grouper` database is
-handled by its own playbook since it's fairly complicated. The `qms` database is created here, but populated by the
-`qms` service. `unleash` is not yet initialized by this playbook.
+The `create_user`, `create_dbs`, `install_exts`, and `migrate` variables control whether database users, the databases
+themselves, extensions, and migrations are handled on a given run. These, the per-service enable flags, and the owner
+user names are normally set in the private inventory's group_vars.
 
 ## Kubernetes
 
 The k0s distribution of Kubernetes is used by the DE, with the `k0sctl` tool providing the ability to bring up and tear
 down clusters according to a YAML configuration file. We're using stacked control nodes, which means that each control
-node also acts as a etcd member node. Control nodes do not run workloads and do not show up in the `kubectl get nodes`
+node also acts as an etcd member node. Control nodes do not run workloads and do not show up in the `kubectl get nodes`
 command output.
 
 ## OpenLDAP
 
-The DE uses OpenLDAP using an RFC2307 schema as its user directory by default. If you don't have an existing LDAP
-directory, the [OpenLDAP playbooks](ldap) can be used to create a new one. Note: the DE has not been tested with other
-LDAP schemas.
+The DE uses OpenLDAP with an RFC 2307 schema as its user directory by default. If you don't have an existing LDAP
+directory, the `ldap_slapd.yml` playbook can be used to create a new one; see [docs/ldap.md](docs/ldap.md). Note: the
+DE has not been tested with other LDAP schemas.
 
 ## RabbitMQ
 
 The DE and CyVerse Data Store both use RabbitMQ as a message bus. The DE uses it for notifications, and the data store
-uses it to push updates to ElasticSearch for indexing. The [RabbitMQ playbooks](rabbitmq) will install RabbitMQ on a
-single node.
+uses it to push updates to ElasticSearch for indexing. The `rabbitmq.yml` playbook will install and configure RabbitMQ
+on a single node; see [docs/rabbitmq.md](docs/rabbitmq.md).
 
 ## HTCondor
 
 The DE uses HTCondor to run non-interactive analyses. Several DE specific components are required for this to work, so
 the recommended approach is to create a new HTCondor cluster that is dedicated to the DE. This can be done using the
-[HTCondor playbooks](condor).
+`condor.yml` playbook.
 
 ## Cert-Manager
 
@@ -58,74 +68,88 @@ The DE uses cert-manager to generate and rotate self-signed TLS certs for use wi
 ## NATS
 
 The DE uses NATS in the backend to communicate between some services. By default, NATS is installed in clustered mode
-with 5 nodes. You should be able to connect to any node to communicate with other services using NATS. The
-[NATS playbooks](nats) will install `helm` inside the cluster and use it to set up and run NATS.
+with 4 replicas. You should be able to connect to any node to communicate with other services using NATS. The `nats`
+role installs NATS via its Helm chart and runs in `kubernetes.yml` under the `nats` tag; see
+[docs/nats.md](docs/nats.md) for retrieving the client/server TLS files.
 
 **NOTE** Make sure the `KUBECONFIG` environment variable is set to the correct value in your local shell.
 
 ## GoCD
 
-We use GoCD for continuous deployment. It's deployed outside of a kubernetes cluster to simplify the automation of cluster maintainance.
+We use GoCD for continuous deployment. It's deployed outside of the Kubernetes cluster to simplify the automation of cluster maintenance.
 
-| Playbook            | Description                               | Example                                         |
-| ------------------- | ----------------------------------------- | ----------------------------------------------- |
-| gocd.yml            | Installs GoCD cluster                     | `ansible-playbook -i <inventory> -K gocd.yml`   |
-| gocd_k3s_config.yml | Installs kubeconfig onto GoCD agent nodes | `ansible -i <inventory> -K gocd_k3s_config.yml` |
+| Playbook              | Description                                              | Example                                                  |
+| --------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| gocd.yml              | Installs the GoCD server and agents (includes the below) | `ansible-playbook -i <inventory> -K gocd.yml`            |
+| gocd_kubeconfig.yaml  | Installs the kubeconfig onto GoCD agent nodes            | `ansible-playbook -i <inventory> -K gocd_kubeconfig.yaml` |
 
 ## Grouper
 
-Grouper is installed inside the same cluster as the Discovery Environment, but the process is different enough from the rest of the services that it needs its own playbook and roles.
+Grouper is installed inside the same cluster as the Discovery Environment, but the process is different enough from
+the rest of the services that it has its own role. The `grouper_init` role runs in `kubernetes.yml` under the
+`grouper` tag:
 
-| Playbook    | Description                           | Example                                       |
-| ----------- | ------------------------------------- | --------------------------------------------- |
-| grouper.yml | Installs Grouper into the k3s cluster | `ansible-playbook -i <inventory> grouper.yml` |
+```bash
+ansible-playbook -i <inventory> --tags grouper kubernetes.yml
+```
 
 ## Keycloak
 
-Keycloak is used for authentication/authorization and is installed inside the same cluster as the Discovery Environment.
+Keycloak is used for authentication/authorization and is installed inside the same cluster as the Discovery
+Environment. The `keycloak_install` role runs in `kubernetes.yml`, and only when the `keycloak` tag is passed
+explicitly:
 
-| Playbook     | Description                            | Example                                        |
-| ------------ | -------------------------------------- | ---------------------------------------------- |
-| keycloak.yml | Installs keycloak into the k3s cluster | `ansible-playbook -i <inventory> keycloak.yml` |
+```bash
+ansible-playbook -i <inventory> --tags keycloak kubernetes.yml
+```
 
 ## Services
 
-The Discovery Environment services are installed and upgraded through `kubernetes.yml`, selected by tag. The `deploy-service` role runs `skaffold deploy` for each service.
+Each Discovery Environment service has a self-contained role under `roles/services/<service>/` that carries everything needed to configure, build, and deploy it:
 
-Deploying all of the configurations and all of the services:
+| Path | Purpose |
+| --- | --- |
+| `templates/` | The service's configuration template (if it needs one), rendered into a per-service `<service>-configs` secret at deploy time |
+| `files/skaffold.yaml`, `files/k8s/` | The canonical skaffold config and Kubernetes manifests for the service |
+| `files/<service>.json` | The build descriptor recording the exact image (git ref + digest) to deploy |
+| `tasks/main.yml` | Creates the config secret and deploys the service (via the `deploy-service` role) |
+| `tasks/build.yml` | Builds the service image from source (via the `build-service` role) |
+
+A shared `configs` secret holding environment-style settings used by many services is managed separately by the `service_configurations` role under the `configure-services` tag.
+
+### Deploying services
+
+Set `KUBECONFIG` to the target cluster before deploying. `deploy_it.yml` deploys services selected by tag, where each service's tag matches its role name:
 
 ```bash
+# one service
+ansible-playbook -i <inventory> deploy_it.yml --tags terrain
+
+# several services
+ansible-playbook -i <inventory> deploy_it.yml --tags terrain,sonora
+```
+
+The same roles are wired into `kubernetes.yml` for full-environment runs:
+
+```bash
+# the shared configs secret plus all of the services
 ansible-playbook -i <inventory> --tags configure-services,deploy-all-services kubernetes.yml
-```
 
-Deploying just the service configurations:
-
-```bash
+# just the shared configs secret
 ansible-playbook -i <inventory> --tags configure-services kubernetes.yml
-```
 
-Deploying a single service, without the configurations (set `project` to the service name):
-
-```bash
-ansible-playbook -i <inventory> --tags deploy-single-service -e project=<service> kubernetes.yml
-```
-
-Deploying all of the services, without the configurations:
-
-```bash
+# all of the services
 ansible-playbook -i <inventory> --tags deploy-all-services kubernetes.yml
 ```
 
-For CI/CD, the standalone `deploy_service.yml` playbook deploys a single service. Set `project` to the service name and `KUBECONFIG` in the environment:
+### Building services
 
-```bash
-ansible-playbook -i <inventory> -e project=<service> deploy_service.yml
-```
+For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`), rebuilding a release (`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
 # Common Tasks
 
 ## Add a Node to the Kubernetes Cluster
 
 ``` bash
-ansible-playbook -i <inventory> --ask-become-pass --tags add-nodes --limit <node-name> kubernetes.yaml
+ansible-playbook -i <inventory> --ask-become-pass --tags add-nodes --limit <node-name> kubernetes.yml
 ```

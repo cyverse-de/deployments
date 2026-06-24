@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: analyses
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/analyses
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+  platforms:
+    - "linux/amd64"
+manifests:
+  rawYaml:
+    - k8s/analyses.yml
+deploy:
+  kubectl: {}

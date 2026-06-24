@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: async-tasks
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/async-tasks
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/async-tasks.yml
+deploy:
+  kubectl: {}

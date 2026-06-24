@@ -1,0 +1,13 @@
+---
+# source_repo_dir is defined in the common role (a meta dependency).
+# Service whose source repo, skaffold.yaml, and k8s manifests drive the build.
+# Defaults to project_name; override when a binary is built from another
+# service's repo (e.g. vice-operator builds from the app-exposer repo).
+source_service: "{{ project_name }}"
+# Path to a service's source repo. Defaults to <source_repo_dir>/<source_service>;
+# override to point at an exact path when the checkout name differs.
+source_repo: "{{ source_repo_dir }}/{{ source_service }}"
+git_ref: main
+image_registry: harbor.cyverse.org
+force_rebuild: false
+push_images: true

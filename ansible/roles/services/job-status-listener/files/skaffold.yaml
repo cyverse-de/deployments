@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: job-status-listener
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/job-status-listener
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/job-status-listener.yml
+deploy:
+  kubectl: {}

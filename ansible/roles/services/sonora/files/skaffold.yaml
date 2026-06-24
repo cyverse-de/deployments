@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: sonora
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/sonora
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  platforms:
+    - linux/amd64
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/sonora.yml
+deploy:
+  kubectl: {}

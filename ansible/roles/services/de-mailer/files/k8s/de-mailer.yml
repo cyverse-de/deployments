@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: de-mailer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      de-app: de-mailer
+  template:
+    metadata:
+      labels:
+        de-app: de-mailer
+    spec:
+      restartPolicy: Always
+      volumes:
+        - name: de-mailer-configs
+          secret:
+            secretName: de-mailer-configs
+            items:
+              - key: emailservice.yml
+                path: emailservice.yml
+      containers:
+        - name: de-mailer
+          image: harbor.cyverse.org/de/de-mailer
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
+          args:
+            - --config
+            - /etc/iplant/de/emailservice.yml
+          volumeMounts:
+            - name: de-mailer-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          ports:
+            - name: listen-port
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: de-mailer
+spec:
+  selector:
+    de-app: de-mailer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: "listen-port"

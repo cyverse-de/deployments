@@ -1,0 +1,36 @@
+---
+- name: ensure the source repo directory exists
+  ansible.builtin.file:
+    path: "{{ source_repo_dir }}"
+    state: directory
+
+- name: check which source repos are already cloned
+  ansible.builtin.stat:
+    path: "{{ source_repo_dir }}/{{ item }}/.git"
+  loop: "{{ source_repos }}"
+  loop_control:
+    label: "{{ item }}"
+  register: source_repo_stats
+
+- name: clone the missing source repos
+  ansible.builtin.git:
+    repo: "{{ source_repo_urls.get(item.item, cyverse_repo_base ~ '/' ~ item.item) }}"
+    dest: "{{ source_repo_dir }}/{{ item.item }}"
+    update: false
+  loop: "{{ source_repo_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: not item.stat.exists
+
+# Already-cloned repos are not re-cloned, so refresh their tags/branches (a
+# release builds from tags). Non-destructive: updates refs only, not the tree.
+- name: fetch tags for already-cloned source repos
+  ansible.builtin.command:
+    chdir: "{{ source_repo_dir }}/{{ item.item }}"
+    cmd: git fetch --tags --force origin
+  loop: "{{ source_repo_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists
+  changed_when: false
+  failed_when: false

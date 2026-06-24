@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: job-status-recorder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      de-app: job-status-recorder
+  template:
+    metadata:
+      labels:
+        de-app: job-status-recorder
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - job-status-recorder
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Always
+      volumes:
+        - name: job-status-recorder-configs
+          secret:
+            secretName: job-status-recorder-configs
+            items:
+              - key: jobservices.yml
+                path: jobservices.yml
+      containers:
+        - name: job-status-recorder
+          image: harbor.cyverse.org/de/job-status-recorder
+          volumeMounts:
+            - name: job-status-recorder-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
+          args:
+            - --config
+            - /etc/iplant/de/jobservices.yml

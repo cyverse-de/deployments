@@ -1,0 +1,17 @@
+amqp:
+  uri: amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  exchange:
+    name: de
+    type: topic
+
+iplant_groups:
+  base: "{{ baseurls_iplant_groups|string|regex_replace("\/$","") }}"
+  user: de_grouper
+  folder_name_prefix: "{{ grouper_folder_name_prefix }}"
+  public_group: "iplant:de:{{ ns }}:users:de-users"
+
+data_info:
+  base: "{{ baseurls_data_info|string|regex_replace("\/$","") }}"
+
+irods:
+  user: "{{ irods_user }}"

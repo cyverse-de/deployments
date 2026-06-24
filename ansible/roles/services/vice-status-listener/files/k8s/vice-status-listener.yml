@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vice-status-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      de-app: vice-status-listener
+  template:
+    metadata:
+      labels:
+        de-app: vice-status-listener
+        app: de
+    spec:
+      serviceAccountName: app-exposer
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - vice-status-listener
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Always
+      volumes:
+        - name: vice-status-listener-configs
+          secret:
+            secretName: vice-status-listener-configs
+            items:
+              - key: jobservices.yml
+                path: jobservices.yml
+      containers:
+        - name: vice-status-listener
+          image: harbor.cyverse.org/de/vice-status-listener
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          args:
+            - --namespace
+            - "$(VSL_NAMESPACE)"
+            - --log-level
+            - debug
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: VSL_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CLUSTER
+              value: "1"
+          volumeMounts:
+            - name: vice-status-listener-configs
+              mountPath: /etc/iplant/de
+              readOnly: true

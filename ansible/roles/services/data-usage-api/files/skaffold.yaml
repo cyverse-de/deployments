@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: data-usage-api
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/data-usage-api
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+  platforms:
+    - "linux/amd64"
+manifests:
+  rawYaml:
+    - k8s/data-usage-api.yml
+deploy:
+  kubectl: {}

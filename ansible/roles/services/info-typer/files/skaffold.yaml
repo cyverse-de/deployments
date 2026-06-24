@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: info-typer
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/info-typer
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/info-typer.yml
+deploy:
+  kubectl: {}

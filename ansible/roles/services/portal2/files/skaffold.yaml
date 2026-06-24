@@ -1,0 +1,16 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: user-portal
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/portal2
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  platforms:
+    - "linux/amd64"
+manifests:
+  rawYaml:
+    - k8s/portal2.yml

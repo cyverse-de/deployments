@@ -1,0 +1,26 @@
+amqp:
+  uri: amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  dewey_uri: amqp://{{ irods_amqp_user }}:{{ irods_amqp_password | urlencode }}@{{ irods_amqp_host }}:{{ irods_amqp_port }}/{{ irods_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  dewey_queue: "dewey.indexing"
+  exchange:
+    name: de
+    type: topic
+
+icat:
+  uri: postgresql://{{ icat_user }}:{{ icat_password }}@{{ icat_host }}:{{ icat_port }}/ICAT?sslmode=disable
+
+db:
+  uri: postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ metadata_db_name }}?sslmode=disable
+  schema: public
+
+irods:
+  zone: {{ irods_zone }}
+
+infosquito:
+  base_prefix_length: {{ infosquito_prefix_length }}
+
+elasticsearch:
+  base: {{ es_base_uri|string|regex_replace("\/$","") }}
+  user: {{ es_username }}
+  password: {{ es_password }}
+  index: {{ es_index }}

@@ -1,0 +1,9 @@
+---
+- name: build the event-recorder image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: event-recorder
+  tags:
+    - build

@@ -1,0 +1,9 @@
+---
+- name: build the data-usage-api image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: data-usage-api
+  tags:
+    - build

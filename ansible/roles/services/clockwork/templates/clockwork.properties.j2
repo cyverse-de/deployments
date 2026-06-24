@@ -1,0 +1,17 @@
+# iRODS configuration settings.
+clockwork.tree-urls-avu  = tree-urls
+clockwork.irods-host     = {{ irods_host }}
+clockwork.irods-port     = 1247
+clockwork.irods-user     = {{ irods_user }}
+clockwork.irods-password = {{ irods_password }}
+clockwork.irods-home     = /{{ irods_zone }}/home
+clockwork.irods-zone     = {{ irods_zone }}
+clockwork.irods-resource =
+
+# Events settings.
+clockwork.amqp.uri = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+
+# Indexing Job settings
+clockwork.jobs.infosquito.indexing-enabled = True
+clockwork.jobs.infosquito.basename         = infosquito.indexing.1
+clockwork.jobs.infosquito.daynum           = {{ infosquito_daynum }}

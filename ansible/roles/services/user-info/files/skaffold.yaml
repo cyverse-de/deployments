@@ -1,0 +1,21 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: user-info
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/user-info
+      custom:
+        buildCommand: ./buildx-build.sh
+        dependencies:
+          paths: ["**"]
+  platforms:
+    - "linux/amd64"
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+manifests:
+  rawYaml:
+    - k8s/user-info.yml
+deploy:
+  kubectl: {}

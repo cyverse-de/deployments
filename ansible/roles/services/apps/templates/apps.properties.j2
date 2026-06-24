@@ -1,0 +1,114 @@
+# Application details.
+apps.app.listen-port      = 60000
+apps.app.environment-name = {{ ns }}
+
+# Route-independent feature flags.
+apps.features.tapis      = {{ tapis_enabled}}
+apps.features.tapis.jobs = {{ tapis_jobs_enabled }}
+
+# Database settings.
+apps.db.driver      = org.postgresql.Driver
+apps.db.subprotocol = postgresql
+apps.db.host        = {{ groups['dbms'][0] }}
+apps.db.port        = {{ pg_listen_port }}
+apps.db.name        = {{ de_db_name }}
+apps.db.user        = {{ dbms_connection_user }}
+apps.db.password    = {{ dbms_connection_pass }}
+
+# JEX connection settings.
+apps.jex.base-url = {{ baseurls_app_exposer.rstrip("/")}}/batch
+
+# Data Info connection settings.
+apps.data-info.base-url = {{ baseurls_data_info.rstrip("/")}}
+
+# Workspace app category names.
+apps.workspace.root-app-category            = Workspace
+apps.workspace.default-app-categories       = ["Apps under development","Favorite Apps"]
+apps.workspace.dev-app-category-index       = 0
+apps.workspace.favorites-app-category-index = 1
+apps.workspace.public-id                    = 00000000-0000-0000-0000-000000000000
+apps.workspace.metadata.category.attrs      = rdf:type, http://edamontology.org/has_topic
+apps.workspace.metadata.beta.attr.iri       = n2t.net/ark:/99152/h1459
+apps.workspace.metadata.beta.attr.label     = releaseStatus
+apps.workspace.metadata.beta.value          = beta
+
+# The domain name to append to the user id to get the fully qualified user id.
+apps.uid.domain = {{ uid_domain }}
+
+# The path to the home directory in iRODS.
+apps.irods.home = /{{ irods_zone }}/home
+
+# The maximum length of an iRODS path, used in max HT Path List file size calculations.
+# See https://github.com/irods/irods/blob/805c01f55ea23a141cb0fa3f449f5172b3a19657/lib/core/include/rodsDef.h#L59-L61
+apps.irods.path-max-len = 1067
+
+# Batch job settings.
+apps.batch.group                           = batch_processing
+apps.batch.path-list.ht.info-type          = ht-analysis-path-list
+apps.batch.path-list.ht.max-paths          = 100000
+apps.batch.path-list.multi-input.info-type = multi-input-path-list
+apps.batch.path-list.multi-input.max-paths = 20000
+
+# Tapis connection settings.
+apps.tapis.base-url             = https://cyverse.tapis.io/v3
+apps.tapis.key                  = {{ tapis_key }}
+apps.tapis.secret               = {{ tapis_secret }}
+apps.tapis.oauth-base           = https://cyverse.tapis.io/v3/oauth2
+apps.tapis.oauth-refresh-window = 5
+apps.tapis.redirect-uri         = {{ tapis_redirect_uri }}
+apps.tapis.storage-system       = {{ tapis_storage_system }}
+apps.tapis.read-timeout         = {{ tapis_read_timeout }}
+apps.tapis.page-length          = 300
+
+# Tapis callback settings.
+apps.tapis.callback-base = {{ tapis_callback_base_uri }}
+
+# PGP Settings
+apps.pgp.keyring-path = /etc/iplant/crypto/secring.gpg
+apps.pgp.key-password = {{ pgp_key_password }}
+
+# Notification agent connection settings.
+apps.notificationagent.base-url = {{ baseurls_notifications.rstrip("/")}}
+
+# The job status polling interval.
+apps.jobs.poll-interval = 15
+
+# The base URL for analyses.
+apps.analyses.base-url = {{ baseurls_analyses.rstrip("/")}}
+
+# The base URL for async-tasks.
+apps.async-tasks.base-url = {{ baseurls_async_tasks.rstrip("/")}}
+
+# The base URL for iplant-groups.
+apps.iplant-groups.base-url     = {{ baseurls_iplant_groups.rstrip("/")}}
+apps.iplant-groups.grouper-user = de_grouper
+
+# Metadata connection settings
+apps.metadata.base-url = {{ baseurls_metadata.rstrip("/")}}
+
+# Permissions service connection settings.
+apps.permissions.base-url = {{ baseurls_permissions.rstrip("/")}}
+
+# Requests service connection settings
+apps.requests.base-url = {{ baseurls_requests.rstrip("/")}}
+
+# CyVerse Email service settings.
+apps.email.base-url             = {{ baseurls_iplant_email.rstrip("/")}}
+apps.email.app-deletion.from    = {{ email_src }}
+apps.email.app-deletion.subject = Your "%s" app has been administratively deprecated
+apps.email.app-request.from     = {{ email_src }}
+apps.email.app-request.to       = {{ email_dest }}
+
+# UI host
+apps.ui.base-url = {{ de_base_uri.rstrip("/")}}
+
+# VICE base URL
+apps.interactive-apps.base-url = {{ vice_base_uri.rstrip("/")}}
+
+# Tools settings.
+apps.tools.trusted-registries = {{ docker_trusted_registries | join(",") }}
+apps.tools.valid-gpu-models = {{ de_tools_valid_gpu_models | join(",") }}
+apps.tools.default.gpu-models = {{ de_tools_default_gpu_models | join(",") }}
+
+# AMQP
+apps.amqp.uri = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}

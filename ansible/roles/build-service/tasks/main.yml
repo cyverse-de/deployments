@@ -1,0 +1,122 @@
+---
+- block:
+    - name: locate the source repository
+      delegate_to: localhost
+      ansible.builtin.stat:
+        path: "{{ source_repo }}/.git"
+      register: source_repo_git
+
+    - name: ensure the source repository exists
+      delegate_to: localhost
+      ansible.builtin.assert:
+        that:
+          - source_repo_git.stat.exists
+        fail_msg: >-
+          No git repository found at {{ source_repo }}. Set -e source_repo=/path/to/repo
+          for an exact path, or -e source_repo_dir=/parent/dir if your source repos are
+          checked out somewhere other than alongside the deployments repo.
+
+    # Resolve absolute paths into the service role itself, independent of any
+    # build_json_dir override that points deploys at a sibling de-releases repo.
+    - name: resolve the service role paths
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        service_files_dir: "{{ playbook_dir }}/roles/services/{{ source_service }}/files"
+        build_json_path: "{{ playbook_dir }}/roles/services/{{ project_name }}/files/{{ project_name }}.json"
+
+    - name: create a temporary directory for the build worktree
+      delegate_to: localhost
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: "-{{ project_name }}-build"
+      register: build_tmp
+
+    - block:
+        # Refresh tags/branches so the requested ref (a release is built from
+        # tags) is present even when the local clone is stale. Best-effort: the
+        # build can still proceed from local refs if the fetch fails (offline).
+        - name: fetch the latest refs and tags
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git fetch --tags --force origin
+          changed_when: false
+          failed_when: false
+
+        - name: check out the requested ref in a worktree
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git worktree add --force --detach {{ build_tmp.path }}/repo {{ git_ref }}
+
+        # The deployments repo is the source of truth for skaffold.yaml and the
+        # k8s manifests, so overlay them onto the source tree before building.
+        - name: overlay the skaffold config from the service role
+          delegate_to: localhost
+          ansible.builtin.copy:
+            src: "{{ service_files_dir }}/skaffold.yaml"
+            dest: "{{ build_tmp.path }}/repo/skaffold.yaml"
+            remote_src: true
+
+        - name: overlay the k8s manifests from the service role
+          delegate_to: localhost
+          ansible.builtin.copy:
+            src: "{{ service_files_dir }}/k8s/"
+            dest: "{{ build_tmp.path }}/repo/k8s/"
+            remote_src: true
+
+        # The service skaffold.yaml uses a custom builder that runs this script,
+        # so it has to be present at the build context root the build runs from.
+        - name: overlay the shared buildx build script
+          delegate_to: localhost
+          ansible.builtin.copy:
+            src: buildx-build.sh
+            dest: "{{ build_tmp.path }}/repo/buildx-build.sh"
+            mode: "0755"
+
+        - name: point the image at the configured registry
+          delegate_to: localhost
+          ansible.builtin.replace:
+            path: "{{ build_tmp.path }}/repo/skaffold.yaml"
+            regexp: 'harbor\.cyverse\.org'
+            replace: "{{ image_registry }}"
+
+        # The custom builder pushes a mode=max registry cache, which needs a
+        # container-driver buildx builder (the default `docker` driver can't
+        # export one). Create it if absent and make it the active builder.
+        - name: ensure a container-driver buildx builder exists
+          delegate_to: localhost
+          ansible.builtin.command: docker buildx create --name de-builder --driver docker-container
+          changed_when: false
+          failed_when: false
+
+        - name: select the buildx builder
+          delegate_to: localhost
+          ansible.builtin.command: docker buildx use de-builder
+          changed_when: false
+
+        # Push and write the descriptor only when push_images is set; otherwise
+        # just build the image locally (a verify/build-only run that leaves
+        # files/<svc>.json untouched, since an unpushed image has no registry digest).
+        - name: build the image{{ ' and push it, writing the build descriptor' if push_images | bool else ' without pushing' }}
+          delegate_to: localhost
+          run_once: true
+          ansible.builtin.command:
+            chdir: "{{ build_tmp.path }}/repo"
+            cmd: >-
+              skaffold build
+              {{ '--cache-artifacts=false ' if force_rebuild | bool else '' }}--tag {{ git_ref }}{{ ' --push --file-output ' ~ build_json_path if push_images | bool else '' }}
+      always:
+        - name: remove the build worktree
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git worktree remove --force {{ build_tmp.path }}/repo
+
+        - name: remove the temporary build directory
+          delegate_to: localhost
+          ansible.builtin.file:
+            path: "{{ build_tmp.path }}"
+            state: absent
+  tags:
+    - build
