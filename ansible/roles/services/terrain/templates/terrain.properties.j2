@@ -1,6 +1,9 @@
 # Connection details.
 terrain.app.listen-port = 60000
 
+# The user-accessible base URL.
+terrain.base-uri = {{ de_base_uri }}/terrain
+
 # Environment information.
 terrain.app.environment-name = {{ ns }}
 
@@ -119,6 +122,7 @@ terrain.keycloak.base-uri = {{ keycloak_server_uri }}
 terrain.keycloak.realm = {{ keycloak_realm_name }}
 terrain.keycloak.client-id = {{ keycloak_client_id }}
 terrain.keycloak.client-secret = {{ keycloak_client_secret }}
+terrain.keycloak.secure-cookies = true
 
 # Keycloak Admin API settings
 terrain.keycloak.admin-base-uri = {{ keycloak_admin_server_uri }}
