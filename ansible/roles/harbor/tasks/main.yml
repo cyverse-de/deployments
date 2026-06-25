@@ -1,4 +1,7 @@
 ---
+- name: Configure the Harbor TLS certificate
+  ansible.builtin.include_tasks: certs.yml
+
 - name: Add the harbor helm repository
   delegate_to: localhost
   environment:
