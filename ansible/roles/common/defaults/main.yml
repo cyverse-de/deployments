@@ -293,7 +293,6 @@ kifshare_nodeport: 31340
 terrain_nodeport: 31341
 job_status_listener_nodeport: 31342
 agave_cb_nodeport: 31343
-harbor_nodeport: 30002
 
 # K8s Default Variables
 k8s_control_plane_endpoint: replace_me
@@ -302,7 +301,6 @@ k8s_pods_cidr: "10.42.0.0/16"
 k8s_services_cidr: "10.43.0.0/16"
 
 # Harbor installation variables
-harbor_enabled: false
 harbor_url: "{{ registry_hostname }}"
 harbor_repo: https://helm.goharbor.io
 harbor_namespace: harbor
@@ -311,17 +309,14 @@ harbor_storage_class: "longhorn"
 harbor_replicas: 2
 harbor_http_nodeport: 30002
 harbor_https_nodeport: 30003
-harbor_initial_admin_password: "Ch@ng3M3"
 harbor_core_db_name: harbor_core
 harbor_clair_db_name: harbor_clair
 harbor_notary_server_db_name: harbor_notary_server
 harbor_notary_signer_db_name: harbor_notary_signer
 harbor_database_user: harbor
 harbor_database_password: "Ch@ng3M3"
-harbor_image_pull_secret: vice-image-pull-secret
 harbor_robot_name: harbor-robot
 harbor_robot_secret: replace_me
-harbor_external_domain: "{{ registry_hostname }}"
 
 # IRODS CSI Driver Vars
 irods_csi_driver_enabled: true
