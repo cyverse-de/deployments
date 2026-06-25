@@ -728,32 +728,35 @@
 
 
 # =====================================================================
-# Phase 7: DE Prerequisites
+# Gateway / ingress controllers
 # =====================================================================
-# Variables consulted by `kubernetes.yml --tags de-reqs` (runs the
-# `k8s_de_reqs` role: installs the gateway/ingress controllers, creates
-# the DE and VICE namespaces and the cert-manager issuers, writes the
-# timezone ConfigMap, deploys the local-exim mail relay, and creates the
-# Harbor image-pull secret).
+# The gateway and ingress controllers install as their own roles ahead
+# of Harbor and the DE prerequisites pass, so Harbor (and the DE
+# services) can be fronted by an Ingress or a Gateway route. ingress-nginx
+# always installs (the `ingress_nginx` role); Traefik installs only when
+# `gateway_provider` is "traefik" (the `traefik` role). Both keep the
+# `de-reqs` tag alongside their own, so `--tags de-reqs` still brings
+# them up; install just one with `--tags ingress-nginx` or
+# `--tags traefik`.
 #
-# Run this phase after cert-manager (Phase 6) — the issuers and the
-# traefik certificates created here depend on the cert-manager CRDs. The
-# cert-manager issuer variables (`cert_manager_*`) are applied during
-# this pass but are documented under Phase 6.
+# Run this after cert-manager (Phase 6). Traefik's TLS certificate is
+# issued through cert-manager using the self-signed `default-cluster-issuer`
+# that the de-reqs pass creates; the certificate reconciles once that
+# issuer exists, so the ordering between this section and Phase 7 is not
+# strict.
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
 # All assignments here are commented out so the file is a no-op as
-# shipped — uncomment a line to override the default. Variables appear in
-# roughly the order they are first consulted during the pass.
+# shipped — uncomment a line to override the default.
 # =====================================================================
 
 
 # ---------------------------------------------------------------------
-# Gateway / ingress provider
+# Gateway provider
 # ---------------------------------------------------------------------
 
 # Which gateway controller to install. When set to "traefik" the Traefik
-# subsection below applies; other values skip the Traefik tasks. The
+# subsection below applies; other values skip the `traefik` role. The
 # ingress-nginx controller is installed regardless of this setting.
 # Default: traefik
 # gateway_provider: traefik
@@ -814,7 +817,8 @@
 # ---------------------------------------------------------------------
 # ingress-nginx
 # ---------------------------------------------------------------------
-# The ingress-nginx controller is installed in every de-reqs run.
+# The ingress-nginx controller is always installed (the `ingress_nginx`
+# role).
 
 # NodePort the ingress-nginx controller exposes for plain HTTP.
 # Default: 31343
@@ -823,6 +827,29 @@
 # NodePort the ingress-nginx controller exposes for HTTPS.
 # Default: 31344
 # ingress_nginx_https_port: 31344
+
+
+# =====================================================================
+# Phase 7: DE Prerequisites
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags de-reqs` (runs the
+# `k8s_de_reqs` role: creates the DE and VICE namespaces and the
+# cert-manager issuers, writes the timezone ConfigMap, deploys the
+# local-exim mail relay, and creates the Harbor image-pull secret). The
+# gateway/ingress controllers it used to install now run earlier as the
+# `ingress_nginx` and `traefik` roles (see "Gateway / ingress
+# controllers" above).
+#
+# Run this phase after cert-manager (Phase 6) — the issuers it creates
+# depend on the cert-manager CRDs. The cert-manager issuer variables
+# (`cert_manager_*`) are applied during this pass but are documented
+# under Phase 6.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear in
+# roughly the order they are first consulted during the pass.
+# =====================================================================
 
 
 # ---------------------------------------------------------------------
