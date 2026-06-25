@@ -840,10 +840,11 @@
 # `ingress_nginx` and `traefik` roles (see "Gateway / ingress
 # controllers" above).
 #
-# Run this phase after cert-manager (Phase 6) — the issuers it creates
-# depend on the cert-manager CRDs. The cert-manager issuer variables
-# (`cert_manager_*`) are applied during this pass but are documented
-# under Phase 6.
+# Run this phase after cert-manager (Phase 6). The cluster-scoped issuers
+# (default-cluster-issuer and the Let's Encrypt ClusterIssuer) are created
+# earlier by the `cluster_issuers` role so certs can issue before Harbor;
+# this pass only creates the namespaced `default-issuer`. The cert-manager
+# issuer variables (`cert_manager_*`) are documented under Phase 6.
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
 # All assignments here are commented out so the file is a no-op as
@@ -980,9 +981,11 @@
 # In-cluster registry: Harbor (optional)
 # =====================================================================
 # Installed by the `harbor` role (`kubernetes.yml --tags harbor`). It
-# deploys the Harbor container registry via its Helm chart, exposed on
-# NodePorts and backed by the external PostgreSQL databases created in
-# Phase 2 (see the "Harbor databases" subsection there).
+# deploys the Harbor container registry via its Helm chart, exposed
+# through the active gateway/ingress controller (Traefik via the Gateway
+# API, otherwise an ingress-nginx Ingress) with cert-manager-managed TLS,
+# and backed by the external PostgreSQL databases created in Phase 2 (see
+# the "Harbor databases" subsection there).
 #
 # This step is OPTIONAL and only runs when the playbook is invoked with
 # `--tags harbor`. Skip it when the deployment pulls images from an
@@ -1028,6 +1031,43 @@
 # Default: 2
 # harbor_replicas: 2
 
+# Ingress class used when gateway_provider is not "traefik" (the
+# ingress-nginx path). Ignored under Traefik, which fronts Harbor with a
+# Gateway/HTTPRoute instead.
+# Default: nginx
+# harbor_ingress_class_name: nginx
+
+# cert-manager TLS for Harbor. In the default self-signed mode a CA chain
+# is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls); when
+# cert_manager_use_letsencrypt is true (Phase 6) harbor-tls is issued
+# directly from the letsencrypt ClusterIssuer. These names and lifetimes
+# mirror the DE service certificates.
+# Default: harbor-tls
+# harbor_tls_cert_name: harbor-tls
+
+# Name of the self-signed CA Certificate/Issuer secret (self-signed mode).
+# Default: harbor-selfsigned-ca
+# harbor_tls_ca_name: harbor-selfsigned-ca
+
+# Name of the CA-backed Issuer that signs harbor-tls (self-signed mode).
+# Default: harbor-ca-issuer
+# harbor_tls_issuer_name: harbor-ca-issuer
+
+# Validity period of the self-signed CA certificate.
+# Default: 8766h
+# harbor_tls_ca_duration: 8766h
+
+# How long before CA expiry cert-manager renews it.
+# Default: 240h
+# harbor_tls_ca_renew_before: 240h
+
+# Validity period of the harbor-tls certificate.
+# Default: 2160h
+# harbor_tls_cert_duration: 2160h
+
+# How long before TLS expiry cert-manager renews it.
+# Default: 240h
+# harbor_tls_cert_renew_before: 240h
 # =====================================================================
 
 
