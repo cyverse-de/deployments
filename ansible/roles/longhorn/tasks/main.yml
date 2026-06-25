@@ -7,9 +7,11 @@
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
     # The chart auto-creates a StorageClass named "longhorn" (matching
-    # harbor_storage_class). It is not made the cluster default, so PVCs must
-    # reference it by name. Replica count is configured via the persistence and
-    # defaultSettings values so it can adapt to clusters with fewer than 3 nodes.
+    # harbor_storage_class) and makes it the cluster default, since Longhorn is
+    # the primary CSI driver installed for general-purpose block storage (the
+    # iRODS CSI driver is only for the data store). Replica count is configured
+    # via the persistence and defaultSettings values so it can adapt to clusters
+    # with fewer than 3 nodes.
     - name: Install the longhorn helm chart
       kubernetes.core.helm:
         create_namespace: true
@@ -21,7 +23,7 @@
         wait: true
         values:
           persistence:
-            defaultClass: false
+            defaultClass: true
             defaultClassReplicaCount: "{{ longhorn_replica_count | int }}"
             reclaimPolicy: "{{ longhorn_reclaim_policy }}"
           defaultSettings:

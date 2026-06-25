@@ -90,11 +90,18 @@
         - argo
         - de-reqs
 
-    - role: k8s_de_reqs
-      tags: de-reqs
-
+    # Longhorn and Harbor come before de-reqs: Harbor's PVCs need the longhorn
+    # StorageClass, and de-reqs creates the Harbor image-pull secret from a
+    # robot account that has to exist in a running Harbor first.
     - role: longhorn
       tags: longhorn
+
+    - role: harbor
+      tags: harbor
+      when: "'harbor' in ansible_run_tags"
+
+    - role: k8s_de_reqs
+      tags: de-reqs
 
     - role: openldap-docker
       tags: openldap-docker
@@ -269,10 +276,6 @@
     - role: keycloak_install
       tags: keycloak
       when: "'keycloak' in ansible_run_tags"
-
-    - role: harbor
-      tags: harbor
-      when: "'harbor' in ansible_run_tags"
 
     - role: jaeger
       tags: jaeger
