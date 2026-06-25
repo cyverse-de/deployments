@@ -85,6 +85,14 @@
     - role: cert-manager
       tags: cert-manager
 
+    # The cluster-scoped cert-manager issuers come right after cert-manager so
+    # the certs requested later (Harbor, Traefik) can issue immediately. The
+    # namespaced default-issuer stays in k8s_de_reqs (it needs the DE namespace).
+    - role: cluster_issuers
+      tags:
+        - cert-issuers
+        - de-reqs
+
     - role: argo
       tags:
         - argo
