@@ -90,6 +90,21 @@
         - argo
         - de-reqs
 
+    # The gateway/ingress controllers install ahead of Harbor (and the rest of
+    # de-reqs) so Harbor can be fronted by an Ingress or a Gateway route. Split
+    # out of k8s_de_reqs into their own roles; they keep the de-reqs tag so
+    # `--tags de-reqs` still brings them up.
+    - role: ingress_nginx
+      tags:
+        - ingress-nginx
+        - de-reqs
+
+    - role: traefik
+      tags:
+        - traefik
+        - de-reqs
+      when: gateway_provider == "traefik"
+
     # Longhorn and Harbor come before de-reqs: Harbor's PVCs need the longhorn
     # StorageClass, and de-reqs creates the Harbor image-pull secret from a
     # robot account that has to exist in a running Harbor first.
