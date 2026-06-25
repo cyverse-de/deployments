@@ -82,7 +82,10 @@
 # LDAP
 # ---------------------------------------------------------------------
 # Consumed by the portal, Grouper, and Keycloak. All three ship as
-# replace_me and have to be set when those components are enabled.
+# replace_me and have to be set when those components are enabled. These
+# describe an existing, external LDAP directory; to have the playbooks
+# stand up an OpenLDAP server in-cluster instead, see the In-cluster
+# OpenLDAP section at the end of this file.
 
 # LDAP connection URI (e.g. ldap://ldap.example.org:389).
 # Default: replace_me
@@ -941,4 +944,79 @@
 # when a PVC is deleted; set to Delete to reclaim it automatically.
 # Default: Retain
 # longhorn_reclaim_policy: Retain
+# =====================================================================
+
+
+# =====================================================================
+# In-cluster OpenLDAP (optional)
+# =====================================================================
+# Installed by the `openldap-docker` role
+# (`kubernetes.yml --tags openldap-docker`). It deploys an OpenLDAP
+# server inside the cluster, seeded with the DE service accounts and
+# groups and backed by a Longhorn persistent volume (so it runs after
+# the Longhorn section above).
+#
+# This step is OPTIONAL and is SKIPPED unless `ldap_in_cluster` is true.
+# Leave it disabled when the deployment uses an existing, external LDAP
+# directory — in that case set `ldap_uri`, `ldap_base_dn`, and `ldap_cn`
+# in the LDAP subsection of the global settings at the top of this file,
+# and ignore everything below.
+#
+# (A standalone, host-based OpenLDAP install is also available via the
+# separate `ldap_slapd.yml` playbook and the `[ldap]` inventory group;
+# see docs/ldap.md. It is configured independently of the variables
+# below.)
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+
+# Whether to deploy OpenLDAP inside the cluster. Leave false to use an
+# external LDAP directory (configured in the global LDAP section above).
+# Default: false
+# ldap_in_cluster: true
+
+# Namespace the in-cluster OpenLDAP server is installed into.
+# Default: openldap
+# ldap_ns: openldap
+
+# Base DN (directory suffix) the server is seeded with. Keep it in sync
+# with the `ldap_base_dn` used elsewhere in the deployment.
+# Default: dc=example,dc=org
+# ldap_dn_suffix: dc=example,dc=org
+
+
+# ---------------------------------------------------------------------
+# Seed credentials
+# ---------------------------------------------------------------------
+# slapd.conf and the seed LDIF are rendered from the *_hash values below
+# — those are the ones actually applied. The matching plaintext
+# variables are kept alongside them for documentation only and are not
+# consumed. Generate each hash with `slappasswd -h '{SSHA}'`.
+
+# SSHA hash of the LDAP root/manager password.
+# Default: "{SSHA}replace_me_with_a_real_hash"
+# ldap_rootpw_hash: "{SSHA}..."
+
+# Plaintext root password — documentation only, not consumed.
+# Default: replace_me
+# ldap_root_pw: replace_me
+
+# SSHA hash of the de_grouper service-account password.
+# Default: "{SSHA}replace_me_with_a_real_hash"
+# ldap_de_grouper_pw_hash: "{SSHA}..."
+
+# Plaintext de_grouper password — documentation only, not consumed.
+# Default: replace_me
+# ldap_de_grouper_pw: replace_me
+
+# SSHA hash of the ldap_reader service-account password.
+# Default: "{SSHA}replace_me_with_a_real_hash"
+# ldap_ldap_reader_pw_hash: "{SSHA}..."
+
+# Plaintext ldap_reader password — documentation only, not consumed.
+# Default: replace_me
+# ldap_ldap_reader_pw: replace_me
 # =====================================================================
