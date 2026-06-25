@@ -1,0 +1,90 @@
+---
+- name: Configure cert-manager TLS for Harbor
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: Define the self-signed CA certificate for Harbor
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ harbor_tls_ca_name }}"
+        namespace: "{{ harbor_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ harbor_tls_ca_name }}"
+          spec:
+            isCA: true
+            commonName: "{{ harbor_tls_ca_name }}"
+            secretName: "{{ harbor_tls_ca_name }}"
+            duration: "{{ harbor_tls_ca_duration }}"
+            renewBefore: "{{ harbor_tls_ca_renew_before }}"
+            privateKey:
+              algorithm: ECDSA
+              size: 256
+            issuerRef:
+              name: default-cluster-issuer
+              kind: ClusterIssuer
+              group: cert-manager.io
+
+    - name: Create the local certificate issuer for Harbor
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ harbor_tls_issuer_name }}"
+        namespace: "{{ harbor_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Issuer
+          metadata:
+            name: "{{ harbor_tls_issuer_name }}"
+          spec:
+            ca:
+              secretName: "{{ harbor_tls_ca_name }}"
+
+    - name: Create the locally signed TLS certificate for Harbor
+      when: not cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ harbor_tls_cert_name }}"
+        namespace: "{{ harbor_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ harbor_tls_cert_name }}"
+          spec:
+            secretName: "{{ harbor_tls_cert_name }}"
+            duration: "{{ harbor_tls_cert_duration }}"
+            renewBefore: "{{ harbor_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ harbor_tls_issuer_name }}"
+              kind: Issuer
+            commonName: "{{ harbor_fqdn }}"
+            dnsNames:
+              - localhost
+              - "{{ harbor_fqdn }}"
+
+    - name: Create the TLS certificate for Harbor using letsencrypt
+      when: cert_manager_use_letsencrypt
+      kubernetes.core.k8s:
+        name: "{{ harbor_tls_cert_name }}"
+        namespace: "{{ harbor_namespace }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ harbor_tls_cert_name }}"
+          spec:
+            secretName: "{{ harbor_tls_cert_name }}"
+            duration: "{{ harbor_tls_cert_duration }}"
+            renewBefore: "{{ harbor_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ harbor_fqdn }}"
+            dnsNames:
+              - "{{ harbor_fqdn }}"
