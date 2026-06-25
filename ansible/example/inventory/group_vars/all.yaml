@@ -1028,14 +1028,6 @@
 # Default: 2
 # harbor_replicas: 2
 
-# NodePort Harbor exposes for plain HTTP. The chart's own TLS is
-# disabled — HTTPS is terminated upstream.
-# Default: 30002
-# harbor_http_nodeport: 30002
-
-# NodePort Harbor exposes for HTTPS.
-# Default: 30003
-# harbor_https_nodeport: 30003
 # =====================================================================
 
 
