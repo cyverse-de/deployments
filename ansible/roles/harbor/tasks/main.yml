@@ -11,6 +11,33 @@
     repo_url: "{{ harbor_repo }}"
     state: present
 
+# Traefik fronts Harbor through a Gateway/HTTPRoute (see gateway.yml), so the
+# chart only needs a clusterIP service and TLS is terminated at the gateway.
+# ingress-nginx uses the chart's own Ingress, terminating TLS with the
+# cert-manager-issued harbor-tls secret.
+- name: Use Gateway API exposure for Harbor (Traefik)
+  ansible.builtin.set_fact:
+    harbor_expose:
+      type: clusterIP
+      tls:
+        enabled: false
+  when: gateway_provider == "traefik"
+
+- name: Use Ingress exposure for Harbor (ingress-nginx)
+  ansible.builtin.set_fact:
+    harbor_expose:
+      type: ingress
+      tls:
+        enabled: true
+        certSource: secret
+        secret:
+          secretName: "{{ harbor_tls_cert_name }}"
+      ingress:
+        className: "{{ harbor_ingress_class_name }}"
+        hosts:
+          core: "{{ harbor_fqdn }}"
+  when: gateway_provider != "traefik"
+
 - name: Install the harbor helm chart
   delegate_to: localhost
   environment:
@@ -23,16 +50,7 @@
     wait: true
     values:
       externalURL: "https://{{ harbor_fqdn }}"
-      expose:
-        type: nodePort
-        tls:
-          enabled: false
-        nodePort:
-          ports:
-            http:
-              nodePort: "{{ harbor_http_nodeport }}"
-            https:
-              nodePort: "{{ harbor_https_nodeport }}"
+      expose: "{{ harbor_expose }}"
       portal:
         replicas: "{{ harbor_replicas }}"
       core:

@@ -307,8 +307,6 @@ harbor_namespace: harbor
 harbor_fqdn: "{{ registry_hostname }}"
 harbor_storage_class: "longhorn"
 harbor_replicas: 2
-harbor_http_nodeport: 30002
-harbor_https_nodeport: 30003
 harbor_core_db_name: harbor_core
 harbor_clair_db_name: harbor_clair
 harbor_notary_server_db_name: harbor_notary_server
