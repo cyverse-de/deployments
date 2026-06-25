@@ -1,4 +1,16 @@
 ---
+- name: Create the Harbor namespace
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ harbor_namespace }}"
+
 - name: Configure the Harbor TLS certificate
   ansible.builtin.include_tasks: certs.yml
 

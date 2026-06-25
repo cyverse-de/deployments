@@ -35,7 +35,7 @@
             access-key-id: "{{ cert_manager_le_aws_access_key_id | b64encode }}"
             secret-access-key: "{{ cert_manager_le_aws_secret_access_key | b64encode }}"
 
-    - name: Generate the Let's Encrypt ClusterIsuer
+    - name: Generate the Let's Encrypt ClusterIssuer
       kubernetes.core.k8s:
         state: present
         definition:
