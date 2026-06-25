@@ -91,3 +91,7 @@
           notaryServerDatabase: "{{ harbor_notary_server_db_name }}"
           notarySignerDatabase: "{{ harbor_notary_signer_db_name }}"
           sslMode: "disable"
+
+- name: Configure the Harbor gateway route
+  ansible.builtin.include_tasks: gateway.yml
+  when: gateway_provider == "traefik"
