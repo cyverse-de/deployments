@@ -318,6 +318,16 @@ harbor_database_password: "Ch@ng3M3"
 harbor_robot_name: harbor-robot
 harbor_robot_secret: replace_me
 
+# Harbor exposure and TLS (ingress/gateway with cert-manager)
+harbor_ingress_class_name: nginx
+harbor_tls_cert_name: harbor-tls
+harbor_tls_ca_name: harbor-selfsigned-ca
+harbor_tls_issuer_name: harbor-ca-issuer
+harbor_tls_ca_duration: 8766h
+harbor_tls_ca_renew_before: 240h
+harbor_tls_cert_duration: 2160h
+harbor_tls_cert_renew_before: 240h
+
 # IRODS CSI Driver Vars
 irods_csi_driver_enabled: true
 irods_csi_driver_version: "0.11.4"
