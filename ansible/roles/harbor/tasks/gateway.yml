@@ -1,5 +1,5 @@
 ---
-- name: Configure the Gateway API resources for Harbor
+- name: Configure the Gateway for Harbor
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
@@ -29,22 +29,3 @@
                     - kind: Secret
                       group: ""
                       name: "{{ harbor_tls_cert_name }}"
-
-    - name: Define the HTTPRoute for Harbor
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: gateway.networking.k8s.io/v1
-          kind: HTTPRoute
-          metadata:
-            name: harbor
-            namespace: "{{ harbor_namespace }}"
-          spec:
-            hostnames:
-              - "{{ harbor_fqdn }}"
-            parentRefs:
-              - name: harbor
-            rules:
-              - backendRefs:
-                  - name: harbor
-                    port: 80

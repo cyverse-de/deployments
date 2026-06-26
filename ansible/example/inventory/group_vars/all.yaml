@@ -982,10 +982,12 @@
 # =====================================================================
 # Installed by the `harbor` role (`kubernetes.yml --tags harbor`). It
 # deploys the Harbor container registry via its Helm chart, exposed
-# through the active gateway/ingress controller (Traefik via the Gateway
-# API, otherwise an ingress-nginx Ingress) with cert-manager-managed TLS,
-# and backed by the external PostgreSQL databases created in Phase 2 (see
-# the "Harbor databases" subsection there).
+# through the active gateway/ingress controller with cert-manager-managed
+# TLS: under Traefik the role creates a Gateway and the chart emits a
+# Gateway API HTTPRoute (expose.type: route) attached to it; otherwise the
+# chart's own ingress-nginx Ingress is used. Backed by the external
+# PostgreSQL databases created in Phase 2 (see the "Harbor databases"
+# subsection there).
 #
 # This step is OPTIONAL and only runs when the playbook is invoked with
 # `--tags harbor`. Skip it when the deployment pulls images from an
@@ -1012,13 +1014,19 @@
 # Default: "{{ registry_hostname }}"
 # harbor_fqdn: harbor.cyverse.org
 
-# Namespace Harbor is installed into (created by the Helm release).
+# Namespace Harbor is installed into (created by the role before the chart,
+# so the TLS certificate can be issued into it).
 # Default: harbor
 # harbor_namespace: harbor
 
 # Harbor Helm chart repository.
 # Default: https://helm.goharbor.io
 # harbor_repo: https://helm.goharbor.io
+
+# Pinned Harbor chart version. 1.18.0+ is required for the Gateway API
+# HTTPRoute exposure (expose.type: route) used under Traefik.
+# Default: 1.19.1
+# harbor_chart_version: 1.19.1
 
 # StorageClass for Harbor's registry, chartmuseum, and jobservice PVCs
 # (all ReadWriteMany). Defaults to the longhorn class from the Longhorn

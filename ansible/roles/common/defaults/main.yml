@@ -303,6 +303,9 @@ k8s_services_cidr: "10.43.0.0/16"
 # Harbor installation variables
 harbor_url: "{{ registry_hostname }}"
 harbor_repo: https://helm.goharbor.io
+# Pinned chart version. 1.18.0+ is required for the Gateway API HTTPRoute
+# exposure (expose.type: route) used with Traefik.
+harbor_chart_version: 1.19.1
 harbor_namespace: harbor
 harbor_fqdn: "{{ registry_hostname }}"
 harbor_storage_class: "longhorn"
