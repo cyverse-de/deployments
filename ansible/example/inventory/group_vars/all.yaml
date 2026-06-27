@@ -125,6 +125,10 @@
 # Default: data.cyverse.rocks
 # irods_host: data.cyverse.rocks
 
+# Port the iRODS server listens on.
+# Default: 1247
+# irods_port: "1247"
+
 # iRODS account username for the CSI driver.
 # Default: replace_me
 # irods_user: de-irods
