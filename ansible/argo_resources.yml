@@ -1,0 +1,11 @@
+---
+- name: Set up argo resources
+  become: false
+  gather_facts: false
+  hosts: k8s_controllers[0]
+  connection: local
+  roles:
+    - role: argo_resources
+      tags:
+        - argo-resources
+        - argo

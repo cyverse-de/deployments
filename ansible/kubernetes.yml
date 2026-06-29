@@ -303,8 +303,3 @@
     - role: jaeger
       tags: jaeger
       when: "'jaeger' in ansible_run_tags"
-
-    - role: argo_resources
-      tags:
-        - argo-resources
-        - argo
