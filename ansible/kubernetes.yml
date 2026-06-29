@@ -204,11 +204,9 @@
     - role: services/maintenance-page
     - role: services/analyses
     - role: services/app-exposer
-    - role: services/apply-labels
     - role: services/apps
     - role: services/async-tasks
     - role: services/bulk-typer
-    - role: services/check-resource-access
     - role: services/clockwork
     - role: services/data-info
     - role: services/de-mailer
@@ -218,7 +216,6 @@
     - role: services/discoenv-users
     - role: services/email-requests
     - role: services/event-recorder
-    - role: services/get-analysis-id
     - role: services/info-typer
     - role: services/infosquito2
     - role: services/iplant-groups

@@ -11,16 +11,12 @@
       tags: analyses
     - role: services/app-exposer
       tags: app-exposer
-    - role: services/apply-labels
-      tags: apply-labels
     - role: services/apps
       tags: apps
     - role: services/async-tasks
       tags: async-tasks
     - role: services/bulk-typer
       tags: bulk-typer
-    - role: services/check-resource-access
-      tags: check-resource-access
     - role: services/clockwork
       tags: clockwork
     - role: services/data-info
@@ -39,8 +35,6 @@
       tags: email-requests
     - role: services/event-recorder
       tags: event-recorder
-    - role: services/get-analysis-id
-      tags: get-analysis-id
     - role: services/info-typer
       tags: info-typer
     - role: services/infosquito2
