@@ -3,7 +3,7 @@ ns: qa
 k8s_version: "1.30"
 calico_version: "3.29.0"
 helm_version: "3.16.2"
-vice_base_domain: cyverse.run
+vice_base_domain: vice.cyverse.org
 de_hostname: de.cyverse.org
 portal_hostname: user.cyverse.org
 keycloak_hostname: replace_me
