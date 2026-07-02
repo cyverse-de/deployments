@@ -43,6 +43,11 @@ DE_RELEASES="${positional[0]:-${DE_RELEASES_DIR:-$SCRIPT_DIR/../../../de-release
 # Roles with no build JSON of their own in de-releases because they ship from
 # another service's image. Map each to the build it should track so its build
 # JSON stays in sync with that source (vice-operator runs the app-exposer image).
+#
+# Caveat: this makes a sync overwrite the aliased role's descriptor with the
+# source's. Builds keep the descriptors independent (each build writes only its
+# own project's JSON), so if you've intentionally pinned vice-operator to a
+# newer ref than app-exposer, running this sync will clobber that pin.
 declare -A BUILD_ALIAS=(
   [vice-operator]=app-exposer
 )
