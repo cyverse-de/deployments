@@ -2,7 +2,7 @@
 - name: Configure argo workflow resources
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Set repo_dir fact
       ansible.builtin.set_fact:

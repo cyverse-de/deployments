@@ -2,7 +2,7 @@
 - name: Install cert-manager via Helm
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Install the cert-manager helm repo
       kubernetes.core.helm_repository:

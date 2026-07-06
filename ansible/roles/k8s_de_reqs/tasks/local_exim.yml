@@ -2,7 +2,7 @@
 - name: Deploy local-exim mail relay
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the local-exim deployment
       kubernetes.core.k8s:

@@ -33,7 +33,7 @@
           --namespace "{{ deploy_ns | default(ns) }}"
           --build-artifacts "{{ build_json_path }}"
           --force
-          --kubeconfig "{{ lookup('env', 'KUBECONFIG') }}"
+          --kubeconfig "{{ kubeconfig }}"
           {% if deploy_profile is defined -%}
           --profile {{ deploy_profile }}
           {%- endif -%}

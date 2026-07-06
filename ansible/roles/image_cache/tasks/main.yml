@@ -2,7 +2,7 @@
 - name: Install and configure image cache
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Add the kube-fledged helm repo
       kubernetes.core.helm_repository:

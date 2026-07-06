@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: create the portal namespace
       kubernetes.core.k8s:
@@ -26,7 +26,7 @@
       run_once: true
       ansible.builtin.command:
         chdir: "{{ de_releases_dir }}/services/portal2"
-        cmd: skaffold deploy --namespace "{{ portal_namespace }}" --build-artifacts "../../builds/portal2.json" --force --kubeconfig "{{ lookup('env', 'KUBECONFIG') }}"
+        cmd: skaffold deploy --namespace "{{ portal_namespace }}" --build-artifacts "../../builds/portal2.json" --force --kubeconfig "{{ kubeconfig }}"
 
     - name: set up the portal ingress
       kubernetes.core.k8s:

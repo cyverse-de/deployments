@@ -2,7 +2,7 @@
 - name: Remove the discoenv ingress
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: absent
     definition:
@@ -15,7 +15,7 @@
 - name: Remove the portal ingress
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: absent
     definition:

@@ -2,7 +2,7 @@
 - name: Add nats helm repository
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.helm_repository:
     name: nats
     repo_url: https://nats-io.github.io/k8s/helm/charts/
@@ -11,7 +11,7 @@
 - name: Create installation namespace
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     name: "{{ ns }}"
     state: present
@@ -21,7 +21,7 @@
 - name: Create the selfsigned-ca secret
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     name: selfsigned-ca
     namespace: "{{ ns }}"
@@ -48,7 +48,7 @@
 - name: Create the ca-issuer issuer
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     name: ca-issuer
     namespace: "{{ ns }}"
@@ -65,7 +65,7 @@
 - name: Create the nats-server-tls certificate
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     name: nats-server-tls
     namespace: "{{ ns }}"
@@ -109,7 +109,7 @@
 - name: Create the nats-client-tls certificate
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     name: nats-client-tls
     namespace: "{{ ns }}"
@@ -214,7 +214,7 @@
 - name: Install nats helm chart
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.helm:
     name: nats
     chart_ref: nats/nats
@@ -227,12 +227,12 @@
   delegate_to: localhost
   ansible.builtin.command: "bash files/nsc-init.sh {{ ns }}"
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
 
 - name: Get the name of the nats-box pod
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s_info:
     kind: Pod
     namespace: "{{ ns }}"
@@ -252,7 +252,7 @@
 - name: Copy the services.creds file from the nats-box pod to the local machine
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s_cp:
     pod: "{{ nats_box_pod.resources[0].metadata.name }}"
     remote_path: /nsc/nkeys/creds/cyverse/de/services.creds
@@ -263,7 +263,7 @@
 - name: Create a secret named nats-services-creds containing the services.creds file
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     name: nats-services-creds
     namespace: "{{ ns }}"
@@ -278,7 +278,7 @@
 - name: Check if the nats-client-tls-pkcs8 secret exists
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s_info:
     kind: Secret
     namespace: "{{ ns }}"
@@ -292,7 +292,7 @@
 - name: Get the client tls.key file for nats
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   ansible.builtin.shell:
     cmd: |
       kubectl -n {{ ns }} get secrets nats-client-tls -o json | \

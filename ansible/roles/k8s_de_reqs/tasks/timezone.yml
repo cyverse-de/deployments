@@ -3,7 +3,7 @@
   delegate_to: localhost
   run_once: true
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:

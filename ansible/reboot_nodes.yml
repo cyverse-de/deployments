@@ -3,7 +3,7 @@
   hosts: k8s_workers
   become: false
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   serial: 5
   tasks:
     - name: print host
@@ -44,7 +44,7 @@
   hosts: k8s_controllers
   become: false
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   serial: 5
   tasks:
     - name: print host

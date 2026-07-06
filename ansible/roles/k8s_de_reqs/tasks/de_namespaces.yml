@@ -2,7 +2,7 @@
 - name: Create DE Kubernetes namespaces
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the namespaces for the DE and VICE
       kubernetes.core.k8s:
