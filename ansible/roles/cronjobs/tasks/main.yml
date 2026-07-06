@@ -2,7 +2,7 @@
 - name: Add pod-cleaner service account
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -16,7 +16,7 @@
 - name: Create the pod-cleaner role
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -33,7 +33,7 @@
 - name: Create the pod-cleaner role binding
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -54,7 +54,7 @@
 - name: Add cronjob to clean failed pods
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -86,7 +86,7 @@
 - name: Add cronjob to clean completed pods
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:

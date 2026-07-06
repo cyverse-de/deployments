@@ -2,7 +2,7 @@
 - name: Add the harbor helm repository
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.helm_repository:
     name: harbor
     repo_url: "{{ harbor_repo }}"
@@ -11,7 +11,7 @@
 - name: Install the harbor helm chart
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.helm:
     name: harbor
     chart_ref: harbor/harbor

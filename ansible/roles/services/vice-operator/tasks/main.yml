@@ -2,7 +2,7 @@
 - name: Install the vice-operator
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: read the build JSON file
       delegate_to: localhost

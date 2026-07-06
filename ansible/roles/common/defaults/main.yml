@@ -1,4 +1,5 @@
 ---
+kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(lookup('env', 'HOME') ~ '/.kube/config', true) }}"
 ns: qa
 k8s_version: "1.30"
 calico_version: "3.29.0"

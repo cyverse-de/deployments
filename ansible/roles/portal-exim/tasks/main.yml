@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: deploy exim4
       kubernetes.core.k8s:

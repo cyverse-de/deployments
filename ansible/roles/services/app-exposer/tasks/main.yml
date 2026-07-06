@@ -2,7 +2,7 @@
 - name: Configure app-exposer Kubernetes resources
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the vice-app-runner ServiceAccount
       kubernetes.core.k8s:

@@ -2,7 +2,7 @@
 - name: Configure maintenance-page
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the maintenance-page service account
       kubernetes.core.k8s:

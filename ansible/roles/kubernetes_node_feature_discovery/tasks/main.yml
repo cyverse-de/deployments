@@ -2,7 +2,7 @@
 - name: Install node feature discovery and nVidia device plugin
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Install the node-feature-discovery helm repo
       kubernetes.core.helm_repository:

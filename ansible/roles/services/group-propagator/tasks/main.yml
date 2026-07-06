@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: create the group-propagator-configs secret
       run_once: true

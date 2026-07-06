@@ -1,7 +1,7 @@
 ---
 - delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: create the job-status-to-apps-adapter-configs secret
       run_once: true

@@ -2,7 +2,7 @@
 - name: Install and configure traefik
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Install Gateway API CRDs
       kubernetes.core.k8s:

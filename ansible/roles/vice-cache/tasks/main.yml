@@ -2,7 +2,7 @@
 - name: add vice-cache deployment
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:

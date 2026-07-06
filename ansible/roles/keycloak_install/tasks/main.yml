@@ -2,7 +2,7 @@
 - name: Install and configure Keycloak
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the keycloak namespace
       kubernetes.core.k8s:

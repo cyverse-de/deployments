@@ -2,7 +2,7 @@
 - name: Configure harbor image pull secret
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the harbor json file
       ansible.builtin.copy:

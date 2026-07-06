@@ -2,7 +2,7 @@
 - name: Create the jaeger namespace
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -14,7 +14,7 @@
 - name: Create the jaeger-collector deployment
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -63,7 +63,7 @@
 - name: Create the jaeger-collector service
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -86,7 +86,7 @@
 - name: Create the jaeger-query deployment
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -131,7 +131,7 @@
 - name: Create the jaeger-query service
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:
@@ -151,7 +151,7 @@
 - name: Set up the rollover cron job in the cluster
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   kubernetes.core.k8s:
     state: present
     definition:

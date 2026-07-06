@@ -2,7 +2,7 @@
 - name: Configure argo Kubernetes resources
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the argo namespace
       kubernetes.core.k8s:
