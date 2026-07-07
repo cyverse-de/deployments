@@ -18,6 +18,9 @@
 
 ---
 - name: build services
+  # Runs entirely on the control machine (connection: local); targeting
+  # k8s_controllers[0] instead of the implicit localhost is what resolves the
+  # inventory's group_vars (image_registry, build_json_dir overrides, etc.).
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
