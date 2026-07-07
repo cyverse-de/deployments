@@ -147,7 +147,9 @@ For each selected service the `build-service` role:
    `image_registry`.
 6. Ensures a container-driver `de-builder` buildx builder exists and selects it.
 7. Runs `skaffold build` (with `--cache-artifacts=false` when `force_rebuild`,
-   and `--push --file-output <descriptor>` when `push_images`). The skaffold
+   and `--push --file-output <descriptor>` when `push_images`, `--push=false`
+   otherwise — skaffold relays the flag to the builder as `PUSH_IMAGE`, so a
+   no-push build loads the image locally instead of pushing). The skaffold
    config uses a custom builder that runs `buildx-build.sh`, which builds with
    `docker buildx` and a **mode=max `<image>:cache` registry layer cache** — so
    the dependency-download stage of multi-stage builds (e.g. Clojure
@@ -248,12 +250,6 @@ Release builds use git tags. If a tag isn't found, the local clone is likely
 stale — re-run `clone_sources.yml` (which fetches tags for existing checkouts),
 or `git fetch --tags` in the source repo. Builds fetch tags automatically before
 checkout, so this is usually a clone that predates that behavior.
-
-### `push_images=false` still pushes
-
-skaffold's `local` builder pushes to a remote registry by default. Omitting
-`--push` does not guarantee no push. For a true no-push build, set
-`build.local.push: false` in the service's `skaffold.yaml`.
 
 ### An upstream build is broken
 

@@ -105,7 +105,7 @@
             chdir: "{{ build_tmp.path }}/repo"
             cmd: >-
               skaffold build
-              {{ '--cache-artifacts=false ' if force_rebuild | bool else '' }}--tag {{ git_ref }}{{ ' --push --file-output ' ~ build_json_path if push_images | bool else '' }}
+              {{ '--cache-artifacts=false ' if force_rebuild | bool else '' }}--tag {{ git_ref }}{{ ' --push --file-output ' ~ build_json_path if push_images | bool else ' --push=false' }}
       always:
         - name: remove the build worktree
           delegate_to: localhost
