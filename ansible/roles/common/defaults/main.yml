@@ -46,18 +46,6 @@ uid_domain: iplantcollaborative.org
 ## The timezone the services are installed in.
 timezone: America/Phoenix
 
-## The URL to the de-releases repo. Contains the information about a stable DE release.
-de_releases_repo: https://github.com/cyverse-de/de-releases
-
-## The relative path to check out the de-releases repo to.
-de_releases_dir: "./de-releases"
-
-## The branch/rev of the de-releases repo to use.
-de_releases_version: main
-
-## The relative path to the directory the service config files will be rendered in.
-rendered_configs_dir: "./rendered-configs"
-
 # Deployment / Build vars
 ## Whether to build a service.
 build: true
