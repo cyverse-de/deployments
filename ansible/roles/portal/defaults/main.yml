@@ -1,0 +1,4 @@
+---
+# Directory the portal2 build descriptor is read from; inventories may override
+# it (QA points at a de-releases/builds checkout).
+build_json_dir: "{{ playbook_dir }}/roles/services/portal2/files"
