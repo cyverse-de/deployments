@@ -21,6 +21,9 @@ args=(
   --platform "${PLATFORMS:-linux/amd64}"
   --file "${BUILD_CONTEXT}/Dockerfile"
   --cache-from "type=registry,ref=${cache_ref}"
+  # A provenance attestation turns the pushed artifact into an OCI image index
+  # even for a single-platform build; keep it a plain image manifest so the
+  # descriptor digests (tag@sha256:...) keep pointing at the image itself.
   --provenance=false
 )
 
