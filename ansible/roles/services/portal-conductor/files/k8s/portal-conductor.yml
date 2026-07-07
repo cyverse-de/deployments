@@ -27,7 +27,7 @@ spec:
       volumes:
         - name: config-volume
           secret:
-            secretName: service-configs
+            secretName: portal-conductor-configs
             items:
               - key: portal-conductor.json
                 path: portal-conductor.json
