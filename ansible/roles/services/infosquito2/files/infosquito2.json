@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/infosquito2","tag":"harbor.cyverse.org/de/infosquito2:v2026.07.07-rc01@sha256:6d801b89745c4d808d1b335304601d2a08bfd1d2d9ff6e6d7fe8b971684ed6a8"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/infosquito2","tag":"harbor.cyverse.org/de/infosquito2:v2026.07.07@sha256:0ed830cffb64c73fee270cbbca87b5e080af7e1f6f806e59f9c558f8cb1bcb4d"}]}
