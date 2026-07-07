@@ -67,7 +67,7 @@
       ansible.builtin.debug:
         msg:
           - "rebuilt ({{ rebuilt | length }}): {{ rebuilt | join(', ') }}"
-          - "skipped, no ref ({{ rebuild_skipped | length }}): {{ rebuild_skipped | join(', ') }}"
+          - "skipped, no ref or no skaffold config ({{ rebuild_skipped | length }}): {{ rebuild_skipped | join(', ') }}"
           - "failed ({{ rebuild_failed | length }}): {{ rebuild_failed | join(', ') }}"
 
     - name: fail the run if any service failed
