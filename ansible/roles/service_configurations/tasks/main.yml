@@ -118,3 +118,16 @@
             high: "{{ jvm_opts_high }}"
             grouper: "{{ jvm_opts_grouper }}"
       when: load_configs is undefined or (load_configs | bool)
+
+    # The shared service-configs secret was replaced by per-service
+    # <service>-configs secrets; clean up the leftover in existing clusters.
+    # Removable once all deployments have rolled past the unification release.
+    - name: Remove the retired service-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: service-configs
+      when: load_configs is undefined or (load_configs | bool)
