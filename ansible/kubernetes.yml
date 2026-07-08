@@ -119,6 +119,22 @@
     - role: longhorn
       tags: longhorn
 
+- name: Set up UI haproxy
+  become: true
+  hosts: de_haproxy
+  roles:
+    - role: haproxy
+    - role: ui_haproxy
+  tags:
+    - haproxy
+    - ui-haproxy
+
+- name: Add additional third-party software to the k0s cluster
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
     - role: harbor
       tags: harbor
       when: "'harbor' in ansible_run_tags"
@@ -276,16 +292,6 @@
     - role: services/portal2
     - role: services/formation
     - role: services/vice-operator
-
-- name: Set up UI haproxy
-  become: true
-  hosts: de_haproxy
-  roles:
-    - role: haproxy
-    - role: ui_haproxy
-  tags:
-    - haproxy
-    - ui-haproxy
 
 - name: Set up additional services
   become: false
