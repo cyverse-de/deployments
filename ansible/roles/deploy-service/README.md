@@ -10,8 +10,9 @@ from `roles/services/<svc>/templates/k8s/<manifest>.j2` into
 `<skaffold_dir>/k8s/<manifest>` (the path skaffold reads). The rendered
 `files/k8s/*.yml` / `*.yaml` files are **generated build artifacts** and are
 git-ignored — edit the `.j2` template, not the rendered file. The template
-consumes the owning role's `<svc>_replicas` and `<svc>_pod_anti_affinity`
-variables (see each service role's `defaults/main.yml`).
+consumes the owning role's `<svc>_replicas` variable, plus
+`<svc>_pod_anti_affinity` for the services that ship an anti-affinity block
+(see each service role's `defaults/main.yml`).
 
 `manifest_file` defaults to `{{ project_name }}.yml`; override it in the
 `include_role` call when the manifest name differs (e.g. `maintenance-page`

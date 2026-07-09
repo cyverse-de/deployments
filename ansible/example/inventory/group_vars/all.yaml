@@ -1019,8 +1019,6 @@
 # de-mailer
 # Default: 2
 # de_mailer_replicas: 2
-# Default: false
-# de_mailer_pod_anti_affinity: false
 
 # de-webhooks
 # Default: 2
@@ -1031,8 +1029,6 @@
 # dewey
 # Default: 2
 # dewey_replicas: 2
-# Default: false
-# dewey_pod_anti_affinity: false
 
 # discoenv-analyses
 # Default: 2
@@ -1049,14 +1045,10 @@
 # email-requests
 # Default: 2
 # email_requests_replicas: 2
-# Default: false
-# email_requests_pod_anti_affinity: false
 
 # event-recorder
 # Default: 2
 # event_recorder_replicas: 2
-# Default: false
-# event_recorder_pod_anti_affinity: false
 
 # formation
 # Default: 2
@@ -1073,14 +1065,10 @@
 # info-typer
 # Default: 2
 # info_typer_replicas: 2
-# Default: false
-# info_typer_pod_anti_affinity: false
 
 # infosquito2
 # Default: 2
 # infosquito2_replicas: 2
-# Default: false
-# infosquito2_pod_anti_affinity: false
 
 # iplant-groups
 # Default: 2
@@ -1115,14 +1103,10 @@
 # kifshare
 # Default: 2
 # kifshare_replicas: 2
-# Default: false
-# kifshare_pod_anti_affinity: false
 
 # maintenance-page
 # Default: 1
 # maintenance_page_replicas: 1
-# Default: false
-# maintenance_page_pod_anti_affinity: false
 
 # metadata
 # Default: 2
@@ -1229,8 +1213,6 @@
 # vice-operator
 # Default: 1
 # vice_operator_replicas: 1
-# Default: false
-# vice_operator_pod_anti_affinity: false
 
 # vice-status-listener
 # Default: 1
