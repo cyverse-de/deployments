@@ -1,0 +1,3 @@
+---
+portal_conductor_replicas: 2
+portal_conductor_pod_anti_affinity: true

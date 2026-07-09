@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vice-default-backend
+spec:
+  replicas: {{ vice_default_backend_replicas }}
+  selector:
+    matchLabels:
+      de-app: vice-default-backend
+  template:
+    metadata:
+      labels:
+        de-app: vice-default-backend
+        app: de
+    spec:
+{% if vice_default_backend_pod_anti_affinity %}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - vice-default-backend
+              topologyKey: kubernetes.io/hostname
+{% endif %}
+      restartPolicy: Always
+      containers:
+        - name: vice-default-backend
+          image: harbor.cyverse.org/de/vice-default-backend
+          # VICE_DOMAIN and APP_EXPOSER_URL together enable cross-cluster
+          # redirect: when an unrecognized subdomain hits the wildcard
+          # HTTPRoute, the default backend asks app-exposer which operator
+          # owns it and 302s the browser to that operator's base_url.
+          # Both must be set together, or both omitted to disable.
+          # VICE_DOMAIN must match the wildcard suffix vice-default-route
+          # catches on this cluster (e.g. *.cyverse.run -> cyverse.run).
+          # LOOKUP_TIMEOUT and LOOKUP_CACHE_TTL are optional (see main.go
+          # defaultLookup* constants).
+          env:
+            - name: VICE_DOMAIN
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: VICE_BASE_DOMAIN
+            - name: APP_EXPOSER_URL
+              value: http://app-exposer
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          ports:
+            - name: listen-port
+              containerPort: 60000
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vice-default-backend
+spec:
+  selector:
+    de-app: vice-default-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: listen-port

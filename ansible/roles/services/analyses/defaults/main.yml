@@ -1,0 +1,3 @@
+---
+analyses_replicas: 2
+analyses_pod_anti_affinity: true

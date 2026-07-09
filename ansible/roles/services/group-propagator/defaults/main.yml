@@ -1,0 +1,3 @@
+---
+group_propagator_replicas: 2
+group_propagator_pod_anti_affinity: true

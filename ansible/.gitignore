@@ -19,3 +19,7 @@ charts/
 memory_usage*.log
 harbor_login.json
 *_dump.sql
+
+# Service Deployment manifests are generated from roles/services/*/templates/k8s/*.j2
+roles/services/*/files/k8s/*.yml
+roles/services/*/files/k8s/*.yaml

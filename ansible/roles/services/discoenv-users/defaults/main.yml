@@ -1,0 +1,3 @@
+---
+discoenv_users_replicas: 2
+discoenv_users_pod_anti_affinity: true

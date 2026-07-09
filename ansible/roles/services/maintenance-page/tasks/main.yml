@@ -53,3 +53,4 @@
         tasks_from: main
       vars:
         project_name: maintenance-page
+        manifest_file: maintenance-page.yaml

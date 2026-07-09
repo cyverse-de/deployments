@@ -1,0 +1,3 @@
+---
+vice_operator_replicas: 1
+vice_operator_pod_anti_affinity: false

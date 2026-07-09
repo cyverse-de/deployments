@@ -1,0 +1,3 @@
+---
+metadata_replicas: 2
+metadata_pod_anti_affinity: true

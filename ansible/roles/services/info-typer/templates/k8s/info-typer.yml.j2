@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: info-typer
+spec:
+  replicas: {{ info_typer_replicas }}
+  selector:
+    matchLabels:
+      de-app: info-typer
+  strategy:
+    rollingUpdate:
+      maxSurge: 200%
+  template:
+    metadata:
+      labels:
+        de-app: info-typer
+    spec:
+      restartPolicy: Always
+      volumes:
+        - name: info-typer-configs
+          secret:
+            secretName: info-typer-configs
+            items:
+              - key: info-typer.properties
+                path: info-typer.properties
+      containers:
+        - name: info-typer
+          image: harbor.cyverse.org/de/info-typer
+          volumeMounts:
+            - name: info-typer-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          resources:
+            requests:
+              cpu: "320m"
+              memory: "512Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "1950m"
+              memory: "2Gi"
+              ephemeral-storage: "1Gi"
+          args:
+            - --config
+            - /etc/iplant/de/info-typer.properties
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: JAVA_TOOL_OPTIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: java-tool-options
+                  key: low
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_ENDPOINT
