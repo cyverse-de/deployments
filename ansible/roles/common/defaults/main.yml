@@ -345,7 +345,6 @@ longhorn_storage_class: longhorn
 
 # OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
 openebs_enabled: false
-openebs_namespace: openebs
 
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd
