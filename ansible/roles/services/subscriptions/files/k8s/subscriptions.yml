@@ -37,6 +37,9 @@ spec:
         - name: nats-services-creds
           secret:
             secretName: nats-services-creds
+            items:
+              - key: services.creds
+                path: service.creds
         - name: nats-configuration
           emptyDir: {}
       containers:

@@ -38,6 +38,9 @@ spec:
         - name: nats-services-creds
           secret:
             secretName: nats-services-creds
+            items:
+              - key: services.creds
+                path: service.creds
       containers:
         - name: data-usage-api
           image: harbor.cyverse.org/de/data-usage-api
