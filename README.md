@@ -12,4 +12,4 @@ are deployed using Ansible playbooks are OpenLDAP and Kubernetes.
 ## Kustomizations
 
 The [Kustomizations](kustomize) are used to deploy third-party software that the DE relies on in Kubernetes,
-currently Keycloak and OpenEBS.
+currently Keycloak. OpenEBS is now deployed by the `openebs` Ansible role.
