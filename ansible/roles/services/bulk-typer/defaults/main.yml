@@ -1,0 +1,3 @@
+---
+bulk_typer_replicas: 1
+bulk_typer_pod_anti_affinity: true

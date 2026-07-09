@@ -1,0 +1,3 @@
+---
+clockwork_replicas: 1
+clockwork_pod_anti_affinity: true

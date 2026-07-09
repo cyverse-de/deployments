@@ -23,6 +23,24 @@
       ansible.builtin.debug:
         msg: "{{ build_json.builds[0].tag }}"
 
+    - name: Check for a manifest template
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.stat:
+        path: "{{ ansible_parent_role_paths[0] }}/templates/k8s/{{ manifest_file }}.j2"
+      register: manifest_tpl
+
+    # Render replicas/anti-affinity from role vars into the manifest skaffold reads.
+    # Guarded so deploy-service still works for callers without a template.
+    - name: Render the Kubernetes manifest
+      delegate_to: localhost
+      run_once: true
+      when: manifest_tpl.stat.exists
+      ansible.builtin.template:
+        src: "{{ ansible_parent_role_paths[0] }}/templates/k8s/{{ manifest_file }}.j2"
+        dest: "{{ skaffold_dir }}/k8s/{{ manifest_file }}"
+        mode: "0644"
+
     - name: Run skaffold deploy
       delegate_to: localhost
       run_once: true

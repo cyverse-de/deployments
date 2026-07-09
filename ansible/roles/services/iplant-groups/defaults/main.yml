@@ -1,0 +1,3 @@
+---
+iplant_groups_replicas: 2
+iplant_groups_pod_anti_affinity: true

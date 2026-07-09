@@ -28,7 +28,7 @@ metadata:
   name: vice-operator
   namespace: {{ vice_ns }}
 spec:
-  replicas: 1
+  replicas: {{ vice_operator_replicas }}
   selector:
     matchLabels:
       app: vice-operator

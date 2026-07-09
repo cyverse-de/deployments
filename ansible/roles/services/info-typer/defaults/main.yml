@@ -1,0 +1,3 @@
+---
+info_typer_replicas: 2
+info_typer_pod_anti_affinity: false

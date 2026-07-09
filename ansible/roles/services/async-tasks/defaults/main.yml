@@ -1,0 +1,3 @@
+---
+async_tasks_replicas: 2
+async_tasks_pod_anti_affinity: true

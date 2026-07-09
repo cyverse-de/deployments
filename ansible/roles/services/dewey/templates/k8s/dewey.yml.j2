@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dewey
+spec:
+  replicas: {{ dewey_replicas }}
+  selector:
+    matchLabels:
+      de-app: dewey
+  strategy:
+    rollingUpdate:
+      maxSurge: 200%
+  template:
+    metadata:
+      labels:
+        de-app: dewey
+    spec:
+      restartPolicy: Always
+      volumes:
+        - name: dewey-configs
+          secret:
+            secretName: dewey-configs
+            items:
+              - key: dewey.properties
+                path: dewey.properties
+      containers:
+        - name: dewey
+          image: harbor.cyverse.org/de/dewey
+          resources:
+            requests:
+              cpu: "480m"
+              memory: "512Mi"
+              ephemeral-storage: "100Mi"
+            limits:
+              cpu: "1600m"
+              memory: "2Gi"
+              ephemeral-storage: "100Mi"
+          args:
+            - --config
+            - /etc/iplant/de/dewey.properties
+          volumeMounts:
+            - name: dewey-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: JAVA_TOOL_OPTIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: java-tool-options
+                  key: low
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_ENDPOINT
+          ports:
+            - name: listen-port
+              containerPort: 60000
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 60000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /
+              port: 60000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 60000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dewey
+spec:
+  selector:
+    de-app: dewey
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: listen-port

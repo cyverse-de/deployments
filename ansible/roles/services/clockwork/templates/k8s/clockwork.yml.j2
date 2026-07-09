@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clockwork
+spec:
+  replicas: {{ clockwork_replicas }}
+  selector:
+    matchLabels:
+      de-app: clockwork
+  template:
+    metadata:
+      labels:
+        de-app: clockwork
+    spec:
+{% if clockwork_pod_anti_affinity %}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - clockwork
+              topologyKey: kubernetes.io/hostname
+{% endif %}
+      volumes:
+        - name: clockwork-configs
+          secret:
+            secretName: clockwork-configs
+            items:
+              - key: clockwork.properties
+                path: clockwork.properties
+      containers:
+        - name: clockwork
+          image: harbor.cyverse.org/de/clockwork
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "512Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "650m"
+              memory: "2Gi"
+              ephemeral-storage: "1Gi"
+          args:
+            - --config
+            - /etc/iplant/de/clockwork.properties
+          volumeMounts:
+            - name: clockwork-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: JAVA_TOOL_OPTIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: java-tool-options
+                  key: low
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_ENDPOINT
+      restartPolicy: Always

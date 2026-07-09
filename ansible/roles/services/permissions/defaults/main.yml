@@ -1,0 +1,3 @@
+---
+permissions_replicas: 2
+permissions_pod_anti_affinity: true
