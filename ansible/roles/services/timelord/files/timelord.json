@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/timelord","tag":"harbor.cyverse.org/de/timelord:v2026.06.02@sha256:f09586b1946c75f34a5f897829a6d3da3cba5fab4da26fd6e719a503b97db775"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/timelord","tag":"harbor.cyverse.org/de/timelord:v2026.08.04-rc01@sha256:1bfe89b2f17d97747353b35c7fcf66f3b97142757a8da292efd5cfc3e9f1b5e3"}]}
