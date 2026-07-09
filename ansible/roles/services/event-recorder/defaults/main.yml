@@ -1,3 +1,2 @@
 ---
 event_recorder_replicas: 2
-event_recorder_pod_anti_affinity: false
