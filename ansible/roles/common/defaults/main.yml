@@ -343,6 +343,10 @@ longhorn_data_path: /var/lib/longhorn
 longhorn_reclaim_policy: Retain
 longhorn_storage_class: longhorn
 
+# OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
+openebs_enabled: false
+openebs_namespace: openebs
+
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd
 nvidia_container_toolkit_runtime_config_path: /etc/k0s/containerd.d/nvidia.toml

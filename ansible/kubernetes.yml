@@ -96,6 +96,9 @@
     - role: longhorn
       tags: longhorn
 
+    - role: openebs
+      tags: openebs
+
     - role: openldap-docker
       tags: openldap-docker
 

@@ -19,7 +19,10 @@ $ kubectl delete namespace longhorn-system
 
 ## Installing OpenEBS
 
+OpenEBS is deployed by the `openebs` Ansible role. It is opt-in (`openebs_enabled`
+defaults to `false`), so enable it in your inventory's group_vars or pass it on the
+command line:
+
 ```bash
-cd ku
-kubectl apply -k kustomize/openebs/discoenv
+ansible-playbook -i <inventory> --tags openebs -e openebs_enabled=true kubernetes.yml
 ```

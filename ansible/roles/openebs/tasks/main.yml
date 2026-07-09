@@ -1,0 +1,16 @@
+---
+- name: Install the OpenEBS local storage provider
+  delegate_to: localhost
+  run_once: true
+  when: openebs_enabled | bool
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    # Applies the vendored OpenEBS operator plus the discoenv overlay, which patches
+    # vice/analysis NoSchedule tolerations onto the NDM and localpv workloads. Creates
+    # the openebs-hostpath StorageClass the VICE operator uses (vice_local_storage_class).
+    - name: Apply the OpenEBS kustomization
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('kubernetes.core.kustomize', dir=role_path ~ '/files/discoenv') }}"
