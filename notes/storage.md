@@ -26,3 +26,7 @@ command line:
 ```bash
 ansible-playbook -i <inventory> --tags openebs -e openebs_enabled=true kubernetes.yml
 ```
+
+The role renders the kustomization on the control machine, so it needs `kustomize` >= v5.2.0
+or `kubectl` >= v1.31 on the PATH (older versions reject the overlay's multi-document patch
+file). The role waits for the OpenEBS workloads to become ready before finishing.
