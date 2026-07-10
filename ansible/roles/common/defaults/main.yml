@@ -362,6 +362,14 @@ longhorn_data_path: /var/lib/longhorn
 # destroy the underlying data.
 longhorn_reclaim_policy: Retain
 longhorn_storage_class: longhorn
+# Backups are off by default. Longhorn still creates a BackupTarget named
+# "default" with an empty URL, which volume creation requires to exist; leaving
+# these empty is the supported unconfigured state, not a missing configuration.
+# longhorn-manager reads these at startup, so changing them on a running cluster
+# requires restarting the longhorn-manager DaemonSet.
+longhorn_backup_target: ""
+longhorn_backup_target_credential_secret: ""
+longhorn_backupstore_poll_interval: 300
 
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd

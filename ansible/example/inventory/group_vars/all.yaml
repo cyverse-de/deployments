@@ -978,6 +978,27 @@
 # when a PVC is deleted; set to Delete to reclaim it automatically.
 # Default: Retain
 # longhorn_reclaim_policy: Retain
+
+# Where Longhorn stores volume backups. Empty means backups are not
+# configured, which is the supported default: Longhorn still creates a
+# BackupTarget named `default` with an empty URL, and volume creation
+# requires that object to exist. Set this to an NFS or S3 endpoint to
+# enable backups, e.g. s3://bucket@us-west-2/ or nfs://host:/path.
+# longhorn-manager reads this at startup, so changing it on a running
+# cluster requires restarting the longhorn-manager DaemonSet.
+# Default: ""
+# longhorn_backup_target: s3://my-bucket@us-west-2/
+
+# Name of an existing Secret in longhorn_namespace holding the backup
+# target credentials (for S3: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+# AWS_ENDPOINTS). Only needed when longhorn_backup_target is set.
+# Default: ""
+# longhorn_backup_target_credential_secret: longhorn-backup-secret
+
+# Seconds Longhorn waits before polling the backup store for new backups.
+# Set to 0 to disable polling.
+# Default: 300
+# longhorn_backupstore_poll_interval: 300
 # =====================================================================
 
 

@@ -12,6 +12,11 @@
     # iRODS CSI driver is only for the data store). Replica count is configured
     # via the persistence and defaultSettings values so it can adapt to clusters
     # with fewer than 3 nodes.
+    # defaultBackupStore is only sent when a backup target is configured. The
+    # chart omits a value from the longhorn-default-resource ConfigMap when it
+    # is null but writes an empty key when it is "", so passing empty strings
+    # would change that ConfigMap on every existing install for no benefit.
+    # Longhorn creates its `default` BackupTarget with an empty URL either way.
     - name: Install the longhorn helm chart
       kubernetes.core.helm:
         create_namespace: true
@@ -21,7 +26,9 @@
         chart_ref: longhorn
         chart_version: "{{ longhorn_version }}"
         wait: true
-        values:
+        values: "{{ longhorn_base_values | combine(longhorn_backup_store_values) }}"
+      vars:
+        longhorn_base_values:
           persistence:
             defaultClass: true
             defaultClassReplicaCount: "{{ longhorn_replica_count | int }}"
@@ -29,3 +36,13 @@
           defaultSettings:
             defaultReplicaCount: "{{ longhorn_replica_count | int }}"
             defaultDataPath: "{{ longhorn_data_path }}"
+        longhorn_backup_store_values: >-
+          {{
+            {
+              'defaultBackupStore': {
+                'backupTarget': longhorn_backup_target,
+                'backupTargetCredentialSecret': longhorn_backup_target_credential_secret,
+                'pollInterval': longhorn_backupstore_poll_interval | int,
+              }
+            } if longhorn_backup_target else {}
+          }}
