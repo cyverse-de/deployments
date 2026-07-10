@@ -958,264 +958,185 @@
 # required anti-affinity would leave replicas permanently Pending.
 #
 # Names are prefixed with the service (hyphens become underscores) so
-# they never collide in this flat variable namespace. The values below
-# are the shipped defaults; uncomment a line to override.
+# they never collide in this flat variable namespace.
+#
+# Every commented-out line below shows that service's shipped default —
+# uncomment a line and change its value to override it. Services listed
+# without a `_pod_anti_affinity` line have no anti-affinity rule to
+# toggle.
 # =====================================================================
 
 # analyses
-# Default: 2
 # analyses_replicas: 2
-# Default: true
 # analyses_pod_anti_affinity: true
 
 # app-exposer
-# Default: 2
 # app_exposer_replicas: 2
-# Default: true
 # app_exposer_pod_anti_affinity: true
 
 # apps
-# Default: 2
 # apps_replicas: 2
-# Default: true
 # apps_pod_anti_affinity: true
 
 # async-tasks
-# Default: 2
 # async_tasks_replicas: 2
-# Default: true
 # async_tasks_pod_anti_affinity: true
 
 # bulk-typer
-# Default: 1
 # bulk_typer_replicas: 1
-# Default: true
 # bulk_typer_pod_anti_affinity: true
 
 # clockwork
-# Default: 1
 # clockwork_replicas: 1
-# Default: true
 # clockwork_pod_anti_affinity: true
 
 # dashboard-aggregator
-# Default: 2
 # dashboard_aggregator_replicas: 2
-# Default: true
 # dashboard_aggregator_pod_anti_affinity: true
 
 # data-info
-# Default: 2
 # data_info_replicas: 2
-# Default: true
 # data_info_pod_anti_affinity: true
 
 # data-usage-api
-# Default: 2
 # data_usage_api_replicas: 2
-# Default: true
 # data_usage_api_pod_anti_affinity: true
 
 # de-mailer
-# Default: 2
 # de_mailer_replicas: 2
 
 # de-webhooks
-# Default: 2
 # de_webhooks_replicas: 2
-# Default: true
 # de_webhooks_pod_anti_affinity: true
 
 # dewey
-# Default: 2
 # dewey_replicas: 2
 
 # discoenv-analyses
-# Default: 2
 # discoenv_analyses_replicas: 2
-# Default: true
 # discoenv_analyses_pod_anti_affinity: true
 
 # discoenv-users
-# Default: 2
 # discoenv_users_replicas: 2
-# Default: true
 # discoenv_users_pod_anti_affinity: true
 
 # email-requests
-# Default: 2
 # email_requests_replicas: 2
 
 # event-recorder
-# Default: 2
 # event_recorder_replicas: 2
 
 # formation
-# Default: 2
 # formation_replicas: 2
-# Default: true
 # formation_pod_anti_affinity: true
 
 # group-propagator
-# Default: 2
 # group_propagator_replicas: 2
-# Default: true
 # group_propagator_pod_anti_affinity: true
 
 # info-typer
-# Default: 2
 # info_typer_replicas: 2
 
 # infosquito2
-# Default: 2
 # infosquito2_replicas: 2
 
 # iplant-groups
-# Default: 2
 # iplant_groups_replicas: 2
-# Default: true
 # iplant_groups_pod_anti_affinity: true
 
 # jex-adapter
-# Default: 2
 # jex_adapter_replicas: 2
-# Default: true
 # jex_adapter_pod_anti_affinity: true
 
 # job-status-listener
-# Default: 2
 # job_status_listener_replicas: 2
-# Default: true
 # job_status_listener_pod_anti_affinity: true
 
 # job-status-recorder
-# Default: 1
 # job_status_recorder_replicas: 1
-# Default: true
 # job_status_recorder_pod_anti_affinity: true
 
 # job-status-to-apps-adapter
-# Default: 1
 # job_status_to_apps_adapter_replicas: 1
-# Default: true
 # job_status_to_apps_adapter_pod_anti_affinity: true
 
 # kifshare
-# Default: 2
 # kifshare_replicas: 2
 
 # maintenance-page
-# Default: 1
 # maintenance_page_replicas: 1
 
 # metadata
-# Default: 2
 # metadata_replicas: 2
-# Default: true
 # metadata_pod_anti_affinity: true
 
 # notifications
-# Default: 2
 # notifications_replicas: 2
-# Default: true
 # notifications_pod_anti_affinity: true
 
 # permissions
-# Default: 2
 # permissions_replicas: 2
-# Default: true
 # permissions_pod_anti_affinity: true
 
 # portal-conductor
-# Default: 2
 # portal_conductor_replicas: 2
-# Default: true
 # portal_conductor_pod_anti_affinity: true
 
 # portal2
-# Default: 1
 # portal2_replicas: 1
-# Default: true
 # portal2_pod_anti_affinity: true
 
 # qms
-# Default: 2
 # qms_replicas: 2
-# Default: true
 # qms_pod_anti_affinity: true
 
 # qms-adapter
-# Default: 2
 # qms_adapter_replicas: 2
-# Default: true
 # qms_adapter_pod_anti_affinity: true
 
 # requests
-# Default: 2
 # requests_replicas: 2
-# Default: true
 # requests_pod_anti_affinity: true
 
 # resource-usage-api
-# Default: 2
 # resource_usage_api_replicas: 2
-# Default: true
 # resource_usage_api_pod_anti_affinity: true
 
 # search
-# Default: 2
 # search_replicas: 2
-# Default: true
 # search_pod_anti_affinity: true
 
 # sonora
-# Default: 2
 # sonora_replicas: 2
-# Default: true
 # sonora_pod_anti_affinity: true
 
 # subscriptions
-# Default: 2
 # subscriptions_replicas: 2
-# Default: true
 # subscriptions_pod_anti_affinity: true
 
 # terrain
-# Default: 2
 # terrain_replicas: 2
-# Default: true
 # terrain_pod_anti_affinity: true
 
 # timelord
-# Default: 2
 # timelord_replicas: 2
-# Default: true
 # timelord_pod_anti_affinity: true
 
 # unleash
-# Default: 2
 # unleash_replicas: 2
-# Default: true
 # unleash_pod_anti_affinity: true
 
 # user-info
-# Default: 2
 # user_info_replicas: 2
-# Default: true
 # user_info_pod_anti_affinity: true
 
 # vice-default-backend
-# Default: 2
 # vice_default_backend_replicas: 2
-# Default: true
 # vice_default_backend_pod_anti_affinity: true
 
 # vice-operator
-# Default: 1
 # vice_operator_replicas: 1
 
 # vice-status-listener
-# Default: 1
 # vice_status_listener_replicas: 1
-# Default: true
 # vice_status_listener_pod_anti_affinity: true
