@@ -1,5 +1,5 @@
 resources:
   - ../base
 
-patchesStrategicMerge:
-  - tolerations.yaml
+patches:
+  - path: tolerations.yaml
