@@ -1,4 +1,23 @@
 ## Deleting longhorn
+
+Run this block all the way through, or not at all. It is a teardown, not a
+grab-bag of cleanup commands.
+
+In particular, the `backuptarget.longhorn.io` delete below is only safe because
+the namespace is deleted at the end. Longhorn creates the `default` BackupTarget
+once, when longhorn-manager starts, and every volume is stamped with a reference
+to it — so deleting that object while longhorn-manager keeps running leaves the
+cluster unable to provision any volume, failing with:
+
+    admission webhook "validator.longhorn.io" denied the request:
+    failed to get backup target default: backuptarget.longhorn.io "default" not found
+
+If you have already done this, restart longhorn-manager to recreate the object:
+
+```bash
+$ kubectl -n longhorn-system rollout restart daemonset/longhorn-manager
+```
+
 ```bash
 $ kubectl delete ValidatingWebhookConfiguration longhorn-webhook-validator
 $ kubectl delete MutatingWebhookConfiguration longhorn-webhook-mutator
