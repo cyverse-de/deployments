@@ -30,6 +30,17 @@
         path: "{{ ansible_parent_role_paths[0] }}/templates/k8s/{{ manifest_file }}.j2"
       register: manifest_tpl
 
+    # The rendered manifests are git-ignored, so on a fresh clone the
+    # destination directory doesn't exist and the template task would fail.
+    - name: Ensure the rendered-manifest directory exists
+      delegate_to: localhost
+      run_once: true
+      when: manifest_tpl.stat.exists
+      ansible.builtin.file:
+        path: "{{ skaffold_dir }}/k8s"
+        state: directory
+        mode: "0755"
+
     # Render replicas/anti-affinity from role vars into the manifest skaffold reads.
     # Guarded so deploy-service still works for callers without a template.
     - name: Render the Kubernetes manifest
