@@ -176,6 +176,7 @@ de_default_output_folder: analyses
 de_info_faq: https://learning.cyverse.org/faq/
 de_info_description: https://cyverse.org/discovery-environment
 de_queries_concurrency_limit: 8
+de_services_local_context_base: https://sandbox.localcontextshub.org/api/v1/
 de_tools_admin_max_disk_limit: 1099511627776
 de_tools_admin_max_cpu_limit: 24
 de_tools_admin_max_gpu_limit: 0
