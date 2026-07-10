@@ -11,6 +11,13 @@ For an overview of the required repositories, CI builds, and the production depl
 
 These (and the required roles) can be installed with `ansible-galaxy install -r requirements.yml`.
 
+## Required Local Tools
+
+The `openebs` role renders its kustomization on the control machine via the
+`kubernetes.core.kustomize` lookup, which requires `kustomize` >= v5.2.0 or `kubectl` >= v1.31
+on the PATH (the lookup prefers a standalone `kustomize` binary and falls back to `kubectl`;
+older versions reject the overlay's multi-document patch file).
+
 ## Database Initialization
 
 Databases are created and migrated by the `postgresql_init` role, which runs in `kubernetes.yml` under the

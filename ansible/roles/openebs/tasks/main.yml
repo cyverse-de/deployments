@@ -9,8 +9,12 @@
     # Applies the vendored OpenEBS operator plus the discoenv overlay, which patches
     # vice/analysis NoSchedule tolerations onto the NDM and localpv workloads. Creates
     # the openebs-hostpath StorageClass the VICE operator uses (vice_local_storage_class).
+    # Waits for the workloads so later roles can provision PVCs against the StorageClass
+    # without racing the localpv provisioner on a fresh cluster.
     - name: Apply the OpenEBS kustomization
       kubernetes.core.k8s:
         state: present
         apply: true
+        wait: true
+        wait_timeout: 600
         definition: "{{ lookup('kubernetes.core.kustomize', dir=role_path ~ '/files/discoenv') }}"
