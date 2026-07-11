@@ -7,6 +7,10 @@
     - name: Install Gateway API CRDs
       kubernetes.core.k8s:
         state: present
+        # Traefik v3.7's Gateway provider targets Gateway API v1.5.1 and watches
+        # TLSRoute at startup (WaitForCacheSync blocks on it even when unused). In
+        # v1.5.1 TLSRoute is in the standard channel, so standard-install is
+        # sufficient; the CRD version must stay in step with the Traefik version.
         src: https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml
 
     - name: Create traefik namespace
