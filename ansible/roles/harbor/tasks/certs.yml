@@ -5,7 +5,7 @@
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
     - name: Define the self-signed CA certificate for Harbor
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ harbor_tls_ca_name }}"
         namespace: "{{ harbor_namespace }}"
@@ -30,7 +30,7 @@
               group: cert-manager.io
 
     - name: Create the local certificate issuer for Harbor
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ harbor_tls_issuer_name }}"
         namespace: "{{ harbor_namespace }}"
@@ -45,7 +45,7 @@
               secretName: "{{ harbor_tls_ca_name }}"
 
     - name: Create the locally signed TLS certificate for Harbor
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ harbor_tls_cert_name }}"
         namespace: "{{ harbor_namespace }}"
@@ -68,7 +68,7 @@
               - "{{ harbor_fqdn }}"
 
     - name: Create the TLS certificate for Harbor using letsencrypt
-      when: cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'letsencrypt'
       kubernetes.core.k8s:
         name: "{{ harbor_tls_cert_name }}"
         namespace: "{{ harbor_namespace }}"

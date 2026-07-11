@@ -670,10 +670,9 @@
 #
 # cert-manager always creates a self-signed default `Issuer` and a
 # self-signed default `ClusterIssuer` — NATS and Traefik rely on them for
-# in-cluster certificate chains. Setting `cert_manager_use_letsencrypt`
-# additionally creates a Let's Encrypt ACME `ClusterIssuer` that solves
-# DNS-01 challenges through Route53 (the only DNS provider currently
-# supported, using long-term AWS access keys).
+# in-cluster certificate chains, so cert-manager is installed in every mode.
+# The public-facing service certificates are chosen by
+# `cert_manager_provider` (see the next subsection).
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
 # All assignments here are commented out so the file is a no-op as
@@ -682,15 +681,62 @@
 
 
 # ---------------------------------------------------------------------
+# TLS certificate strategy: cert_manager_provider
+# ---------------------------------------------------------------------
+# Selects how the public-facing service certificates (DE, user portal,
+# VICE, Harbor, Keycloak) are obtained. One of:
+#
+#   selfsigned  - cert-manager self-signs a CA + leaf certificate per
+#                 endpoint (the default).
+#   letsencrypt - cert-manager issues the leaf certificates from the
+#                 Let's Encrypt ACME ClusterIssuer (configure the
+#                 Route53 variables below).
+#   external    - cert-manager creates NONE of these certificates; a
+#                 cluster admin pre-creates the TLS secrets out of band
+#                 (e.g. certs from a third-party CA). Use this when the
+#                 certificate lifecycle is managed independently of the
+#                 Ansible deploy.
+#
+# For backward compatibility the default is derived from the legacy
+# `cert_manager_use_letsencrypt` toggle: unset -> selfsigned, true ->
+# letsencrypt. Set `cert_manager_provider` explicitly to override.
+# Default: selfsigned (or letsencrypt if cert_manager_use_letsencrypt is true)
+# cert_manager_provider: external
+#
+# In `external` mode you must create these `kubernetes.io/tls` secrets
+# before HTTPS will serve — a Gateway listener whose secret is missing
+# simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
+# not matter:
+#
+#   secret name       namespace   hostname
+#   ---------------   ---------   ------------------------------------
+#   de-tls            ns (qa)     de_hostname
+#   user-portal-tls   ns (qa)     portal_hostname
+#   vice-tls          ns (qa)     vice_wildcard_fqdn  (needs a WILDCARD cert)
+#   harbor-tls        harbor      harbor_fqdn
+#   kc-tls            keycloak    keycloak_hostname
+#
+# The secret names for the DE namespace and Harbor follow the
+# de_tls_cert_name / user_portal_tls_cert_name / vice_tls_cert_name /
+# harbor_tls_cert_name variables; the Keycloak secret name (kc-tls) is
+# fixed. Create each from the CA-issued cert and key, for example:
+#
+#   kubectl -n qa create secret tls de-tls --cert=de.crt --key=de.key
+#   # ...repeat for user-portal-tls and vice-tls in namespace qa,
+#   #    harbor-tls in namespace harbor, kc-tls in namespace keycloak.
+
+
+# ---------------------------------------------------------------------
 # Let's Encrypt / Route53
 # ---------------------------------------------------------------------
-# Apart from the toggle, these variables only take effect when
-# `cert_manager_use_letsencrypt` is true. See
+# These variables only take effect when `cert_manager_provider` is
+# `letsencrypt`. See
 # https://cert-manager.io/docs/configuration/acme/dns01/route53/ for the
 # IAM policy the access key needs.
 
-# Whether to create the Let's Encrypt ACME ClusterIssuer in addition to
-# the self-signed issuers.
+# Legacy toggle, kept for backward compatibility: when true it selects the
+# `letsencrypt` provider (see cert_manager_provider above). Prefer setting
+# cert_manager_provider directly.
 # Default: false
 # cert_manager_use_letsencrypt: true
 
@@ -1070,11 +1116,12 @@
 # Default: nginx
 # harbor_ingress_class_name: nginx
 
-# cert-manager TLS for Harbor. In the default self-signed mode a CA chain
-# is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls); when
-# cert_manager_use_letsencrypt is true (Phase 6) harbor-tls is issued
-# directly from the letsencrypt ClusterIssuer. These names and lifetimes
-# mirror the DE service certificates.
+# cert-manager TLS for Harbor. Under cert_manager_provider=selfsigned a CA
+# chain is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls);
+# under letsencrypt harbor-tls is issued directly from the letsencrypt
+# ClusterIssuer; under external no cert is created and an admin pre-creates
+# the harbor-tls secret (see Phase 6). These names and lifetimes mirror the
+# DE service certificates.
 # Default: harbor-tls
 # harbor_tls_cert_name: harbor-tls
 

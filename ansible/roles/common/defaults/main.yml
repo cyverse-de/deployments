@@ -144,6 +144,17 @@ basic_auth_password: replace_me
 # enabled in case they're needed for communication within the cluster. For example, the certificate used by NATS and the
 # default certificate used by Traefik both use certificate chains that include one of these issuers.
 cert_manager_use_letsencrypt: false
+
+# TLS certificate strategy: selfsigned | letsencrypt | external.
+#   selfsigned  - cert-manager self-signs a CA + leaf cert per endpoint
+#   letsencrypt - cert-manager issues leaf certs from the ACME ClusterIssuer
+#   external    - no certs are created; an admin pre-creates the TLS secrets
+#                 (see the "Phase 6" cert-manager section of the example
+#                 group_vars for the list of secrets and namespaces).
+# Defaults from the legacy cert_manager_use_letsencrypt toggle for backward
+# compatibility. Set explicitly to 'external' for third-party-CA deployments.
+cert_manager_provider: "{{ 'letsencrypt' if cert_manager_use_letsencrypt | default(false) else 'selfsigned' }}"
+
 cert_manager_le_aws_region: us-east-1
 cert_manager_le_aws_access_key_id: replace_me
 cert_manager_le_aws_secret_access_key: replace_me

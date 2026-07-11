@@ -5,7 +5,7 @@
     KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
   block:
     - name: Define the self-siged CA certificate for the DE
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ de_tls_ca_name }}"
         namespace: "{{ ns }}"
@@ -30,7 +30,7 @@
               group: cert-manager.io
 
     - name: Create the local certificate issuer for the DE
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ de_tls_issuer_name }}"
         namespace: "{{ ns }}"
@@ -45,7 +45,7 @@
               secretName: "{{ de_tls_ca_name }}"
 
     - name: Create the locally signed TLS certificate for the DE
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ de_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -68,7 +68,7 @@
               - "{{ de_hostname }}"
 
     - name: Create the TLS certificate for the DE using letsencrypt
-      when: cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'letsencrypt'
       kubernetes.core.k8s:
         name: "{{ de_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -408,7 +408,7 @@
       when: gateway_provider not in ["traefik"]
 
     - name: Create the locally signed TLS certificate for the user portal
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ user_portal_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -431,7 +431,7 @@
               - "{{ portal_hostname }}"
 
     - name: Create the TLS certificate for the user portal using letsencrypt
-      when: cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'letsencrypt'
       kubernetes.core.k8s:
         name: "{{ user_portal_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -498,7 +498,7 @@
                     port: 3000
 
     - name: Define the self-signed CA certificate for VICE
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ vice_tls_ca_name }}"
         namespace: "{{ ns }}"
@@ -523,7 +523,7 @@
               group: cert-manager.io
 
     - name: Create the locally signed certificate issuer for VICE
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ vice_tls_issuer_name }}"
         namespace: "{{ ns }}"
@@ -538,7 +538,7 @@
               secretName: "{{ vice_tls_ca_name }}"
 
     - name: Create the locally signed TLS certificate for VICE
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: "{{ vice_tls_cert_name }}"
         namespace: "{{ ns }}"
@@ -561,7 +561,7 @@
               - "{{ vice_wildcard_fqdn }}"
 
     - name: Create the TLS certificate for VICE using letsencrypt
-      when: cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'letsencrypt'
       kubernetes.core.k8s:
         name: "{{ vice_tls_cert_name }}"
         namespace: "{{ ns }}"
