@@ -492,6 +492,8 @@ jvm_opts_grouper: "-Xmx1G -Dlog4j2.formatMsgNoLookups=true"
 # LDAP settings - some of the unhashed passwords are unused, but left in for documentation.
 ldap_in_cluster: false
 ldap_ns: openldap
+openldap_replicas: 1
+openldap_pod_anti_affinity: false
 ldap_dn_suffix: dc=example,dc=org
 ldap_root_pw: replace_me
 ldap_rootpw_hash: "{SSHA}replace_me_with_a_real_hash"
@@ -876,6 +878,7 @@ source_repos:
   - maintenance-page
   - metadata
   - notifications
+  - openldap-docker
   - permissions
   - portal-conductor
   - portal2

@@ -145,7 +145,7 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
-    - role: openldap-docker
+    - role: services/openldap-docker
       tags: openldap-docker
 
     - role: service_configurations

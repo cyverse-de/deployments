@@ -1,0 +1,233 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openldap
+spec:
+  serviceName: openldap
+  replicas: {{ openldap_replicas }}
+  selector:
+    matchLabels:
+      de-app: openldap
+  template:
+    metadata:
+      labels:
+        de-app: openldap
+        app: de
+    spec:
+{% if openldap_pod_anti_affinity %}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - openldap
+              topologyKey: kubernetes.io/hostname
+{% endif %}
+      securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      volumes:
+        # cn=config tree, rendered fresh each boot by the init container.
+        - name: slapd-config
+          emptyDir: {}
+        # pid/args files; writable scratch needed under readOnlyRootFilesystem.
+        - name: run
+          emptyDir: {}
+        # slapd.conf, rendered from this role's slapd.conf.j2 template.
+        - name: ldap-config
+          secret:
+            secretName: openldap-config
+            items:
+              - key: slapd.conf
+                path: slapd.conf
+        # Initial directory entries (LDIF), rendered from this role's
+        # seed.ldif.j2 template. A Secret since entries carry userPassword
+        # values.
+        - name: seed-src
+          secret:
+            secretName: openldap-seed
+            items:
+              - key: data.ldif
+                path: data.ldif
+        # Scratch for the prepared seed LDIF, passed between the init containers.
+        - name: seed
+          emptyDir: {}
+      initContainers:
+        # Convert slapd.conf -> cn=config (slapd.d) on every start. The emptyDir
+        # target is always empty here, so the conversion runs unconditionally.
+        # -n0 processes only the config database: it writes the full slapd.d tree
+        # but doesn't try to open the mdb data backend (which lives on the PV,
+        # mounted only in the main container). Without -n0, slaptest exits 1 here.
+        - name: convert-config
+          image: harbor.cyverse.org/de/openldap
+          command:
+            - /usr/local/openldap/sbin/slaptest
+            - -n0
+            - -f
+            - /etc/ldap-secret/slapd.conf
+            - -F
+            - /etc/openldap/slapd.d
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "64Mi"
+              ephemeral-storage: "128Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "256Mi"
+          volumeMounts:
+            - name: ldap-config
+              mountPath: /etc/ldap-secret
+              readOnly: true
+            - name: slapd-config
+              mountPath: /etc/openldap/slapd.d
+            # slaptest validates that the mdb `directory` is writable, so the
+            # data PV must be mounted here even though -n0 never writes to it.
+            - name: ldap-data
+              mountPath: /var/lib/openldap
+        # Set-once data seed. prep-seed is the idempotency guard: if the mdb
+        # already exists (data.mdb present on the PV) it writes an empty LDIF so
+        # the slapadd below is a no-op; otherwise it stages the real LDIF. The
+        # guard runs in busybox because the slapd image has no shell.
+        - name: prep-seed
+          image: busybox:stable
+          command:
+            - sh
+            - -c
+            - |
+              if [ -f /var/lib/openldap/data.mdb ]; then
+                : > /seed/data.ldif
+              else
+                cp /seed-src/data.ldif /seed/data.ldif
+              fi
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "16Mi"
+              ephemeral-storage: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
+              ephemeral-storage: "32Mi"
+          volumeMounts:
+            - name: ldap-data
+              mountPath: /var/lib/openldap
+            - name: seed-src
+              mountPath: /seed-src
+              readOnly: true
+            - name: seed
+              mountPath: /seed
+        # Bulk-load the staged LDIF into the mdb database offline (slapd is not
+        # running yet). -n1 targets the mdb database; -F reads the converted
+        # config. On reboots the LDIF is empty, so this is a clean no-op.
+        - name: seed-data
+          image: harbor.cyverse.org/de/openldap
+          command:
+            - /usr/local/openldap/sbin/slapadd
+            - -n1
+            - -F
+            - /etc/openldap/slapd.d
+            - -l
+            - /seed/data.ldif
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "64Mi"
+              ephemeral-storage: "128Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "256Mi"
+          volumeMounts:
+            - name: slapd-config
+              mountPath: /etc/openldap/slapd.d
+            - name: seed
+              mountPath: /seed
+            - name: ldap-data
+              mountPath: /var/lib/openldap
+      containers:
+        - name: openldap
+          image: harbor.cyverse.org/de/openldap
+          args:
+            - -d
+            - "256"
+            - -h
+            - "ldap:/// ldaps:///"
+            - -F
+            - /etc/openldap/slapd.d
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "128Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "512Mi"
+          env:
+            # The timezone configmap lives in the DE namespace, not the one
+            # OpenLDAP deploys into, so the value is templated in directly
+            # instead of using a configMapKeyRef.
+            - name: TZ
+              value: "{{ timezone }}"
+          ports:
+            - name: ldap
+              containerPort: 389
+            - name: ldaps
+              containerPort: 636
+          volumeMounts:
+            - name: slapd-config
+              mountPath: /etc/openldap/slapd.d
+            - name: run
+              mountPath: /var/run/openldap
+            - name: ldap-data
+              mountPath: /var/lib/openldap
+          livenessProbe:
+            tcpSocket:
+              port: ldap
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: ldap
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: ldap-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openldap
+spec:
+  selector:
+    de-app: openldap
+  ports:
+    - name: ldap
+      protocol: TCP
+      port: 389
+      targetPort: ldap
+    - name: ldaps
+      protocol: TCP
+      port: 636
+      targetPort: ldaps

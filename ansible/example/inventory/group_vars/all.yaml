@@ -1213,6 +1213,16 @@
 # Default: dc=example,dc=org
 # ldap_dn_suffix: dc=example,dc=org
 
+# Number of OpenLDAP replicas. The mdb data volume is per-replica and
+# not replicated, so leave this at 1 unless replication is configured.
+# Default: 1
+# openldap_replicas: 1
+
+# Whether to require the OpenLDAP pods to be scheduled on different
+# nodes. Only relevant with more than one replica.
+# Default: false
+# openldap_pod_anti_affinity: false
+
 
 # ---------------------------------------------------------------------
 # Seed credentials
