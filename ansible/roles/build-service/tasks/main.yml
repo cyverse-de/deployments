@@ -58,8 +58,18 @@
             dest: "{{ build_tmp.path }}/repo/skaffold.yaml"
             remote_src: true
 
+        # Rendered manifests are git-ignored, so files/k8s only exists after a
+        # deploy has rendered them. skaffold build never reads the manifests,
+        # so skip the overlay when the directory is absent (fresh checkout).
+        - name: check for rendered k8s manifests in the service role
+          delegate_to: localhost
+          ansible.builtin.stat:
+            path: "{{ service_files_dir }}/k8s"
+          register: service_k8s_dir
+
         - name: overlay the k8s manifests from the service role
           delegate_to: localhost
+          when: service_k8s_dir.stat.exists
           ansible.builtin.copy:
             src: "{{ service_files_dir }}/k8s/"
             dest: "{{ build_tmp.path }}/repo/k8s/"
