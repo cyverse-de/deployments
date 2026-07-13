@@ -32,7 +32,7 @@ vice_base_domain: replace_me
 vice_wildcard_fqdn: "*.{{ vice_base_domain }}"
 
 # Gateway API CRDs
-gateway_api_crd_version: "v1.4.0"
+gateway_api_crd_version: "v1.5.1"  # Keep in step with the Traefik version (v3.7 -> Gateway API v1.5.1)
 gateway_api_crd_url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml"
 
 # --- NodePools (Karpenter, provisioned by EKS Auto Mode) ---

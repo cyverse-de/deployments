@@ -130,6 +130,17 @@ basic_auth_password: replace_me
 # enabled in case they're needed for communication within the cluster. For example, the certificate used by NATS and the
 # default certificate used by Traefik both use certificate chains that include one of these issuers.
 cert_manager_use_letsencrypt: false
+
+# TLS certificate strategy: selfsigned | letsencrypt | external.
+#   selfsigned  - cert-manager self-signs a CA + leaf cert per endpoint
+#   letsencrypt - cert-manager issues leaf certs from the ACME ClusterIssuer
+#   external    - no certs are created; an admin pre-creates the TLS secrets
+#                 (see the "Phase 6" cert-manager section of the example
+#                 group_vars for the list of secrets and namespaces).
+# Defaults from the legacy cert_manager_use_letsencrypt toggle for backward
+# compatibility. Set explicitly to 'external' for third-party-CA deployments.
+cert_manager_provider: "{{ 'letsencrypt' if cert_manager_use_letsencrypt | default(false) else 'selfsigned' }}"
+
 cert_manager_le_aws_region: us-east-1
 cert_manager_le_aws_access_key_id: replace_me
 cert_manager_le_aws_secret_access_key: replace_me
@@ -162,6 +173,7 @@ de_default_output_folder: analyses
 de_info_faq: https://learning.cyverse.org/faq/
 de_info_description: https://cyverse.org/discovery-environment
 de_queries_concurrency_limit: 8
+de_services_local_contexts_base: https://sandbox.localcontextshub.org/api/v1/
 de_tools_admin_max_disk_limit: 1099511627776
 de_tools_admin_max_cpu_limit: 24
 de_tools_admin_max_gpu_limit: 0
@@ -279,7 +291,6 @@ kifshare_nodeport: 31340
 terrain_nodeport: 31341
 job_status_listener_nodeport: 31342
 agave_cb_nodeport: 31343
-harbor_nodeport: 30002
 
 # K8s Default Variables
 k8s_control_plane_endpoint: replace_me
@@ -288,26 +299,33 @@ k8s_pods_cidr: "10.42.0.0/16"
 k8s_services_cidr: "10.43.0.0/16"
 
 # Harbor installation variables
-harbor_enabled: false
 harbor_url: "{{ registry_hostname }}"
 harbor_repo: https://helm.goharbor.io
+# Pinned chart version. 1.18.0+ is required for the Gateway API HTTPRoute
+# exposure (expose.type: route) used with Traefik.
+harbor_chart_version: 1.19.1
 harbor_namespace: harbor
 harbor_fqdn: "{{ registry_hostname }}"
 harbor_storage_class: "longhorn"
 harbor_replicas: 2
-harbor_http_nodeport: 30002
-harbor_https_nodeport: 30003
-harbor_initial_admin_password: "Ch@ng3M3"
 harbor_core_db_name: harbor_core
 harbor_clair_db_name: harbor_clair
 harbor_notary_server_db_name: harbor_notary_server
 harbor_notary_signer_db_name: harbor_notary_signer
 harbor_database_user: harbor
 harbor_database_password: "Ch@ng3M3"
-harbor_image_pull_secret: vice-image-pull-secret
 harbor_robot_name: harbor-robot
 harbor_robot_secret: replace_me
-harbor_external_domain: "{{ registry_hostname }}"
+
+# Harbor exposure and TLS (ingress/gateway with cert-manager)
+harbor_ingress_class_name: nginx
+harbor_tls_cert_name: harbor-tls
+harbor_tls_ca_name: harbor-selfsigned-ca
+harbor_tls_issuer_name: harbor-ca-issuer
+harbor_tls_ca_duration: "8766h"
+harbor_tls_ca_renew_before: "240h"
+harbor_tls_cert_duration: "2160h"
+harbor_tls_cert_renew_before: "240h"
 
 # IRODS CSI Driver Vars
 irods_csi_driver_enabled: true
@@ -342,6 +360,14 @@ longhorn_data_path: /var/lib/longhorn
 # destroy the underlying data.
 longhorn_reclaim_policy: Retain
 longhorn_storage_class: longhorn
+# Backups are off by default. Longhorn still creates a BackupTarget named
+# "default" with an empty URL, which volume creation requires to exist; leaving
+# these empty is the supported unconfigured state, not a missing configuration.
+# longhorn-manager reads these at startup, so changing them on a running cluster
+# requires restarting the longhorn-manager DaemonSet.
+longhorn_backup_target: ""
+longhorn_backup_target_credential_secret: ""
+longhorn_backupstore_poll_interval: 300
 
 # OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
 openebs_enabled: false
@@ -645,7 +671,7 @@ keycloak_proxy_headers: "xforwarded"
 keycloak_http_enabled: "true"
 
 # Gateway API CRD version
-gateway_api_crd_version: v1.4.0
+gateway_api_crd_version: v1.5.1  # Keep in step with the Traefik version (v3.7 -> Gateway API v1.5.1)
 
 # Gateway provider configuration
 gateway_provider: "traefik"

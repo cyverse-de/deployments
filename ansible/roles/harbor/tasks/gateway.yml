@@ -1,0 +1,31 @@
+---
+- name: Configure the Gateway for Harbor
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  block:
+    - name: Define the gateway for Harbor
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: harbor
+            namespace: "{{ harbor_namespace }}"
+          spec:
+            gatewayClassName: "{{ gateway_class_name }}"
+            listeners:
+              - hostname: "{{ harbor_fqdn }}"
+                name: harbor-http
+                port: 8000
+                protocol: HTTP
+              - hostname: "{{ harbor_fqdn }}"
+                name: harbor-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ harbor_tls_cert_name }}"

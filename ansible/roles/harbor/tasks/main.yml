@@ -1,4 +1,26 @@
 ---
+- name: Create the Harbor namespace
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ harbor_namespace }}"
+
+- name: Configure the Harbor TLS certificate
+  ansible.builtin.include_tasks: certs.yml
+
+# Traefik fronts Harbor through a Gateway we create here; the chart then emits an
+# HTTPRoute (expose.type: route) that attaches to it. Create the Gateway before
+# the chart so the route has something to attach to.
+- name: Configure the Harbor gateway
+  ansible.builtin.include_tasks: gateway.yml
+  when: gateway_provider == "traefik"
+
 - name: Add the harbor helm repository
   delegate_to: localhost
   environment:
@@ -8,6 +30,41 @@
     repo_url: "{{ harbor_repo }}"
     state: present
 
+# Traefik: the chart emits a Gateway API HTTPRoute (expose.type: route) attached
+# to the harbor Gateway created above, with TLS terminated at that gateway.
+# ingress-nginx: the chart's own Ingress, terminating TLS with the
+# cert-manager-issued harbor-tls secret.
+- name: Use Gateway API exposure for Harbor (Traefik)
+  ansible.builtin.set_fact:
+    harbor_expose:
+      type: route
+      tls:
+        enabled: false
+      route:
+        hosts:
+          - "{{ harbor_fqdn }}"
+        parentRefs:
+          - name: harbor
+            namespace: "{{ harbor_namespace }}"
+            group: gateway.networking.k8s.io
+            kind: Gateway
+  when: gateway_provider == "traefik"
+
+- name: Use Ingress exposure for Harbor (ingress-nginx)
+  ansible.builtin.set_fact:
+    harbor_expose:
+      type: ingress
+      tls:
+        enabled: true
+        certSource: secret
+        secret:
+          secretName: "{{ harbor_tls_cert_name }}"
+      ingress:
+        className: "{{ harbor_ingress_class_name }}"
+        hosts:
+          core: "{{ harbor_fqdn }}"
+  when: gateway_provider != "traefik"
+
 - name: Install the harbor helm chart
   delegate_to: localhost
   environment:
@@ -15,21 +72,13 @@
   kubernetes.core.helm:
     name: harbor
     chart_ref: harbor/harbor
+    chart_version: "{{ harbor_chart_version }}"
     create_namespace: true
     release_namespace: "{{ harbor_namespace }}"
     wait: true
     values:
       externalURL: "https://{{ harbor_fqdn }}"
-      expose:
-        type: nodePort
-        tls:
-          enabled: false
-        nodePort:
-          ports:
-            http:
-              nodePort: "{{ harbor_http_nodeport }}"
-            https:
-              nodePort: "{{ harbor_https_nodeport }}"
+      expose: "{{ harbor_expose }}"
       portal:
         replicas: "{{ harbor_replicas }}"
       core:
