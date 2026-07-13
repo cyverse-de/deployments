@@ -187,11 +187,14 @@ spec:
       containers:
         - name: openldap
           image: harbor.cyverse.org/de/openldap
+          # slapd runs as uid 65532 and can't bind the privileged default
+          # ports, so it listens on 1389/1636; the Service still exposes
+          # the standard 389/636.
           args:
             - -d
             - "256"
             - -h
-            - "ldap:/// ldaps:///"
+            - "ldap://:1389/ ldaps://:1636/"
             - -F
             - /etc/openldap/slapd.d
           securityContext:
@@ -213,9 +216,9 @@ spec:
               value: "{{ timezone }}"
           ports:
             - name: ldap
-              containerPort: 389
+              containerPort: 1389
             - name: ldaps
-              containerPort: 636
+              containerPort: 1636
           volumeMounts:
             - name: slapd-config
               mountPath: /etc/openldap/slapd.d
