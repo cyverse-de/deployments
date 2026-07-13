@@ -57,8 +57,32 @@ spec:
         - name: seed
           emptyDir: {}
       initContainers:
-        # Convert slapd.conf -> cn=config (slapd.d) on every start. The emptyDir
-        # target is always empty here, so the conversion runs unconditionally.
+        # Wipe any leftover cn=config tree. The emptyDir is fresh per pod, not
+        # per attempt: if convert-config dies after writing, its retries would
+        # otherwise fail forever with "expected directory ... to be empty".
+        # Runs in busybox because the slapd image has no shell.
+        - name: clean-config
+          image: busybox:stable
+          command:
+            - sh
+            - -c
+            - find /etc/openldap/slapd.d -mindepth 1 -delete
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "16Mi"
+              ephemeral-storage: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
+              ephemeral-storage: "32Mi"
+          volumeMounts:
+            - name: slapd-config
+              mountPath: /etc/openldap/slapd.d
+        # Convert slapd.conf -> cn=config (slapd.d) on every start. clean-config
+        # guarantees the target is empty, so the conversion runs unconditionally.
         # -n0 processes only the config database: it writes the full slapd.d tree
         # but doesn't try to open the mdb data backend (which lives on the PV,
         # mounted only in the main container). Without -n0, slaptest exits 1 here.
