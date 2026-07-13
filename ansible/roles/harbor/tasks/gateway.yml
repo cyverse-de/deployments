@@ -2,7 +2,7 @@
 - name: Configure the Gateway for Harbor
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Define the gateway for Harbor
       kubernetes.core.k8s:

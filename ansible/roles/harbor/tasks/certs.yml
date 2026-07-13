@@ -2,7 +2,7 @@
 - name: Configure cert-manager TLS for Harbor
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Define the self-signed CA certificate for Harbor
       when: cert_manager_provider == 'selfsigned'

@@ -2,7 +2,7 @@
 - name: Apply cluster-scoped self-signed issuer
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Apply default-cluster-issuer
       kubernetes.core.k8s:
@@ -18,7 +18,7 @@
 - name: Apply Let's Encrypt issuer
   delegate_to: localhost
   environment:
-    KUBECONFIG: "{{ lookup('env', 'KUBECONFIG') }}"
+    KUBECONFIG: "{{ kubeconfig }}"
   when: cert_manager_provider == 'letsencrypt'
   block:
     - name: Create the route53 credentials secret
