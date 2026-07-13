@@ -85,19 +85,65 @@
     - role: cert-manager
       tags: cert-manager
 
+    # The cluster-scoped cert-manager issuers come right after cert-manager so
+    # the certs requested later (Harbor, Traefik) can issue immediately. The
+    # namespaced default-issuer stays in k8s_de_reqs (it needs the DE namespace).
+    - role: cluster_issuers
+      tags:
+        - cert-issuers
+        - de-reqs
+
     - role: argo
       tags:
         - argo
         - de-reqs
 
-    - role: k8s_de_reqs
-      tags: de-reqs
+    # The gateway/ingress controllers install ahead of Harbor (and the rest of
+    # de-reqs) so Harbor can be fronted by an Ingress or a Gateway route. Split
+    # out of k8s_de_reqs into their own roles; they keep the de-reqs tag so
+    # `--tags de-reqs` still brings them up.
+    - role: ingress_nginx
+      tags:
+        - ingress-nginx
+        - de-reqs
 
+    - role: traefik
+      tags:
+        - traefik
+        - de-reqs
+      when: gateway_provider == "traefik"
+
+    # Longhorn and Harbor come before de-reqs: Harbor's PVCs need the longhorn
+    # StorageClass, and de-reqs creates the Harbor image-pull secret from a
+    # robot account that has to exist in a running Harbor first.
     - role: longhorn
       tags: longhorn
 
     - role: openebs
       tags: openebs
+
+- name: Set up UI haproxy
+  become: true
+  hosts: de_haproxy
+  roles:
+    - role: haproxy
+    - role: ui_haproxy
+  tags:
+    - haproxy
+    - ui-haproxy
+
+- name: Add additional third-party software to the k0s cluster
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: harbor
+      tags: harbor
+      when: "'harbor' in ansible_run_tags"
+
+    - role: k8s_de_reqs
+      tags: de-reqs
 
     - role: openldap-docker
       tags: openldap-docker
@@ -250,16 +296,6 @@
     - role: services/formation
     - role: services/vice-operator
 
-- name: Set up UI haproxy
-  become: true
-  hosts: de_haproxy
-  roles:
-    - role: haproxy
-    - role: ui_haproxy
-  tags:
-    - haproxy
-    - ui-haproxy
-
 - name: Set up additional services
   become: false
   gather_facts: false
@@ -273,15 +309,6 @@
       tags: keycloak
       when: "'keycloak' in ansible_run_tags"
 
-    - role: harbor
-      tags: harbor
-      when: "'harbor' in ansible_run_tags"
-
     - role: jaeger
       tags: jaeger
       when: "'jaeger' in ansible_run_tags"
-
-    - role: argo_resources
-      tags:
-        - argo-resources
-        - argo

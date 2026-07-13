@@ -28,7 +28,7 @@
             password: "{{ keycloak_db_password | b64encode }}"
 
     - name: Create the kc-selfsigned-ca secret
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: kc-selfsigned-ca
         namespace: "{{ keycloak_namespace }}"
@@ -53,7 +53,7 @@
               group: cert-manager.io
 
     - name: Create the kc-ca-issuer issuer
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: kc-ca-issuer
         namespace: "{{ keycloak_namespace }}"
@@ -68,7 +68,7 @@
               secretName: kc-selfsigned-ca
 
     - name: Create the locally signed kc-tls certificate
-      when: not cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:
         name: kc-tls
         namespace: "{{ keycloak_namespace }}"
@@ -99,7 +99,7 @@
               - keycloak
 
     - name: Create the kc-tls certificate signed by Let's Encrypt
-      when: cert_manager_use_letsencrypt
+      when: cert_manager_provider == 'letsencrypt'
       kubernetes.core.k8s:
         name: kc-tls
         namespace: "{{ keycloak_namespace }}"

@@ -1,9 +1,4 @@
 ---
-- name: Include traefik tasks
-  ansible.builtin.include_tasks: traefik.yml
-  when: gateway_provider == "traefik"
-- name: Include ingress-nginx tasks
-  ansible.builtin.include_tasks: ingress_nginx.yml
 - name: Include DE namespaces tasks
   ansible.builtin.include_tasks: de_namespaces.yml
 - name: Include issuers tasks

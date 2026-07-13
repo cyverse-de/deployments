@@ -53,8 +53,8 @@
 # Default: cyverse.run
 # vice_base_domain: cyverse.run
 
-# Container registry hostname. Drives harbor_url, harbor_fqdn,
-# harbor_external_domain, and the VICE operator registry server.
+# Container registry hostname. Drives harbor_url, harbor_fqdn, and the
+# VICE operator registry server.
 # Default: harbor.cyverse.org
 # registry_hostname: harbor.cyverse.org
 
@@ -82,7 +82,10 @@
 # LDAP
 # ---------------------------------------------------------------------
 # Consumed by the portal, Grouper, and Keycloak. All three ship as
-# replace_me and have to be set when those components are enabled.
+# replace_me and have to be set when those components are enabled. These
+# describe an existing, external LDAP directory; to have the playbooks
+# stand up an OpenLDAP server in-cluster instead, see the In-cluster
+# OpenLDAP section at the end of this file.
 
 # LDAP connection URI (e.g. ldap://ldap.example.org:389).
 # Default: replace_me
@@ -121,6 +124,10 @@
 # and a VICE operator egress exception.
 # Default: data.cyverse.rocks
 # irods_host: data.cyverse.rocks
+
+# Port the iRODS server listens on.
+# Default: 1247
+# irods_port: "1247"
 
 # iRODS account username for the CSI driver.
 # Default: replace_me
@@ -663,10 +670,9 @@
 #
 # cert-manager always creates a self-signed default `Issuer` and a
 # self-signed default `ClusterIssuer` — NATS and Traefik rely on them for
-# in-cluster certificate chains. Setting `cert_manager_use_letsencrypt`
-# additionally creates a Let's Encrypt ACME `ClusterIssuer` that solves
-# DNS-01 challenges through Route53 (the only DNS provider currently
-# supported, using long-term AWS access keys).
+# in-cluster certificate chains, so cert-manager is installed in every mode.
+# The public-facing service certificates are chosen by
+# `cert_manager_provider` (see the next subsection).
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
 # All assignments here are commented out so the file is a no-op as
@@ -675,15 +681,62 @@
 
 
 # ---------------------------------------------------------------------
+# TLS certificate strategy: cert_manager_provider
+# ---------------------------------------------------------------------
+# Selects how the public-facing service certificates (DE, user portal,
+# VICE, Harbor, Keycloak) are obtained. One of:
+#
+#   selfsigned  - cert-manager self-signs a CA + leaf certificate per
+#                 endpoint (the default).
+#   letsencrypt - cert-manager issues the leaf certificates from the
+#                 Let's Encrypt ACME ClusterIssuer (configure the
+#                 Route53 variables below).
+#   external    - cert-manager creates NONE of these certificates; a
+#                 cluster admin pre-creates the TLS secrets out of band
+#                 (e.g. certs from a third-party CA). Use this when the
+#                 certificate lifecycle is managed independently of the
+#                 Ansible deploy.
+#
+# For backward compatibility the default is derived from the legacy
+# `cert_manager_use_letsencrypt` toggle: unset -> selfsigned, true ->
+# letsencrypt. Set `cert_manager_provider` explicitly to override.
+# Default: selfsigned (or letsencrypt if cert_manager_use_letsencrypt is true)
+# cert_manager_provider: external
+#
+# In `external` mode you must create these `kubernetes.io/tls` secrets
+# before HTTPS will serve — a Gateway listener whose secret is missing
+# simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
+# not matter:
+#
+#   secret name       namespace   hostname
+#   ---------------   ---------   ------------------------------------
+#   de-tls            ns (qa)     de_hostname
+#   user-portal-tls   ns (qa)     portal_hostname
+#   vice-tls          ns (qa)     vice_wildcard_fqdn  (needs a WILDCARD cert)
+#   harbor-tls        harbor      harbor_fqdn
+#   kc-tls            keycloak    keycloak_hostname
+#
+# The secret names for the DE namespace and Harbor follow the
+# de_tls_cert_name / user_portal_tls_cert_name / vice_tls_cert_name /
+# harbor_tls_cert_name variables; the Keycloak secret name (kc-tls) is
+# fixed. Create each from the CA-issued cert and key, for example:
+#
+#   kubectl -n qa create secret tls de-tls --cert=de.crt --key=de.key
+#   # ...repeat for user-portal-tls and vice-tls in namespace qa,
+#   #    harbor-tls in namespace harbor, kc-tls in namespace keycloak.
+
+
+# ---------------------------------------------------------------------
 # Let's Encrypt / Route53
 # ---------------------------------------------------------------------
-# Apart from the toggle, these variables only take effect when
-# `cert_manager_use_letsencrypt` is true. See
+# These variables only take effect when `cert_manager_provider` is
+# `letsencrypt`. See
 # https://cert-manager.io/docs/configuration/acme/dns01/route53/ for the
 # IAM policy the access key needs.
 
-# Whether to create the Let's Encrypt ACME ClusterIssuer in addition to
-# the self-signed issuers.
+# Legacy toggle, kept for backward compatibility: when true it selects the
+# `letsencrypt` provider (see cert_manager_provider above). Prefer setting
+# cert_manager_provider directly.
 # Default: false
 # cert_manager_use_letsencrypt: true
 
@@ -725,32 +778,35 @@
 
 
 # =====================================================================
-# Phase 7: DE Prerequisites
+# Gateway / ingress controllers
 # =====================================================================
-# Variables consulted by `kubernetes.yml --tags de-reqs` (runs the
-# `k8s_de_reqs` role: installs the gateway/ingress controllers, creates
-# the DE and VICE namespaces and the cert-manager issuers, writes the
-# timezone ConfigMap, deploys the local-exim mail relay, and creates the
-# Harbor image-pull secret).
+# The gateway and ingress controllers install as their own roles ahead
+# of Harbor and the DE prerequisites pass, so Harbor (and the DE
+# services) can be fronted by an Ingress or a Gateway route. ingress-nginx
+# always installs (the `ingress_nginx` role); Traefik installs only when
+# `gateway_provider` is "traefik" (the `traefik` role). Both keep the
+# `de-reqs` tag alongside their own, so `--tags de-reqs` still brings
+# them up; install just one with `--tags ingress-nginx` or
+# `--tags traefik`.
 #
-# Run this phase after cert-manager (Phase 6) — the issuers and the
-# traefik certificates created here depend on the cert-manager CRDs. The
-# cert-manager issuer variables (`cert_manager_*`) are applied during
-# this pass but are documented under Phase 6.
+# Run this after cert-manager (Phase 6). Traefik's TLS certificate is
+# issued through cert-manager using the self-signed `default-cluster-issuer`
+# that the de-reqs pass creates; the certificate reconciles once that
+# issuer exists, so the ordering between this section and Phase 7 is not
+# strict.
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
 # All assignments here are commented out so the file is a no-op as
-# shipped — uncomment a line to override the default. Variables appear in
-# roughly the order they are first consulted during the pass.
+# shipped — uncomment a line to override the default.
 # =====================================================================
 
 
 # ---------------------------------------------------------------------
-# Gateway / ingress provider
+# Gateway provider
 # ---------------------------------------------------------------------
 
 # Which gateway controller to install. When set to "traefik" the Traefik
-# subsection below applies; other values skip the Traefik tasks. The
+# subsection below applies; other values skip the `traefik` role. The
 # ingress-nginx controller is installed regardless of this setting.
 # Default: traefik
 # gateway_provider: traefik
@@ -811,7 +867,8 @@
 # ---------------------------------------------------------------------
 # ingress-nginx
 # ---------------------------------------------------------------------
-# The ingress-nginx controller is installed in every de-reqs run.
+# The ingress-nginx controller is always installed (the `ingress_nginx`
+# role).
 
 # NodePort the ingress-nginx controller exposes for plain HTTP.
 # Default: 31343
@@ -820,6 +877,30 @@
 # NodePort the ingress-nginx controller exposes for HTTPS.
 # Default: 31344
 # ingress_nginx_https_port: 31344
+
+
+# =====================================================================
+# Phase 7: DE Prerequisites
+# =====================================================================
+# Variables consulted by `kubernetes.yml --tags de-reqs` (runs the
+# `k8s_de_reqs` role: creates the DE and VICE namespaces and the
+# cert-manager issuers, writes the timezone ConfigMap, deploys the
+# local-exim mail relay, and creates the Harbor image-pull secret). The
+# gateway/ingress controllers it used to install now run earlier as the
+# `ingress_nginx` and `traefik` roles (see "Gateway / ingress
+# controllers" above).
+#
+# Run this phase after cert-manager (Phase 6). The cluster-scoped issuers
+# (default-cluster-issuer and the Let's Encrypt ClusterIssuer) are created
+# earlier by the `cluster_issuers` role so certs can issue before Harbor;
+# this pass only creates the namespaced `default-issuer`. The cert-manager
+# issuer variables (`cert_manager_*`) are documented under Phase 6.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default. Variables appear in
+# roughly the order they are first consulted during the pass.
+# =====================================================================
 
 
 # ---------------------------------------------------------------------
@@ -908,11 +989,13 @@
 # =====================================================================
 # In-cluster storage: Longhorn
 # =====================================================================
-# Installed by the `longhorn` role (it runs before `openldap-docker`,
-# which depends on a persistent volume). Longhorn provides replicated
-# local block storage via a StorageClass named `longhorn`. The class is
-# not made the cluster default, so PVCs must set
-# `storageClassName: longhorn` explicitly.
+# Installed by the `longhorn` role, which runs early (before `harbor`,
+# `de-reqs`, and `openldap-docker`, all of which depend on a persistent
+# volume). Longhorn provides replicated local block storage via a
+# StorageClass named `longhorn`, and that class is made the cluster
+# default — it is the primary CSI driver installed for general-purpose
+# block storage, so PVCs that omit `storageClassName` land on it. (The
+# iRODS CSI driver is only for interacting with the data store.)
 
 # Whether to install Longhorn.
 # Default: false
@@ -941,6 +1024,205 @@
 # when a PVC is deleted; set to Delete to reclaim it automatically.
 # Default: Retain
 # longhorn_reclaim_policy: Retain
+
+# Where Longhorn stores volume backups. Empty means backups are not
+# configured, which is the supported default: Longhorn still creates a
+# BackupTarget named `default` with an empty URL, and volume creation
+# requires that object to exist. Set this to an NFS or S3 endpoint to
+# enable backups, e.g. s3://bucket@us-west-2/ or nfs://host:/path.
+# longhorn-manager reads this at startup, so changing it on a running
+# cluster requires restarting the longhorn-manager DaemonSet.
+# Default: ""
+# longhorn_backup_target: s3://my-bucket@us-west-2/
+
+# Name of an existing Secret in longhorn_namespace holding the backup
+# target credentials (for S3: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+# AWS_ENDPOINTS). Only needed when longhorn_backup_target is set.
+# Default: ""
+# longhorn_backup_target_credential_secret: longhorn-backup-secret
+
+# Seconds Longhorn waits before polling the backup store for new backups.
+# Set to 0 to disable polling.
+# Default: 300
+# longhorn_backupstore_poll_interval: 300
+# =====================================================================
+
+
+# =====================================================================
+# In-cluster registry: Harbor (optional)
+# =====================================================================
+# Installed by the `harbor` role (`kubernetes.yml --tags harbor`). It
+# deploys the Harbor container registry via its Helm chart, exposed
+# through the active gateway/ingress controller with cert-manager-managed
+# TLS: under Traefik the role creates a Gateway and the chart emits a
+# Gateway API HTTPRoute (expose.type: route) attached to it; otherwise the
+# chart's own ingress-nginx Ingress is used. Backed by the external
+# PostgreSQL databases created in Phase 2 (see the "Harbor databases"
+# subsection there).
+#
+# This step is OPTIONAL and only runs when the playbook is invoked with
+# `--tags harbor`. Skip it when the deployment pulls images from an
+# existing, external Harbor (or other registry) — in that case just set
+# `registry_hostname` in the global settings at the top of this file and
+# leave this section alone.
+#
+# Ordering: Harbor installs after Longhorn (its registry, chartmuseum,
+# and jobservice volumes use the `longhorn` StorageClass) and before the
+# DE prerequisites pass. de-reqs builds the Harbor image-pull secret from
+# a robot account (`harbor_robot_name` / `harbor_robot_secret`,
+# documented under Phase 7), so after installing Harbor create that robot
+# account and set its secret before running `--tags de-reqs`.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+
+# Public FQDN Harbor is served at, baked into the registry's externalURL.
+# Derived from `registry_hostname` (see the global settings section);
+# override only to decouple it.
+# Default: "{{ registry_hostname }}"
+# harbor_fqdn: harbor.cyverse.org
+
+# Namespace Harbor is installed into (created by the role before the chart,
+# so the TLS certificate can be issued into it).
+# Default: harbor
+# harbor_namespace: harbor
+
+# Harbor Helm chart repository.
+# Default: https://helm.goharbor.io
+# harbor_repo: https://helm.goharbor.io
+
+# Pinned Harbor chart version. 1.18.0+ is required for the Gateway API
+# HTTPRoute exposure (expose.type: route) used under Traefik.
+# Default: 1.19.1
+# harbor_chart_version: 1.19.1
+
+# StorageClass for Harbor's registry, chartmuseum, and jobservice PVCs
+# (all ReadWriteMany). Defaults to the longhorn class from the Longhorn
+# section above; the database is external, so it needs no volume here.
+# Default: longhorn
+# harbor_storage_class: longhorn
+
+# Replica count for the Harbor components (portal, core, jobservice,
+# registry, chartmuseum, clair, notary).
+# Default: 2
+# harbor_replicas: 2
+
+# Ingress class used when gateway_provider is not "traefik" (the
+# ingress-nginx path). Ignored under Traefik, which fronts Harbor with a
+# Gateway/HTTPRoute instead.
+# Default: nginx
+# harbor_ingress_class_name: nginx
+
+# cert-manager TLS for Harbor. Under cert_manager_provider=selfsigned a CA
+# chain is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls);
+# under letsencrypt harbor-tls is issued directly from the letsencrypt
+# ClusterIssuer; under external no cert is created and an admin pre-creates
+# the harbor-tls secret (see Phase 6). These names and lifetimes mirror the
+# DE service certificates.
+# Default: harbor-tls
+# harbor_tls_cert_name: harbor-tls
+
+# Name of the self-signed CA Certificate/Issuer secret (self-signed mode).
+# Default: harbor-selfsigned-ca
+# harbor_tls_ca_name: harbor-selfsigned-ca
+
+# Name of the CA-backed Issuer that signs harbor-tls (self-signed mode).
+# Default: harbor-ca-issuer
+# harbor_tls_issuer_name: harbor-ca-issuer
+
+# Validity period of the self-signed CA certificate.
+# Default: 8766h
+# harbor_tls_ca_duration: 8766h
+
+# How long before CA expiry cert-manager renews it.
+# Default: 240h
+# harbor_tls_ca_renew_before: 240h
+
+# Validity period of the harbor-tls certificate.
+# Default: 2160h
+# harbor_tls_cert_duration: 2160h
+
+# How long before TLS expiry cert-manager renews it.
+# Default: 240h
+# harbor_tls_cert_renew_before: 240h
+# =====================================================================
+
+
+# =====================================================================
+# In-cluster OpenLDAP (optional)
+# =====================================================================
+# Installed by the `openldap-docker` role
+# (`kubernetes.yml --tags openldap-docker`). It deploys an OpenLDAP
+# server inside the cluster, seeded with the DE service accounts and
+# groups and backed by a Longhorn persistent volume (so it runs after
+# the Longhorn section above).
+#
+# This step is OPTIONAL and is SKIPPED unless `ldap_in_cluster` is true.
+# Leave it disabled when the deployment uses an existing, external LDAP
+# directory — in that case set `ldap_uri`, `ldap_base_dn`, and `ldap_cn`
+# in the LDAP subsection of the global settings at the top of this file,
+# and ignore everything below.
+#
+# (A standalone, host-based OpenLDAP install is also available via the
+# separate `ldap_slapd.yml` playbook and the `[ldap]` inventory group;
+# see docs/ldap.md. It is configured independently of the variables
+# below.)
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+
+# Whether to deploy OpenLDAP inside the cluster. Leave false to use an
+# external LDAP directory (configured in the global LDAP section above).
+# Default: false
+# ldap_in_cluster: true
+
+# Namespace the in-cluster OpenLDAP server is installed into.
+# Default: openldap
+# ldap_ns: openldap
+
+# Base DN (directory suffix) the server is seeded with. Keep it in sync
+# with the `ldap_base_dn` used elsewhere in the deployment.
+# Default: dc=example,dc=org
+# ldap_dn_suffix: dc=example,dc=org
+
+
+# ---------------------------------------------------------------------
+# Seed credentials
+# ---------------------------------------------------------------------
+# slapd.conf and the seed LDIF are rendered from the *_hash values below
+# — those are the ones actually applied. The matching plaintext
+# variables are kept alongside them for documentation only and are not
+# consumed. Generate each hash with `slappasswd -h '{SSHA}'`.
+
+# SSHA hash of the LDAP root/manager password.
+# Default: "{SSHA}replace_me_with_a_real_hash"
+# ldap_rootpw_hash: "{SSHA}..."
+
+# Plaintext root password — documentation only, not consumed.
+# Default: replace_me
+# ldap_root_pw: replace_me
+
+# SSHA hash of the de_grouper service-account password.
+# Default: "{SSHA}replace_me_with_a_real_hash"
+# ldap_de_grouper_pw_hash: "{SSHA}..."
+
+# Plaintext de_grouper password — documentation only, not consumed.
+# Default: replace_me
+# ldap_de_grouper_pw: replace_me
+
+# SSHA hash of the ldap_reader service-account password.
+# Default: "{SSHA}replace_me_with_a_real_hash"
+# ldap_ldap_reader_pw_hash: "{SSHA}..."
+
+# Plaintext ldap_reader password — documentation only, not consumed.
+# Default: replace_me
+# ldap_ldap_reader_pw: replace_me
 # =====================================================================
 
 # =====================================================================

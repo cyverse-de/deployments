@@ -1,0 +1,63 @@
+---
+- name: Apply cluster-scoped self-signed issuer
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: Apply default-cluster-issuer
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: default-cluster-issuer
+          spec:
+            selfSigned: {}
+
+- name: Apply Let's Encrypt issuer
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  when: cert_manager_provider == 'letsencrypt'
+  block:
+    - name: Create the route53 credentials secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ cert_manager_le_aws_creds_secret_name }}"
+            namespace: cert-manager
+          type: Opaque
+          data:
+            access-key-id: "{{ cert_manager_le_aws_access_key_id | b64encode }}"
+            secret-access-key: "{{ cert_manager_le_aws_secret_access_key | b64encode }}"
+
+    - name: Generate the Let's Encrypt ClusterIssuer
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: "{{ cert_manager_le_issuer_name }}"
+          spec:
+            acme:
+              email: "{{ cert_manager_le_issuer_email }}"
+              profile: tlsserver
+              server: "{{ cert_manager_le_issuer_acme_server }}"
+              privateKeySecretRef:
+                name: "{{ cert_manager_le_issuer_acme_secret_name }}"
+              solvers:
+                - dns01:
+                    cnameStrategy: Follow
+                    route53:
+                      region: "{{ cert_manager_le_aws_region }}"
+                      accessKeyIDSecretRef:
+                        name: "{{ cert_manager_le_aws_creds_secret_name }}"
+                        key: access-key-id
+                      secretAccessKeySecretRef:
+                        name: "{{ cert_manager_le_aws_creds_secret_name }}"
+                        key: secret-access-key
