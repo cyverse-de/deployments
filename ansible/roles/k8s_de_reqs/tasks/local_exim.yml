@@ -5,6 +5,17 @@
     KUBECONFIG: "{{ kubeconfig }}"
   block:
     - name: Create the local-exim deployment
+      vars:
+        local_exim_anti_affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: de-app
+                      operator: In
+                      values:
+                        - local-exim
+                topologyKey: kubernetes.io/hostname
       kubernetes.core.k8s:
         state: present
         definition:
@@ -14,7 +25,7 @@
             name: local-exim
             namespace: "{{ ns }}"
           spec:
-            replicas: 2
+            replicas: "{{ local_exim_replicas | int }}"
             selector:
               matchLabels:
                 de-app: local-exim
@@ -23,16 +34,7 @@
                 labels:
                   de-app: local-exim
               spec:
-                affinity:
-                  podAntiAffinity:
-                    requiredDuringSchedulingIgnoredDuringExecution:
-                      - labelSelector:
-                          matchExpressions:
-                            - key: de-app
-                              operator: In
-                              values:
-                                - local-exim
-                        topologyKey: kubernetes.io/hostname
+                affinity: "{{ local_exim_anti_affinity if local_exim_pod_anti_affinity | bool else {} }}"
                 restartPolicy: Always
                 containers:
                   - name: local-exim

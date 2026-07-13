@@ -274,6 +274,8 @@ email_support_dest: "{{ email_dest }}"
 exim_smarthost: "127.0.0.1:25"
 exim_password: "127.0.0.1"
 exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
+local_exim_replicas: 2
+local_exim_pod_anti_affinity: true
 
 # QMS settings
 qms_enabled: true

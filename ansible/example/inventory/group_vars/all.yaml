@@ -960,6 +960,13 @@
 # Default: "172.17.0.0/24:127.0.0.1"
 # exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
 
+# Replica count for the relay Deployment, and whether its pods carry a
+# required anti-affinity rule (one pod per node). Set 1/false on small
+# clusters.
+# Defaults: 2 / true
+# local_exim_replicas: 2
+# local_exim_pod_anti_affinity: true
+
 
 # ---------------------------------------------------------------------
 # Argo Installation
