@@ -92,6 +92,10 @@ spec:
             # data PV must be mounted here even though -n0 never writes to it.
             - name: ldap-data
               mountPath: /var/lib/openldap
+            # slaptest also validates that the configured pidfile path is
+            # writable, so it needs the run dir even though it never daemonizes.
+            - name: run
+              mountPath: /var/run/openldap
         # Set-once data seed. prep-seed is the idempotency guard: if the mdb
         # already exists (data.mdb present on the PV) it writes an empty LDIF so
         # the slapadd below is a no-op; otherwise it stages the real LDIF. The
