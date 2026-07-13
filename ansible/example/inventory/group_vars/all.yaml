@@ -15,6 +15,13 @@
 # shipped — uncomment a line to override the default.
 # =====================================================================
 
+# The kubeconfig file to use when interacting with Kubernetes/K0s. This
+# takes the place of setting the KUBECONFIG environment variable, making
+# it harder to push out changes to the wrong cluster if you have multiple
+# deployments of the Discovery Environment.
+# Default: $KUBECONFIG, falling back to ~/.kube/config
+# kubeconfig: "{{ lookup('env', 'HOME') ~ '/.kube/config.example' }}"
+
 
 # ---------------------------------------------------------------------
 # Identity
@@ -373,6 +380,14 @@
 # Name of the Grouper database.
 # Default: grouper
 # grouper_db_name: grouper
+
+# Name of the grouper database user.
+# Default: none — set it; the value of grouper_connection_user is typical.
+# grouper_db_user: "{{ grouper_connection_user }}"
+
+# Password of the grouper database user.
+# Default: none — set it; the value of grouper_connection_pass is typical.
+# grouper_db_pass: "{{ grouper_connection_pass }}"
 
 
 # ---------------------------------------------------------------------
@@ -1224,6 +1239,255 @@
 # Default: replace_me
 # ldap_ldap_reader_pw: replace_me
 # =====================================================================
+
+# =====================================================================
+# Kubernetes cluster
+# =====================================================================
+
+# Endpoint (host or host:port) the Kubernetes control plane is reached
+# at; consulted when creating the cluster or adding nodes.
+# Default: replace_me
+# k8s_control_plane_endpoint: k8s-api.example.org
+
+
+# =====================================================================
+# Keycloak clients
+# =====================================================================
+# Client IDs and secrets the DE services use against the Keycloak realm
+# configured in the global settings. All of these ship as replace_me and
+# have to be created in Keycloak and set here.
+
+# Keycloak client for the DE web app.
+# Default: replace_me
+# keycloak_client_id: de
+# keycloak_client_secret: replace_me
+
+# Keycloak client for VICE.
+# Default: replace_me
+# keycloak_vice_client_id: vice
+# keycloak_vice_client_secret: replace_me
+
+# Keycloak admin account, used to manage the realm.
+# Defaults: kcadmin / notreal
+# keycloak_admin_username: kcadmin
+# keycloak_admin_password: replace_me
+
+# Keycloak service-account client for the formation service.
+# Default: replace_me
+# formation_keycloak_client_id: replace_me
+# formation_keycloak_client_secret: replace_me
+
+
+# =====================================================================
+# OpenSearch
+# =====================================================================
+# Endpoint and credentials for the OpenSearch/Elasticsearch instance the
+# data-search services (dewey, infosquito2) use. Search is enabled by
+# default (`es_enabled: true`); set `es_enabled: false` instead if the
+# deployment will not run OpenSearch.
+
+# Base URI of the OpenSearch instance.
+# Default: http://replace_me
+# es_base_uri: https://opensearch.example.org:9200
+
+# OpenSearch credentials.
+# Default: replace_me
+# es_username: de-user
+# es_password: replace_me
+
+
+# =====================================================================
+# DE general settings
+# =====================================================================
+
+# Comma-separated groups whose members get DE admin rights.
+# Default: core-services,dev,staff
+# admin_groups: core-services,dev,staff
+
+# HTTP basic-auth credentials placed in the shared configs secret.
+# Default: replace_me
+# basic_auth_username: replace_me
+# basic_auth_password: replace_me
+
+# Password for the PGP key used by the data-store services.
+# Default: replace_me
+# pgp_key_password: replace_me
+
+# URL users are sent to for subscription checkout, and whether
+# subscription limits are enforced.
+# Defaults: http://replace_me / replace_me
+# de_subscriptions_checkout_url: https://subscribe.example.org
+# de_subscriptions_enforce: false
+
+# GPU models users may request for tools, and the default selection.
+# Defaults: ["NVIDIA-A16", "NVIDIA-T4"] / ["NVIDIA-A16"]
+# de_tools_valid_gpu_models: []
+# de_tools_default_gpu_models: []
+
+
+# =====================================================================
+# AMQP
+# =====================================================================
+# RabbitMQ connection settings for the DE services and for the data
+# store's message stream.
+
+# AMQP account and vhost the DE services publish/consume on.
+# Defaults: replace_me (user, password, host); /{{ env }}/de (vhost)
+# de_amqp_user: de
+# de_amqp_password: replace_me
+# de_amqp_host: amqp.example.org
+# de_amqp_vhost: /qa/de
+
+# AMQP account and vhost for iRODS data-store messages.
+# Defaults: replace_me (user, password, host); /{{ env }}/data-store (vhost)
+# irods_amqp_user: irods
+# irods_amqp_password: replace_me
+# irods_amqp_host: amqp.example.org
+# irods_amqp_vhost: /qa/data-store
+
+
+# =====================================================================
+# iRODS / ICAT
+# =====================================================================
+# Settings for the iRODS catalog database and data-store integration
+# beyond the global iRODS connection settings at the top of this file.
+
+# PostgreSQL connection for the ICAT database.
+# Default: replace_me
+# icat_host: icat.example.org
+# icat_user: icat
+# icat_password: replace_me
+
+# Whether the ipc-services user is enabled in the data store.
+# Default: "true"
+# irods_ipcservices_enabled: "true"
+
+# iRODS accounts with admin rights, and accounts filtered out of
+# permission listings.
+# Defaults: the CyVerse production lists (see roles/common/defaults/main.yml)
+# irods_admin_users:
+#   - de-irods
+#   - rodsadmin
+# irods_perms_filter:
+#   - rodsadmin
+
+# Endpoint of the iRODS CSI driver pool server.
+# Default: rodsfs.example.org:12020
+# irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
+
+# Cache timeout settings for the iRODS CSI driver, as a JSON string.
+# Default: per-zone paths derived from irods_zone (see roles/common/defaults/main.yml)
+# irods_csi_driver_cache_timeout_settings: '[{"path":"/","timeout":"-1ns","inherit":false}]'
+
+
+# =====================================================================
+# Grouper
+# =====================================================================
+# Grouper settings beyond the database credentials in Phase 2.
+
+# Environment label woven into Grouper folder names.
+# Default: none — set it; usually matches `env`.
+# grouper_environment: qa
+
+# Secret used by Grouper to encrypt/decrypt stored values.
+# Default: n0tr34l (a placeholder — set a real value)
+# grouper_morph_string: replace_me
+
+# Password Grouper's LDAP loader binds with.
+# Default: l0lf@k3 (a placeholder — set a real value)
+# grouper_loader_password: replace_me
+
+
+# =====================================================================
+# User portal
+# =====================================================================
+# Settings consumed by the user portal (portal2) and portal-conductor.
+# The portal's hostnames, database, and LDAP/Keycloak endpoints mostly
+# derive from the umbrella variables; the values here are the ones with
+# no usable default. The optional integrations (Google Analytics,
+# Sentry, Intercom, Mailman, BisQue) can be disabled by setting their
+# values to empty strings.
+
+# Offset added to portal user IDs when generating LDAP uidNumbers.
+# Default: replace_me
+# portal_uid_number_offset: "2696"
+
+# Secrets for the portal's HMAC signing and session cookies.
+# Default: replace_me
+# portal_hmac_key: replace_me
+# portal_session_secret: replace_me
+
+# Keycloak client the portal uses.
+# Default: replace_me
+# portal_keycloak_client: portal
+# portal_keycloak_secret: replace_me
+
+# LDAP bind password and the everyone-group users are added to.
+# Default: replace_me
+# portal_ldap_password: replace_me
+# portal_ldap_everyone_group: everyone
+
+# Terrain account the portal calls the DE with.
+# Default: replace_me
+# portal_terrain_user: replace_me
+# portal_terrain_password: replace_me
+
+# Optional integrations; empty string disables each.
+# Default: replace_me
+# portal_google_analytics_id: ""
+# portal_sentry_dsn: ""
+# portal_intercom_app_id: ""
+# portal_intercom_token: ""
+# portal_intercom_company_id: ""
+# portal_intercom_admin_user_portal_bot_id: ""
+# portal_intercom_admin_tier1_atmosphere_id: ""
+# portal_intercom_admin_tier1_science_team_id: ""
+# portal_intercom_admin_tier1_data_watch_id: ""
+# portal_mailman_url: ""
+# portal_mailman_password: ""
+# portal_bisque_url: ""
+# portal_bisque_user: ""
+# portal_bisque_password: ""
+
+
+# =====================================================================
+# VICE
+# =====================================================================
+# VICE operator and API settings beyond the Keycloak clients above and
+# the URLs derived from vice_base_domain.
+
+# Images pre-pulled onto workers for VICE (the image_cache role and the
+# legacy cache list consumed by the retired cache mechanism).
+# Defaults: the CyVerse production lists (see roles/common/defaults/main.yml)
+# vice_image_cache:
+#   - harbor.cyverse.org/de/vice-proxy:latest
+# vice_cache_images:
+#   - harbor.cyverse.org/de/vice-proxy:qa
+
+# Namespace the VICE gateway lives in.
+# Default: "{{ ns }}"
+# vice_operator_gateway_namespace: vice-apps
+
+# Entitlements granting access to the VICE admin API.
+# Default: replace_me
+# vice_operator_admin_entitlements: core-services,dev,staff
+
+# Registry account the VICE operator pulls app images with.
+# Default: replace_me
+# vice_operator_registry_username: replace_me
+# vice_operator_registry_password: replace_me
+
+# HMAC secret for VICE operator state tokens.
+# Default: replace_me
+# vice_operator_state_hmac_secret: replace_me
+
+# Secrets for the vice-users, vice-swagger, and vice-api Keycloak
+# clients (the IDs default to vice-users/vice-swagger/vice-api).
+# Defaults: vice-users-secret-replace_me / vice-swagger-secret-replace_me / vice-api-secret-replace_me
+# vice_operator_keycloak_client_secret: replace_me
+# vice_operator_swagger_client_secret: replace_me
+# vice_api_keycloak_client_secret: replace_me
+
 
 # =====================================================================
 # Service replicas & pod anti-affinity
