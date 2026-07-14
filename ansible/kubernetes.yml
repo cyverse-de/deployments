@@ -148,6 +148,10 @@
     - role: services/openldap-docker
       tags: openldap-docker
 
+    - role: keycloak_install
+      tags: keycloak
+      when: "'keycloak' in ansible_run_tags"
+
     - role: service_configurations
       tags: configure-services
 
@@ -304,10 +308,6 @@
   roles:
     - role: cronjobs
       tags: cronjobs
-
-    - role: keycloak_install
-      tags: keycloak
-      when: "'keycloak' in ansible_run_tags"
 
     - role: jaeger
       tags: jaeger
