@@ -1620,6 +1620,10 @@
 # metadata_replicas: 2
 # metadata_pod_anti_affinity: true
 
+# nats (StatefulSet size; also the NATS cluster route count)
+# nats_replicas: 4
+# nats_pod_anti_affinity: true
+
 # notifications
 # notifications_replicas: 2
 # notifications_pod_anti_affinity: true
