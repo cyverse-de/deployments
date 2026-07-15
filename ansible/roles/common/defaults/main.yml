@@ -504,6 +504,9 @@ ldap_ldap_reader_pw_hash: "{SSHA}replace_me_with_a_real_hash"
 # PGP settings
 pgp_key_password: replace_me
 
+# Passphrase for terrain's JWT signing key (signing-keys secret).
+jwt_signing_key_password: replace_me
+
 # Permanent ID settings
 perm_id_enabled: false
 perm_id_curators_group: replace_me
