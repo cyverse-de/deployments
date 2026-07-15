@@ -1349,6 +1349,25 @@
 # irods_amqp_host: amqp.example.org
 # irods_amqp_vhost: /qa/data-store
 
+# Broker-side provisioning, consumed by rabbitmq.yml (install + configure)
+# and rabbitmq_configure.yml (configure only). Both playbooks run against
+# the `amqp-brokers` inventory group (see the 06_amqp host file) and create
+# each vhost along with its user. There is no default: without this dict
+# the broker is never provisioned and services fail to authenticate with
+# ACCESS_REFUSED. Reference the de_amqp_*/irods_amqp_* vars above so the
+# broker and the services cannot drift.
+# amqp:
+#   admin_user: admin
+#   admin_password: replace_me
+#   de:
+#     vhost: "/{{ ns }}/de"
+#     user: "{{ de_amqp_user }}"
+#     password: "{{ de_amqp_password }}"
+#   irods:
+#     vhost: "/{{ ns }}/data-store"
+#     user: "{{ irods_amqp_user }}"
+#     password: "{{ irods_amqp_password }}"
+
 
 # =====================================================================
 # iRODS / ICAT
