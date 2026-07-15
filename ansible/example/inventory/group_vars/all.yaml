@@ -245,7 +245,7 @@
 # instance set up in Phase 1 or against a pre-existing PostgreSQL
 # instance.
 #
-# The Grouper, QMS, Unleash, Harbor, Keycloak, and User Portal sections
+# The Grouper, QMS, Harbor, Keycloak, and User Portal sections
 # only take effect when their feature toggle is enabled.
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
@@ -407,19 +407,6 @@
 # Default: main
 # qms_version: main
 
-
-# ---------------------------------------------------------------------
-# Unleash database
-# ---------------------------------------------------------------------
-# Created only when `unleash` is true. Owned by `dbms_connection_user`.
-
-# Whether to create the Unleash database.
-# Default: true
-# unleash: true
-
-# Name of the Unleash database.
-# Default: unleash
-# unleash_db_name: unleash
 
 
 # ---------------------------------------------------------------------
@@ -1684,10 +1671,6 @@
 # timelord
 # timelord_replicas: 2
 # timelord_pod_anti_affinity: true
-
-# unleash
-# unleash_replicas: 2
-# unleash_pod_anti_affinity: true
 
 # user-info
 # user_info_replicas: 2

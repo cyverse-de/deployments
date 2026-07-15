@@ -414,7 +414,6 @@ cleanup: true
 migrate: true
 create_user: true
 create_dbs: true
-unleash: true
 grouper: true
 qms: true
 portal: false
@@ -512,12 +511,6 @@ perm_id_datacite_base_uri: http://replace_me
 perm_id_datacite_user: replace_me
 perm_id_datacite_password: replace_me
 perm_id_datacite_doi_prefix: replace_me
-
-# Unleash settings
-unleash_db_ssl_enabled: "false"
-unleash_db_name: unleash
-unleash_db_user: replace_me
-unleash_db_password: replace_me
 
 # User Portal settings
 portal_exim_smarthost: replace_me
@@ -695,22 +688,15 @@ traefik_http_port: 31380
 traefik_https_port: 31383
 
 secrets_loader_base_dir: "secrets" # The directory in the repo containing the inventory
-secrets_loader_ui_secret: "ui-nginx-tls"
-secrets_loader_load_ui_secret: true
 secrets_loader_gpg_secret: "gpg-keys"
 secrets_loader_load_gpg_secret: true
-secrets_loader_pgpass_secret: "pgpass-files"
-secrets_loader_load_pgpass_secret: true
 secrets_loader_signing_keys_secret: "signing-keys"
 secrets_loader_load_signing_keys_secret: true
 secrets_loader_accepted_keys_secret: "accepted-keys"
 secrets_loader_load_accepted_keys_secret: true
 secrets_loader_ssl_secret: "ssl-files"
 secrets_loader_load_ssl_secret: true
-secrets_loader_ui_tls_key_filepath: "" # The TLS key for the UI ingress.
-secrets_loader_ui_tls_cert_filepath: "" # The TLS cert for the UI ingress.
 secrets_loader_gpg_filepaths: []
-secrets_loader_pgpass_filepaths: []
 secrets_loader_signing_keys_filepaths: []
 secrets_loader_accepted_keys_filepaths: []
 secrets_loader_ssl_filepaths: []
@@ -891,7 +877,6 @@ source_repos:
   - subscriptions
   - terrain
   - timelord
-  - unleash
   - user-info
   - vice-default-backend
   - vice-status-listener
