@@ -165,6 +165,12 @@ de_amqp_password: replace_me
 de_amqp_host: replace_me
 de_amqp_port: 5672
 de_amqp_vhost: "/{{ env }}/de"
+
+# Admin account for the RabbitMQ broker itself (rabbitmq.yml and
+# rabbitmq_configure.yml); the per-vhost users come from the
+# de_amqp_*/irods_amqp_* settings.
+amqp_admin_user: replace_me
+amqp_admin_password: replace_me
 de_base_uri: "https://{{ de_hostname }}"
 de_coge_base_uri: https://genomevolution.org/coge/api/v1
 de_subscriptions_checkout_url: http://replace_me
