@@ -429,7 +429,6 @@ icat_port: 5432
 icat_user: replace_me
 icat_password: replace_me
 
-image_tool: docker
 
 # Intercom settings
 intercom_enabled: true
