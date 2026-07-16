@@ -17,6 +17,9 @@
   connection: local
   gather_facts: false
   become: false
+  roles:
+    # Defaults-only role; pulls in ldap_*/portal_bootstrap_* defaults from common.
+    - common
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
   vars:
@@ -104,6 +107,9 @@
   connection: local
   gather_facts: false
   become: false
+  roles:
+    # Defaults-only role; pulls in pg_listen_port/portal_db_* defaults from common.
+    - common
   tasks:
     - name: Require the portal bootstrap variables
       ansible.builtin.assert:
