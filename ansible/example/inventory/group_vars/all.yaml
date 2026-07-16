@@ -502,6 +502,59 @@
 # grid_csv_version: main
 
 
+# ---------------------------------------------------------------------
+# User Portal bootstrap admin (bootstrap_portal_admin.yml)
+# ---------------------------------------------------------------------
+# Optional, on-demand. Creates a login-capable portal admin without
+# going through self-registration: an LDAP identity (so Keycloak can
+# authenticate the user) plus an account_user row with is_staff=true. DE
+# admin is granted by adding the user to the first group in admin_groups.
+# Run it directly:
+#   ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> \
+#     bootstrap_portal_admin.yml
+# The LDAP half targets the in-cluster OpenLDAP and binds as cn=Manager,
+# so ldap_root_pw must be the real Manager password, and it needs
+# python-ldap on the control host. Leave portal_bootstrap_user empty (the
+# default) to skip.
+
+# Username of the bootstrap admin; must match the Keycloak/LDAP uid.
+# Empty disables the playbook.
+# Default: ""
+# portal_bootstrap_user: portal-admin
+
+# Password for the bootstrap admin's LDAP account (used to log in).
+# Default: ""
+# portal_bootstrap_password: replace_me
+
+# Email address for the bootstrap admin; also its primary portal email.
+# Default: ""
+# portal_bootstrap_email: admin@example.org
+
+# Given and family name on the account_user profile.
+# Defaults: "Portal" / "Admin"
+# portal_bootstrap_first_name: Portal
+# portal_bootstrap_last_name: Admin
+
+# Institution and department on the account_user profile.
+# Defaults: "CyVerse" / "N/A"
+# portal_bootstrap_institution: CyVerse
+# portal_bootstrap_department: N/A
+
+# Whether the bootstrap admin is a portal superuser (is_superuser).
+# Default: true
+# portal_bootstrap_superuser: true
+
+# posixAccount uidNumber for the LDAP entry; must not collide with
+# existing accounts (40000/40001 are the seeded service accounts).
+# Default: 40002
+# portal_bootstrap_uid_number: 40002
+
+# Local port used to port-forward to the in-cluster OpenLDAP service
+# while creating the entry; any free local port works.
+# Default: 3389
+# ldap_local_port: 3389
+
+
 # =====================================================================
 # Phase 3: HAProxy Load Balancer
 # =====================================================================
@@ -1223,7 +1276,9 @@
 # Default: "{SSHA}replace_me_with_a_real_hash"
 # ldap_rootpw_hash: "{SSHA}..."
 
-# Plaintext root password — documentation only, not consumed.
+# Plaintext root/Manager password. Not consumed by the seed (which uses
+# the hash above), but bootstrap_portal_admin.yml binds as cn=Manager
+# with it — set it to the real password if you use that playbook.
 # Default: replace_me
 # ldap_root_pw: replace_me
 
