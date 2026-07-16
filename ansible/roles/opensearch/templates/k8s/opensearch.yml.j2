@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opensearch
+spec:
+  serviceName: opensearch
+  replicas: {{ opensearch_replicas }}
+  selector:
+    matchLabels:
+      de-app: opensearch
+  template:
+    metadata:
+      labels:
+        de-app: opensearch
+        app: de
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        # OpenSearch refuses to start unless the kernel allows enough mmap
+        # regions. Setting it here keeps the requirement local to this pod
+        # instead of relying on a node-level sysctl.
+        - name: set-vm-max-map-count
+          image: busybox:1.36
+          command:
+            - sysctl
+            - -w
+            - vm.max_map_count=262144
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "16Mi"
+              ephemeral-storage: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
+              ephemeral-storage: "32Mi"
+      containers:
+        - name: opensearch
+          image: {{ opensearch_image }}:{{ opensearch_version }}
+          env:
+            - name: TZ
+              value: "{{ timezone }}"
+            - name: cluster.name
+              value: "{{ opensearch_cluster_name }}"
+            - name: node.name
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: discovery.type
+              value: "single-node"
+            # Internal-only node: run without the security plugin. The DE
+            # consumers still send basic-auth headers, which OpenSearch ignores.
+            - name: DISABLE_SECURITY_PLUGIN
+              value: "true"
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+            - name: bootstrap.memory_lock
+              value: "false"
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms{{ opensearch_heap_size }} -Xmx{{ opensearch_heap_size }}"
+          resources:
+            requests:
+              cpu: "{{ opensearch_cpu_request }}"
+              memory: "{{ opensearch_mem_request }}"
+              ephemeral-storage: "{{ opensearch_ephemeral_request }}"
+            limits:
+              cpu: "{{ opensearch_cpu_limit }}"
+              memory: "{{ opensearch_mem_limit }}"
+              ephemeral-storage: "{{ opensearch_ephemeral_limit }}"
+          ports:
+            - name: http
+              containerPort: 9200
+            - name: transport
+              containerPort: 9300
+          volumeMounts:
+            - name: opensearch-data
+              mountPath: /usr/share/opensearch/data
+          # The JVM can take a while to come up on first boot; the startup probe
+          # gives it headroom before the liveness probe starts enforcing.
+          startupProbe:
+            httpGet:
+              path: /_cluster/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=5s
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+  volumeClaimTemplates:
+    - metadata:
+        name: opensearch-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ opensearch_storage_class }}
+        resources:
+          requests:
+            storage: {{ opensearch_storage_size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch
+spec:
+  selector:
+    de-app: opensearch
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9200
+      targetPort: http
+    - name: transport
+      protocol: TCP
+      port: 9300
+      targetPort: transport

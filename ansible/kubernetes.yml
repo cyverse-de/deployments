@@ -171,6 +171,9 @@
     - role: nats
       tags: nats
 
+    - role: opensearch
+      tags: opensearch
+
     - role: kubernetes_node_feature_discovery
       tags: feature-discovery
 

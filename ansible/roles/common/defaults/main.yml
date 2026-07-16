@@ -219,8 +219,10 @@ docker_trusted_registries:
   - gims.cyverse.org:5000
   - gims.iplantcollaborative.org:5000
 
-# Elasticsearch settings.
-es_base_uri: http://replace_me
+# Elasticsearch/OpenSearch settings. es_base_uri defaults to the in-cluster
+# single-node OpenSearch stood up by the opensearch role; override it to point
+# at an external instance.
+es_base_uri: "http://opensearch.{{ ns }}.svc.cluster.local:9200"
 es_username: replace_me
 es_password: replace_me
 es_index: replace_me

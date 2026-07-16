@@ -1289,9 +1289,14 @@
 # data-search services (dewey, infosquito2) use. Search is enabled by
 # default (`es_enabled: true`); set `es_enabled: false` instead if the
 # deployment will not run OpenSearch.
+#
+# By default the `opensearch` role deploys a single-node OpenSearch in-cluster
+# and `es_base_uri` points at its Service. Override the value below to use an
+# external instance instead (and set `opensearch_enabled: false` to skip the
+# in-cluster deploy).
 
 # Base URI of the OpenSearch instance.
-# Default: http://replace_me
+# Default: http://opensearch.<ns>.svc.cluster.local:9200 (in-cluster)
 # es_base_uri: https://opensearch.example.org:9200
 
 # OpenSearch credentials.
