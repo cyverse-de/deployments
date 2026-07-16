@@ -507,6 +507,9 @@ ldap_de_grouper_pw: replace_me
 ldap_de_grouper_pw_hash: "{SSHA}replace_me_with_a_real_hash"
 ldap_ldap_reader_pw: replace_me
 ldap_ldap_reader_pw_hash: "{SSHA}replace_me_with_a_real_hash"
+# Local port used by bootstrap_portal_admin.yml to port-forward to the in-cluster
+# OpenLDAP service when creating the bootstrap admin's directory entry.
+ldap_local_port: 3389
 
 # PGP settings
 pgp_key_password: replace_me
@@ -575,6 +578,19 @@ portal_bisque_password: "replace_me"
 portal_smtp_host: local-exim
 portal_smtp_port: "25"
 portal_smtp_from: "{{ email_src }}"
+# Bootstrap portal admin (bootstrap_portal_admin.yml). Leave portal_bootstrap_user empty to
+# skip; set user/password/email in the private inventory to create a login-capable portal
+# admin (LDAP identity + account_user row with is_staff). The DE-admin group is derived from
+# the first entry in admin_groups.
+portal_bootstrap_user: ""
+portal_bootstrap_password: ""
+portal_bootstrap_email: ""
+portal_bootstrap_first_name: "Portal"
+portal_bootstrap_last_name: "Admin"
+portal_bootstrap_institution: "CyVerse"
+portal_bootstrap_department: "N/A"
+portal_bootstrap_superuser: true
+portal_bootstrap_uid_number: 40002
 portal_terrain_url: "https://{{ de_hostname }}/terrain/"
 portal_terrain_user: replace_me
 portal_terrain_password: replace_me

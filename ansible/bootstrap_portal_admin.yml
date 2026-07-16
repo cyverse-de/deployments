@@ -1,0 +1,150 @@
+---
+# Bootstrap a login-capable portal admin.
+#
+# Portal login is Keycloak/LDAP-only, so an admin needs BOTH an LDAP identity (to
+# authenticate) and an account_user row with is_staff=true (portal admin), keyed by the same
+# username. This playbook creates both. DE admin is granted by adding the user to the first
+# group in admin_groups (the group whose membership becomes the `entitlement` claim terrain
+# checks). It is idempotent and a no-op until portal_bootstrap_user is set in the inventory.
+#
+# Run: ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> bootstrap_portal_admin.yml
+#
+# Requires python-ldap on the control host and ldap_root_pw set to the OpenLDAP Manager
+# password. Targets the in-cluster OpenLDAP (ldap_in_cluster).
+
+- name: Create the bootstrap admin's LDAP identity
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    de_admin_group: "{{ admin_groups.split(',')[0] | trim }}"
+    ldap_server_uri: "ldap://127.0.0.1:{{ ldap_local_port }}"
+    ldap_manager_dn: "cn=Manager,{{ ldap_dn_suffix }}"
+    ldap_user_dn: "uid={{ portal_bootstrap_user }},ou=People,{{ ldap_dn_suffix }}"
+  tasks:
+    - name: Require the portal bootstrap variables
+      ansible.builtin.assert:
+        that:
+          - portal_bootstrap_user | length > 0
+          - portal_bootstrap_password | length > 0
+          - portal_bootstrap_email | length > 0
+        fail_msg: >-
+          portal_bootstrap_user, portal_bootstrap_password, and portal_bootstrap_email must be
+          set in the inventory to bootstrap a portal admin.
+
+    - name: Port-forward to the in-cluster OpenLDAP service
+      ansible.builtin.shell:
+        cmd: >-
+          nohup kubectl port-forward -n {{ ldap_ns }} svc/openldap
+          {{ ldap_local_port }}:389 >/tmp/openldap-portforward.log 2>&1 & echo $!
+      register: ldap_port_forward
+      changed_when: false
+
+    - name: Create the bootstrap admin in the directory
+      block:
+        - name: Wait for the local LDAP port to be ready
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ ldap_local_port }}"
+            timeout: 30
+
+        - name: "LDAP entry: {{ portal_bootstrap_user }}"
+          community.general.ldap_entry:
+            server_uri: "{{ ldap_server_uri }}"
+            bind_dn: "{{ ldap_manager_dn }}"
+            bind_pw: "{{ ldap_root_pw }}"
+            dn: "{{ ldap_user_dn }}"
+            objectClass:
+              - inetOrgPerson
+              - posixAccount
+              - shadowAccount
+            attributes:
+              uid: "{{ portal_bootstrap_user }}"
+              cn: "{{ portal_bootstrap_first_name }} {{ portal_bootstrap_last_name }}"
+              sn: "{{ portal_bootstrap_last_name }}"
+              givenName: "{{ portal_bootstrap_first_name }}"
+              mail: "{{ portal_bootstrap_email }}"
+              uidNumber: "{{ portal_bootstrap_uid_number }}"
+              gidNumber: "10000"
+              homeDirectory: "/home/{{ portal_bootstrap_user }}"
+            state: present
+
+        - name: Set the bootstrap admin's password
+          community.general.ldap_passwd:
+            server_uri: "{{ ldap_server_uri }}"
+            bind_dn: "{{ ldap_manager_dn }}"
+            bind_pw: "{{ ldap_root_pw }}"
+            dn: "{{ ldap_user_dn }}"
+            passwd: "{{ portal_bootstrap_password }}"
+
+        - name: "Add the bootstrap admin to the {{ de_admin_group }} and everyone groups"
+          community.general.ldap_attrs:
+            server_uri: "{{ ldap_server_uri }}"
+            bind_dn: "{{ ldap_manager_dn }}"
+            bind_pw: "{{ ldap_root_pw }}"
+            dn: "cn={{ item }},ou=Groups,{{ ldap_dn_suffix }}"
+            attributes:
+              memberUid: "{{ portal_bootstrap_user }}"
+            state: present
+          loop:
+            - "{{ de_admin_group }}"
+            - everyone
+      always:
+        - name: Stop the port-forward
+          ansible.builtin.command:
+            cmd: "kill {{ ldap_port_forward.stdout }}"
+          changed_when: false
+          failed_when: false
+
+- name: Create the bootstrap admin's portal account_user row
+  hosts: dbms
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Require the portal bootstrap variables
+      ansible.builtin.assert:
+        that:
+          - portal_bootstrap_user | length > 0
+          - portal_bootstrap_email | length > 0
+        fail_msg: >-
+          portal_bootstrap_user and portal_bootstrap_email must be set in the inventory to
+          bootstrap a portal admin.
+
+    - name: Insert the portal admin row if it does not already exist
+      community.postgresql.postgresql_query:
+        login_host: "{{ groups['dbms'][0] }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ portal_db_user }}"
+        login_password: "{{ portal_db_password }}"
+        login_db: "{{ portal_db_name }}"
+        query: >-
+          INSERT INTO account_user
+            (password, is_superuser, username, is_staff, is_active, date_joined,
+             first_name, last_name, email, has_verified_email, institution, department,
+             participate_in_study, subscribe_to_newsletter, orcid_id,
+             aware_channel_id, ethnicity_id, funding_agency_id, gender_id,
+             occupation_id, region_id, research_area_id)
+          SELECT '', {{ 'true' if portal_bootstrap_superuser | bool else 'false' }},
+             %(username)s, true, true, NOW(),
+             %(first)s, %(last)s, %(email)s, true, %(institution)s, %(department)s,
+             false, false, '',
+             (SELECT id FROM account_awarechannel  WHERE name = 'Not Provided'),
+             (SELECT id FROM account_ethnicity     WHERE name = 'Not Provided'),
+             (SELECT id FROM account_fundingagency WHERE name = 'Not Provided'),
+             (SELECT id FROM account_gender        WHERE name = 'Not Provided'),
+             (SELECT id FROM account_occupation    WHERE name = 'Not Provided'),
+             (SELECT id FROM account_region ORDER BY id LIMIT 1),
+             (SELECT id FROM account_researcharea  WHERE name = 'Not Provided')
+          WHERE NOT EXISTS (
+            SELECT 1 FROM account_user WHERE username = %(username)s OR email = %(email)s)
+        named_args:
+          username: "{{ portal_bootstrap_user }}"
+          first: "{{ portal_bootstrap_first_name }}"
+          last: "{{ portal_bootstrap_last_name }}"
+          email: "{{ portal_bootstrap_email }}"
+          institution: "{{ portal_bootstrap_institution }}"
+          department: "{{ portal_bootstrap_department }}"
