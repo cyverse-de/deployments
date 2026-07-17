@@ -605,8 +605,8 @@ portal_honeypot_divisor: "7"
 portal_conductor_url: https://portal-conductor
 
 # Portal-conductor authentication
-portal_conductor_auth_username: admin
-portal_conductor_auth_password: "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0kB.z8.6X2"  # Default password: admin
+portal_conductor_auth_username: "{{ basic_auth_username }}"
+portal_conductor_auth_password: "{{ basic_auth_password }}"
 
 # Admin settings
 admin_groups: core-services,dev,staff
