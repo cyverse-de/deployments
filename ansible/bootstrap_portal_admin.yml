@@ -3,16 +3,18 @@
 #
 # Portal login is Keycloak/LDAP-only, so an admin needs BOTH an LDAP identity (to
 # authenticate) and an account_user row with is_staff=true (portal admin), keyed by the same
-# username. This playbook creates both, then provisions the admin's iRODS account and home
-# collection (via portal-conductor's /datastore/users endpoint) so data-store operations work.
-# DE admin is granted by adding the user to the first group in admin_groups (the group whose
-# membership becomes the `entitlement` claim terrain checks). It is idempotent and a no-op
-# until portal_bootstrap_user is set in the inventory.
+# username. This playbook creates both, provisions the admin's iRODS account and home
+# collection (via portal-conductor's /datastore/users endpoint) so data-store operations work,
+# and registers the admin in the DE (via terrain's token + bootstrap endpoints) so their DE
+# users row and workspace exist without a first interactive login. DE admin is granted by
+# adding the user to the first group in admin_groups (the group whose membership becomes the
+# `entitlement` claim terrain checks). It is idempotent and a no-op until portal_bootstrap_user
+# is set in the inventory.
 #
 # Run: ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> bootstrap_portal_admin.yml
 #
 # Requires python-ldap on the control host and ldap_root_pw set to the OpenLDAP Manager
-# password. Targets the in-cluster OpenLDAP (ldap_in_cluster) and portal-conductor.
+# password. Targets the in-cluster OpenLDAP (ldap_in_cluster), portal-conductor, and terrain.
 
 - name: Create the bootstrap admin's LDAP identity
   hosts: k8s_controllers[0]
@@ -240,5 +242,77 @@
         - name: Stop the port-forward
           ansible.builtin.command:
             cmd: "kill {{ conductor_port_forward.stdout }}"
+          changed_when: false
+          failed_when: false
+
+- name: Register the bootstrap admin in the DE via terrain
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in ns/portal_bootstrap_* defaults from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    terrain_local_port: 18080
+  tasks:
+    - name: Require the portal bootstrap variables
+      ansible.builtin.assert:
+        that:
+          - portal_bootstrap_user | length > 0
+          - portal_bootstrap_password | length > 0
+        fail_msg: >-
+          portal_bootstrap_user and portal_bootstrap_password must be set in the inventory to
+          bootstrap a portal admin.
+
+    - name: Port-forward to the in-cluster terrain service
+      ansible.builtin.shell:
+        cmd: >-
+          nohup kubectl port-forward -n {{ ns }} svc/terrain
+          {{ terrain_local_port }}:80
+          >/tmp/terrain-portforward.log 2>&1 & echo $!
+      register: terrain_port_forward
+      changed_when: false
+
+    - name: Create the bootstrap admin's DE account and workspace
+      # Port-forwarding the in-cluster service (rather than portal_terrain_url) so
+      # this works before the public DE hostname resolves. terrain serves plain HTTP
+      # on the service port; TLS is terminated at the ingress, so no cert handling
+      # is needed here. All routes live under the /terrain context path.
+      block:
+        - name: Wait for the local terrain port to be ready
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ terrain_local_port }}"
+            timeout: 30
+
+        # terrain's /token/keycloak turns the user's basic-auth credentials into a
+        # Keycloak access token using terrain's own OIDC client, so no Keycloak
+        # client id/secret is needed here.
+        - name: Obtain a Keycloak token for the bootstrap admin
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ terrain_local_port }}/terrain/token/keycloak"
+            method: GET
+            force_basic_auth: true
+            url_username: "{{ portal_bootstrap_user }}"
+            url_password: "{{ portal_bootstrap_password }}"
+            status_code: 200
+          register: terrain_token
+
+        # Records the login, which get-or-creates the DE users row and initializes
+        # the workspace. Idempotent on re-runs.
+        - name: "DE bootstrap: {{ portal_bootstrap_user }}"
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ terrain_local_port }}/terrain/secured/bootstrap"
+            method: GET
+            headers:
+              Authorization: "Bearer {{ terrain_token.json.access_token }}"
+            status_code: 200
+      always:
+        - name: Stop the port-forward
+          ansible.builtin.command:
+            cmd: "kill {{ terrain_port_forward.stdout }}"
           changed_when: false
           failed_when: false

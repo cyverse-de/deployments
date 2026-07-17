@@ -507,10 +507,11 @@
 # ---------------------------------------------------------------------
 # Optional, on-demand. Creates a login-capable portal admin without
 # going through self-registration: an LDAP identity (so Keycloak can
-# authenticate the user), an account_user row with is_staff=true, and an
-# iRODS account plus home collection (provisioned through portal-conductor
-# so data-store operations work). DE admin is granted by adding the user to
-# the first group in admin_groups.
+# authenticate the user), an account_user row with is_staff=true, an iRODS
+# account plus home collection (provisioned through portal-conductor so
+# data-store operations work), and a DE users row plus workspace (registered
+# through terrain). DE admin is granted by adding the user to the first group
+# in admin_groups.
 # Run it directly:
 #   ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> \
 #     bootstrap_portal_admin.yml
@@ -518,8 +519,9 @@
 # so ldap_root_pw must be the real Manager password, and it needs
 # python-ldap on the control host. The iRODS half calls the in-cluster
 # portal-conductor over its self-signed SSL port using
-# portal_conductor_auth_username/password. Leave portal_bootstrap_user
-# empty (the default) to skip.
+# portal_conductor_auth_username/password. The DE half port-forwards the
+# in-cluster terrain service and authenticates as the bootstrap user itself.
+# Leave portal_bootstrap_user empty (the default) to skip.
 
 # Username of the bootstrap admin; must match the Keycloak/LDAP uid.
 # Empty disables the playbook.
