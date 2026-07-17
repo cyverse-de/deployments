@@ -1337,6 +1337,14 @@
 # Defaults: kcadmin / notreal
 # keycloak_admin_username: kcadmin
 # keycloak_admin_password: replace_me
+# Email set on the realm admin account by the keycloak_install role.
+# Default: kcadmin@example.org
+# keycloak_admin_email: kcadmin@example.org
+
+# Admin-API service-account client terrain uses to manage users in the realm.
+# Defaults: de-admin-api-qa / replace_me
+# keycloak_admin_client_id: de-admin-api-qa
+# keycloak_admin_client_secret: replace_me
 
 # Keycloak service-account client for the formation service.
 # Default: replace_me
@@ -1366,6 +1374,11 @@
 # es_username: de-user
 # es_password: replace_me
 
+# Index the data-search services (dewey, infosquito2, search, terrain) read
+# and write. infosquito2/dewey create it on first index.
+# Default: replace_me
+# es_index: data
+
 
 # =====================================================================
 # DE general settings
@@ -1383,6 +1396,14 @@
 # Password for the PGP key used by the data-store services.
 # Default: replace_me
 # pgp_key_password: replace_me
+
+# Password for terrain's JWT signing key.
+# Default: replace_me
+# jwt_signing_key_password: replace_me
+
+# Base URL of the Local Contexts Hub API sonora links against.
+# Default: https://sandbox.localcontextshub.org/api/v1/
+# de_services_local_contexts_base: https://sandbox.localcontextshub.org/api/v1/
 
 # URL users are sent to for subscription checkout, and whether
 # subscription limits are enforced.
@@ -1503,15 +1524,30 @@
 # portal_keycloak_client: portal
 # portal_keycloak_secret: replace_me
 
+# LDAP bind DN the portal creates user entries as. Must be the rootdn, so its
+# password (portal_ldap_password) has to match ldap_root_pw.
+# Default: "{{ ldap_cn }},{{ ldap_base_dn }}"
+# portal_ldap_admin: "{{ ldap_cn }},{{ ldap_base_dn }}"
+
 # LDAP bind password and the everyone-group users are added to.
 # Default: replace_me
 # portal_ldap_password: replace_me
 # portal_ldap_everyone_group: everyone
 
-# Terrain account the portal calls the DE with.
-# Default: replace_me
+# Terrain account the portal calls the DE with, and the terrain base URL.
+# Defaults: replace_me / https://{{ de_hostname }}/terrain/
 # portal_terrain_user: replace_me
 # portal_terrain_password: replace_me
+# portal_terrain_url: "https://{{ de_hostname }}/terrain/"
+
+# Formation service base URL portal-conductor calls.
+# Default: https://{{ de_hostname }}/formation
+# formation_api_url: "https://{{ de_hostname }}/formation"
+
+# Outbound SMTP relay for portal2/portal-conductor mail.
+# Defaults: local-exim / "25"
+# portal_smtp_host: local-exim
+# portal_smtp_port: "25"
 
 # Optional integrations; empty string disables each.
 # Default: replace_me
@@ -1568,6 +1604,36 @@
 # vice_operator_keycloak_client_secret: replace_me
 # vice_operator_swagger_client_secret: replace_me
 # vice_api_keycloak_client_secret: replace_me
+
+
+# =====================================================================
+# Secrets loader
+# =====================================================================
+# Files the `secret_loader` role reads from the private inventory's secrets/
+# directory and loads into cluster Secrets. Each is a list of paths relative to
+# that directory; the defaults are empty, so a deployment that ships these keys
+# must list them here.
+
+# GPG keyrings to load (e.g. secring.gpg).
+# Default: []
+# secrets_loader_gpg_filepaths:
+#   - secring.gpg
+
+# JWT signing keypair to load.
+# Default: []
+# secrets_loader_signing_keys_filepaths:
+#   - signing_key/private-key.pem
+#   - signing_key/public-key.pem
+
+# Accepted public keys to load.
+# Default: []
+# secrets_loader_accepted_keys_filepaths:
+#   - accepted_keys/terrain.pem
+
+# Whether to load the ssl-files Secret. Set false when nothing mounts ssl-files
+# (as in the sw-cacti deployment).
+# Default: true
+# secrets_loader_load_ssl_secret: true
 
 
 # =====================================================================
@@ -1660,6 +1726,9 @@
 # group-propagator
 # group_propagator_replicas: 2
 # group_propagator_pod_anti_affinity: true
+
+# grouper-ws
+# grouper_ws_replicas: 2
 
 # info-typer
 # info_typer_replicas: 2
