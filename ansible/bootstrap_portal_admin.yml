@@ -3,14 +3,16 @@
 #
 # Portal login is Keycloak/LDAP-only, so an admin needs BOTH an LDAP identity (to
 # authenticate) and an account_user row with is_staff=true (portal admin), keyed by the same
-# username. This playbook creates both. DE admin is granted by adding the user to the first
-# group in admin_groups (the group whose membership becomes the `entitlement` claim terrain
-# checks). It is idempotent and a no-op until portal_bootstrap_user is set in the inventory.
+# username. This playbook creates both, then provisions the admin's iRODS account and home
+# collection (via portal-conductor's /datastore/users endpoint) so data-store operations work.
+# DE admin is granted by adding the user to the first group in admin_groups (the group whose
+# membership becomes the `entitlement` claim terrain checks). It is idempotent and a no-op
+# until portal_bootstrap_user is set in the inventory.
 #
 # Run: ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> bootstrap_portal_admin.yml
 #
 # Requires python-ldap on the control host and ldap_root_pw set to the OpenLDAP Manager
-# password. Targets the in-cluster OpenLDAP (ldap_in_cluster).
+# password. Targets the in-cluster OpenLDAP (ldap_in_cluster) and portal-conductor.
 
 - name: Create the bootstrap admin's LDAP identity
   hosts: k8s_controllers[0]
@@ -178,3 +180,65 @@
         named_args:
           username: "{{ portal_bootstrap_user }}"
           email: "{{ portal_bootstrap_email }}"
+
+- name: Create the bootstrap admin's iRODS home via portal-conductor
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in ns/portal_conductor_auth_*/portal_bootstrap_* from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    portal_conductor_local_port: 18443
+  tasks:
+    - name: Require the portal bootstrap variables
+      ansible.builtin.assert:
+        that:
+          - portal_bootstrap_user | length > 0
+          - portal_bootstrap_password | length > 0
+        fail_msg: >-
+          portal_bootstrap_user and portal_bootstrap_password must be set in the inventory to
+          bootstrap a portal admin.
+
+    - name: Port-forward to the in-cluster portal-conductor service
+      ansible.builtin.shell:
+        cmd: >-
+          nohup kubectl port-forward -n {{ ns }} svc/portal-conductor
+          {{ portal_conductor_local_port }}:443
+          >/tmp/portal-conductor-portforward.log 2>&1 & echo $!
+      register: conductor_port_forward
+      changed_when: false
+
+    - name: Create the bootstrap admin's iRODS account and home
+      block:
+        - name: Wait for the local portal-conductor port to be ready
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ portal_conductor_local_port }}"
+            timeout: 30
+
+        # Idempotent: portal-conductor treats an existing user as a password reset, so this
+        # both creates the iRODS account/home and re-asserts the shared password on re-runs.
+        - name: "Datastore user: {{ portal_bootstrap_user }}"
+          ansible.builtin.uri:
+            url: "https://127.0.0.1:{{ portal_conductor_local_port }}/datastore/users"
+            method: POST
+            # portal-conductor serves a self-signed cert over the SSL port.
+            validate_certs: false
+            force_basic_auth: true
+            url_username: "{{ portal_conductor_auth_username }}"
+            url_password: "{{ portal_conductor_auth_password }}"
+            body_format: json
+            body:
+              username: "{{ portal_bootstrap_user }}"
+              password: "{{ portal_bootstrap_password }}"
+            status_code: 200
+      always:
+        - name: Stop the port-forward
+          ansible.builtin.command:
+            cmd: "kill {{ conductor_port_forward.stdout }}"
+          changed_when: false
+          failed_when: false
