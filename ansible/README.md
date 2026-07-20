@@ -63,9 +63,9 @@ on a single node; see [docs/rabbitmq.md](docs/rabbitmq.md).
 
 ## HTCondor
 
-The DE uses HTCondor to run non-interactive analyses. Several DE specific components are required for this to work, so
-the recommended approach is to create a new HTCondor cluster that is dedicated to the DE. This can be done using the
-`condor.yml` playbook.
+The DE historically used HTCondor to run non-interactive analyses. The current execution backend is Argo Workflows
+(managed by `app-exposer`), but the HTCondor infrastructure remains in the codebase for deployments that still use it.
+The `condor.yml` playbook will install and configure a dedicated HTCondor cluster.
 
 ## Cert-Manager
 

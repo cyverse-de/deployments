@@ -5,6 +5,10 @@ Table of Contents:
 - [Continuous Integration To QA](#continuous-integration-to-qa)
 - [Production Deployment Automation](#production-deployment-automation)
 
+## Operations runbooks
+
+Operations and troubleshooting documentation is available in [docs/index.md](../../docs/index.md).
+
 ## Required Git Repositories
 
 Deployments need this repository along with a single private repository:
@@ -28,7 +32,7 @@ Additionally, you will want access to our CI/CD systems at [cicd-qa.cyverse.org]
 
 ### Builds
 
-This is the tag-triggered CI build path, which runs on GitHub's systems. Images can also be built locally from source with the `build_it.yml` and `build_release.yml` playbooks; see [BUILD_DEPLOY.md](../BUILD_DEPLOY.md).
+This is the tag-triggered CI build path, which runs on GitHub's systems. Images can also be built locally from source with the `build_it.yml` and `build_release.yml` playbooks; see [BUILD_DEPLOY.md](../BUILD_DEPLOY.md) for the general workflow overview, and the `skills/` directory for authoritative current procedures.
 
 At a high-level, our CI build process is as follows:
  - Commit and make changes in a branch.
@@ -52,16 +56,14 @@ on:
 
 jobs:
   call-workflow-passing-data:
-    uses: cyverse-de/github-workflows/.github/workflows/skaffold-build.yml@v0.0.7
-    with:
-      build-prerelease: ${{ contains(github.ref_name, '-rc') }}
+    uses: cyverse-de/github-workflows/.github/workflows/skaffold-build.yml@v0.4.0
     secrets:
       harbor-username: ${{ secrets.HARBOR_USERNAME }}
       harbor-password: ${{ secrets.HARBOR_PASSWORD }}
       releases-repo-push-token: ${{ secrets.GH_DE_RELEASES_PUSH_TOKEN }}
 ```
 
-As you can see from the `jobs.call-workflow-passing-data.uses` field, this workflow calls out to the `skaffold-build.yml` workflow contained in the [cyverse-de/github-workflows](https://github.com/cyverse-de/github-workflows) repository tagged with `v0.0.7`.
+This workflow calls out to the `skaffold-build.yml` workflow contained in the [cyverse-de/github-workflows](https://github.com/cyverse-de/github-workflows) repository. Pin to the latest tag (`v0.4.0` as of this writing; check the repo for newer versions). The `build-prerelease` input is no longer used as of `v0.4.0`.
 
 As part of the shared `skaffold-build.yml` file contained in the `cyverse-de/github-workflows` repository, a new JSON artifact file is created in the `builds/` directory of the [cyverse-de/de-releases](https://github.com/cyverse-de/de-releases) repository. An action after that sends a webhook request to [https://cicd-qa.cyverse.org](https://cicd-qa.cyverse.org), which triggers the GoCD pipeline that deploys the service into the QA cluster.
 
@@ -132,14 +134,16 @@ Deploys read each service's build descriptor (`<service>.json`) from `build_json
 ### Deployment process
 If the release images need to be built first, see [BUILD_DEPLOY.md](../BUILD_DEPLOY.md). Here is the process to deploy a release into an environment. Each line is a separate command:
 ```bash
-ansible-playbook -i <path/to/private-inventory/inventory/> --tags=setup-databases kubernetes.yml
-ansible-playbook -i <path/to/private-inventory/inventory/> --tags=configure-services kubernetes.yml
-ansible-playbook -i <path/to/private-inventory/inventory/> --tags=deploy-all-services kubernetes.yml
+export INVENTORY=<path/to/private-inventory/inventory/>
+
+ansible-playbook -i $INVENTORY --tags=setup-databases kubernetes.yml
+ansible-playbook -i $INVENTORY --tags=configure-services kubernetes.yml
+ansible-playbook -i $INVENTORY --tags=deploy-all-services kubernetes.yml
 ```
 
 You can run the kubernetes.yml playbook without the tags and it will still run through the steps in order, but it will also attempt to run a bunch more steps that can consume a lot of time and resources. It's recommended to use the tags to limit the tasks that actually run.
 
 To deploy a subset of services after the initial rollout, use `deploy_it.yml` with each service's tag:
 ```bash
-ansible-playbook -i <path/to/private-inventory/inventory/> deploy_it.yml --tags terrain,sonora
+ansible-playbook -i $INVENTORY deploy_it.yml --tags terrain,sonora
 ```
