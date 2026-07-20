@@ -1,5 +1,3 @@
-_This repository has been archived and is now maintained in a Git repository hosted by CyVerse._
-
 # deployments
 
 Tools for deploying the CyVerse Discovery Environment (DE)
@@ -8,6 +6,13 @@ Tools for deploying the CyVerse Discovery Environment (DE)
 
 The [Ansible playbooks](ansible) are primarily used to deploy subsystems used by the DE. Some examples of things that
 are deployed using Ansible playbooks are OpenLDAP and Kubernetes.
+
+## Wiki
+
+The [wiki](wiki/index.md) holds curated operational knowledge in
+[Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) (v0.1).
+Validate it and regenerate its indexes with the [okf tool](scripts/okf); the skills under
+[skills/](skills) describe how to read, write, and migrate wiki pages.
 
 ## Kustomizations
 

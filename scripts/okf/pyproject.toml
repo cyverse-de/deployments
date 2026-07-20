@@ -1,0 +1,20 @@
+[project]
+name = "okf"
+version = "0.1.0"
+description = "Validate and index the OKF wiki bundle in this repo"
+readme = "README.md"
+authors = [
+    { name = "John Wregglesworth", email = "wregglej@arizona.edu" }
+]
+requires-python = ">=3.12"
+dependencies = ["pyyaml>=6"]
+
+[project.scripts]
+okf = "okf.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
