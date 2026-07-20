@@ -66,10 +66,14 @@ original stays put and becomes the page's `resource`.
 ## Tooling and skills
 
 The validator/indexer lives at `scripts/okf/` (uv-managed Python; see its
-README). For Claude Code, four repo skills cover wiki work —
-`writing-wiki-pages`, `migrating-docs-to-wiki`, `searching-the-wiki`, and
-`validating-the-wiki` — auto-loaded from `.claude/skills/` (a symlink to
-`skills/`).
+README). For Claude Code, five repo skills cover wiki work —
+`writing-wiki-pages`, `migrating-docs-to-wiki`, `searching-the-wiki`,
+`validating-the-wiki`, and `updating-the-wiki` (the end-of-task staleness
+check that fires after ordinary deployment work) — auto-loaded from
+`.claude/skills/` (a symlink to `skills/`). The repo `CLAUDE.md` instructs
+Claude Code to run the staleness check after any change to `ansible/`,
+`kustomize/`, `notes/`, or `scripts/`, so wiki upkeep doesn't depend on being
+asked.
 
 # Citations
 

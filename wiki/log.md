@@ -2,6 +2,7 @@
 
 ## 2026-07-20
 
+* **Update**: Documented the updating-the-wiki skill and CLAUDE.md-driven staleness check in [Maintaining This Wiki](/maintaining-the-wiki.md).
 * **Creation**: Added [Maintaining This Wiki](/maintaining-the-wiki.md) and a Meta section in the root index.
 * **Migration**: Migrated [RabbitMQ](/infrastructure/rabbitmq.md), [OpenLDAP](/infrastructure/ldap.md), and [HAProxy](/infrastructure/haproxy.md) from ansible/docs.
 * **Migration**: Migrated [Deploying TLS Certificates](/playbooks/deploy-tls-certs.md) from ansible/docs/tls_certs.md.
