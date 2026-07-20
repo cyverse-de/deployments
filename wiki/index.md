@@ -13,6 +13,10 @@ skill).
 
 # Sections
 
-* [infrastructure/](/infrastructure/index.md) - Backing systems: databases, messaging, LDAP, load balancing, TLS.
-* [playbooks/](/playbooks/index.md) - Build, deploy, and operational workflows run from ansible/.
+* [infrastructure/](/infrastructure/index.md) - Backing systems: databases, messaging, LDAP, load balancing, storage.
+* [playbooks/](/playbooks/index.md) - Build, deploy, and operational procedures run from ansible/.
 * [services/](/services/index.md) - DE microservices.
+
+# Meta
+
+* [Maintaining This Wiki](/maintaining-the-wiki.md) - How to add, edit, migrate, and validate wiki pages.
