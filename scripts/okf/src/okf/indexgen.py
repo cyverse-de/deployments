@@ -35,7 +35,9 @@ def drift(bundle: Bundle) -> list[IndexDrift]:
 
 def _subdirectories(root):
     for path in sorted(root.rglob("*")):
-        if not path.is_dir():
+        # Symlinked dirs aren't walked by rglob, so indexing them would write a
+        # wrong (empty) index through the link into the target; OKF110 flags them.
+        if not path.is_dir() or path.is_symlink():
             continue
         parts = path.relative_to(root).parts
         if any(part.startswith(".") for part in parts):

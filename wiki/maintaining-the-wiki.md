@@ -79,4 +79,4 @@ asked.
 
 [1] [Open Knowledge Format specification](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) — the format this wiki conforms to.
 [2] `scripts/okf/README.md` — tool usage, output format, exit codes.
-[3] `skills/` — the four wiki skills for Claude Code.
+[3] `skills/` — the five wiki skills for Claude Code.

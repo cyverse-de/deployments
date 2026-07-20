@@ -22,9 +22,10 @@ Output is line-oriented (`file:line: SEVERITY CODE message`); pass
 allowed), `1` errors found (or warnings with `--strict`, or drift with
 `index --check`), `2` usage/environment problem.
 
-Rule codes: `OKF001`–`OKF006` are OKF conformance errors (frontmatter and
-reserved-file structure); `OKF101`–`OKF109` are lint warnings (dead links,
-missing recommended fields, index drift, log ordering, link style). See
+Rule codes: `OKF001`–`OKF007` are errors (OKF frontmatter/reserved-file
+conformance, plus unreadable files); `OKF101`–`OKF110` are lint warnings (dead
+links, missing recommended fields, index drift, log ordering, link style,
+symlinked directories). See
 `src/okf/rules.py` for the full table, and the `validating-the-wiki` skill for
 how to interpret and fix each code.
 

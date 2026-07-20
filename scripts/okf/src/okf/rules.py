@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from okf import indexgen
-from okf.bundle import Bundle, LinkClass, Page, PageKind, classify_link
+from okf.bundle import Bundle, LinkClass, Page, PageKind, classify_link, iter_body_lines
 
 ERROR = "ERROR"
 WARN = "WARN"
@@ -24,15 +24,18 @@ class Finding:
     message: str
 
 
+PageFindings = Iterator[tuple[int, str]]
+BundleFindings = Iterator[tuple[str, int, str]]
+PageCheck = Callable[["Page", "Bundle"], PageFindings]
+BundleCheck = Callable[["Bundle"], BundleFindings]
+
+
 @dataclass(frozen=True)
 class Rule:
     code: str
     severity: str
     scope: str  # "concept", "index", "log", "page", or "bundle"
-    check: Callable
-
-
-PageFindings = Iterator[tuple[int, str]]
+    check: PageCheck | BundleCheck
 
 
 def _no_frontmatter(page: Page, bundle: Bundle) -> PageFindings:
@@ -122,13 +125,9 @@ def _log_order(page: Page, bundle: Bundle) -> PageFindings:
 
 def _log_lines(page: Page) -> Iterator[tuple[int, str | None, str]]:
     """Yield (line number, date heading or None, stripped line) for non-blank log lines."""
-    in_fence = False
-    for lineno, raw in enumerate(page.text.split("\n"), 1):
+    for lineno, raw in iter_body_lines(page.text):
         line = raw.strip()
-        if line.startswith("```"):
-            in_fence = not in_fence
-            continue
-        if in_fence or not line:
+        if not line:
             continue
         heading = line[3:].strip() if line.startswith("## ") else None
         yield lineno, heading, line
@@ -139,6 +138,11 @@ def _parse_date(text: str) -> date | None:
         return date.fromisoformat(text)
     except ValueError:
         return None
+
+
+def _unreadable(page: Page, bundle: Bundle) -> PageFindings:
+    if page.read_error:
+        yield 1, f"file could not be read: {page.read_error}"
 
 
 def _dead_links(page: Page, bundle: Bundle) -> PageFindings:
@@ -208,7 +212,22 @@ def _bad_tags(page: Page, bundle: Bundle) -> PageFindings:
         yield 1, "'tags' must be a list of strings"
 
 
-def _index_drift(bundle: Bundle) -> Iterator[tuple[str, int, str]]:
+def _symlinked_dirs(bundle: Bundle) -> BundleFindings:
+    for path in sorted(bundle.root.rglob("*")):
+        if not path.is_dir() or not path.is_symlink():
+            continue
+        parts = path.relative_to(bundle.root).parts
+        if any(part.startswith(".") for part in parts):
+            continue
+        rel = path.relative_to(bundle.root).as_posix()
+        yield (
+            rel,
+            1,
+            "symlinked directory is ignored by validation and indexing; use a real directory",
+        )
+
+
+def _index_drift(bundle: Bundle) -> BundleFindings:
     for entry in indexgen.drift(bundle):
         if entry.status == "missing":
             yield entry.rel, 1, "index.md is missing; run 'okf index' to generate it"
@@ -223,6 +242,7 @@ RULES = [
     Rule("OKF004", ERROR, "index", _index_frontmatter),
     Rule("OKF005", ERROR, "log", _log_frontmatter),
     Rule("OKF006", ERROR, "log", _log_structure),
+    Rule("OKF007", ERROR, "page", _unreadable),
     Rule("OKF101", WARN, "page", _dead_links),
     Rule("OKF102", WARN, "concept", _missing_title),
     Rule("OKF103", WARN, "concept", _missing_description),
@@ -232,6 +252,7 @@ RULES = [
     Rule("OKF107", WARN, "log", _log_order),
     Rule("OKF108", WARN, "page", _escaping_links),
     Rule("OKF109", WARN, "page", _upward_links),
+    Rule("OKF110", WARN, "bundle", _symlinked_dirs),
 ]
 
 _SCOPE_KINDS = {
@@ -253,6 +274,9 @@ def run_checks(bundle: Bundle) -> list[Finding]:
         kinds = _SCOPE_KINDS[rule.scope]
         for page in bundle.pages:
             if page.kind not in kinds:
+                continue
+            # An unreadable file gets only OKF007, not cascading noise from its empty text.
+            if page.read_error and rule.code != "OKF007":
                 continue
             for line, message in rule.check(page, bundle):
                 findings.append(

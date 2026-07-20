@@ -36,7 +36,8 @@ done.
    `/ansible/docs/rabbitmq.md`).
 4. Rewrite links: doc-to-doc links that now have wiki counterparts become
    bundle-absolute wiki links; links to repo files with no wiki page become
-   plain code-span paths (a markdown link would escape the bundle — OKF108).
+   plain code-span paths (a markdown link gets flagged — OKF108 if it climbs
+   out of the bundle relatively, OKF101 dead link if written bundle-absolute).
 5. Add a `# Citations` section naming the source doc and the main
    roles/playbooks it describes.
 6. Leave the original file unmodified.

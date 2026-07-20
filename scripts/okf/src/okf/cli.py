@@ -65,7 +65,13 @@ def _resolve_bundle_root(path_arg: str | None) -> Path:
     index = root / "index.md"
     if not index.is_file():
         raise UsageError(f"{root} is not an OKF bundle root: no index.md")
-    fm = frontmatter.parse(index.read_text(encoding="utf-8"))
+    try:
+        text = index.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise UsageError(f"cannot read {index}: {exc}") from None
+    fm = frontmatter.parse(text)
+    if fm.present and fm.error:
+        raise UsageError(f"{index} frontmatter: {fm.error}")
     if not fm.present or fm.data is None or "okf_version" not in fm.data:
         raise UsageError(
             f"{root} is not an OKF bundle root: index.md does not declare okf_version"
@@ -139,16 +145,31 @@ def _run_index(bundle: Bundle, args: argparse.Namespace) -> int:
         return 1 if drift else 0
 
     written = []
+    failure = None
     for d in drift:
-        (bundle.root / d.rel).write_text(d.expected, encoding="utf-8")
-        written.append(_display_path(bundle, d.rel))
+        display = _display_path(bundle, d.rel)
+        try:
+            (bundle.root / d.rel).write_text(d.expected, encoding="utf-8")
+        except OSError as exc:
+            failure = f"failed to write {display}: {exc}"
+            break
+        written.append(display)
+        # Report each write as it lands so a later failure can't hide it.
+        if args.format != "json":
+            print(f"wrote {display}")
     if args.format == "json":
-        print(json.dumps({"written": written}))
+        payload: dict = {"written": written}
+        if failure:
+            payload["error"] = failure
+        print(json.dumps(payload))
+    elif failure:
+        print(f"okf index: {failure}", file=sys.stderr)
+        print(
+            f"okf index: wrote {len(written)} of {_count(len(drift), 'index file')} needed"
+        )
     else:
-        for path in written:
-            print(f"wrote {path}")
         print(f"okf index: {_count(len(written), 'index file')} written")
-    return 0
+    return 1 if failure else 0
 
 
 def _display_path(bundle: Bundle, rel: str) -> str:

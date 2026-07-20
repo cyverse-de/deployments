@@ -58,6 +58,7 @@ Findings print as `file:line: SEVERITY CODE message`, sorted by file.
 | OKF004 | ERROR | Frontmatter in a subdirectory `index.md`, or root `okf_version` malformed — remove it / quote the version (`"0.1"`). |
 | OKF005 | ERROR | Frontmatter in `log.md` — remove it. |
 | OKF006 | ERROR | `log.md` structure invalid — one `# ` title, then `## YYYY-MM-DD` groups only. |
+| OKF007 | ERROR | File can't be read (permissions or not UTF-8) — fix the file; its other checks are skipped. |
 | OKF101 | WARN | Dead internal link — fix the path, or accept it as intentionally unwritten knowledge. |
 | OKF102/103 | WARN | Missing `title`/`description` — add them; indexes are built from them. |
 | OKF104 | WARN | `timestamp` missing or not ISO 8601. |
@@ -66,6 +67,7 @@ Findings print as `file:line: SEVERITY CODE message`, sorted by file.
 | OKF107 | WARN | `log.md` date groups not newest-first — reorder. |
 | OKF108 | WARN | Link escapes the bundle — use a plain code-span path or `resource` instead. |
 | OKF109 | WARN | Upward-relative link (`../x.md`) — use the bundle-absolute form it suggests. |
+| OKF110 | WARN | Symlinked directory — its contents are invisible to validation and indexing; use a real directory. |
 
 ## Common Mistakes
 

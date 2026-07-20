@@ -43,6 +43,7 @@ class Page:
     text: str
     fm: frontmatter.Frontmatter
     links: list[Link]
+    read_error: str | None = None
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,20 @@ def load_bundle(root: Path) -> Bundle:
         if any(part.startswith(".") for part in parts):
             continue
         rel = path.relative_to(root).as_posix()
-        text = path.read_text(encoding="utf-8")
+        try:
+            text = path.read_text(encoding="utf-8-sig")
+        except (OSError, UnicodeDecodeError) as exc:
+            pages.append(
+                Page(
+                    rel=rel,
+                    kind=_classify(rel),
+                    text="",
+                    fm=frontmatter.Frontmatter(present=False),
+                    links=[],
+                    read_error=str(exc),
+                )
+            )
+            continue
         fm = frontmatter.parse(text)
         pages.append(
             Page(
@@ -86,18 +100,40 @@ def _classify(rel: str) -> PageKind:
     return PageKind.CONCEPT
 
 
+def iter_body_lines(text: str, body_start: int = 1):
+    """Yield (line number, line) outside fenced code blocks, starting at body_start.
+
+    Lines before body_start (frontmatter) never feed the fence state. A fence
+    closes only on a bare backtick line at least as long as its opener, so a
+    3-backtick fence inside a 4-backtick fence stays fenced. Lines after an
+    unclosed fence are treated as fenced, matching how renderers display them.
+    """
+    fence_len = 0
+    for lineno, line in enumerate(text.split("\n"), 1):
+        if lineno < body_start:
+            continue
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            ticks = len(stripped) - len(stripped.lstrip("`"))
+            if fence_len == 0:
+                fence_len = ticks
+            elif ticks >= fence_len and not stripped.strip("`"):
+                fence_len = 0
+            continue
+        if fence_len == 0:
+            yield lineno, line
+
+
 def _links(text: str, body_start: int) -> list[Link]:
     """Extract inline markdown link targets with line numbers, skipping fenced code."""
     links = []
-    in_fence = False
-    for lineno, line in enumerate(text.split("\n"), 1):
-        if line.lstrip().startswith("```"):
-            in_fence = not in_fence
-            continue
-        if in_fence or lineno < body_start:
-            continue
+    for lineno, line in iter_body_lines(text, body_start):
         for match in _LINK_RE.finditer(line):
-            links.append(Link(line=lineno, target=match.group(1)))
+            target = match.group(1)
+            # CommonMark angle-bracket destinations: <path.md>
+            if target.startswith("<") and target.endswith(">"):
+                target = target[1:-1]
+            links.append(Link(line=lineno, target=target))
     return links
 
 
