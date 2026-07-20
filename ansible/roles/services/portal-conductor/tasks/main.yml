@@ -14,7 +14,7 @@
             name: portal-conductor-configs
             namespace: "{{ ns }}"
           data:
-            portal-conductor.json: "{{ lookup('template', 'portal-conductor.json.j2') | b64encode }}"
+            portal-conductor.json: "{{ lookup('template', 'portal-conductor.json.j2') | to_json(ensure_ascii=False) | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:
