@@ -2,7 +2,7 @@
 type: Service
 title: RabbitMQ
 description: How RabbitMQ is installed and configured for the DE services by the rabbitmq.yml and rabbitmq_configure.yml playbooks.
-resource: /ansible/docs/rabbitmq.md
+resource: /docs/rabbitmq.md
 tags: [rabbitmq, amqp, messaging]
 timestamp: 2026-07-20T00:00:00Z
 ---
@@ -34,5 +34,5 @@ Both playbooks depend on the `amqp.admin_user` and `amqp.admin_password` variabl
 
 # Citations
 
-[1] `ansible/docs/rabbitmq.md` — source document for this page.
+[1] `docs/rabbitmq.md` — source document for this page.
 [2] `ansible/rabbitmq.yml`, `ansible/rabbitmq_configure.yml` — the playbooks described here.

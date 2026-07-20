@@ -2,7 +2,7 @@
 type: Service
 title: HAProxy
 description: The two HAProxy deployments in a DE install — the baseline de_proxy node and the ui_haproxy configuration fronting the DE UI — plus the Kubernetes API load balancer.
-resource: /ansible/docs/haproxy.md
+resource: /docs/haproxy.md
 tags: [haproxy, proxy, load-balancer, kubernetes.yml]
 timestamp: 2026-07-20T00:00:00Z
 ---
@@ -44,5 +44,5 @@ components are enabled, it also uses `portal_hostname`, `harbor_fqdn`, and `gocd
 
 # Citations
 
-[1] `ansible/docs/haproxy.md` — source document for this page.
+[1] `docs/haproxy.md` — source document for this page.
 [2] `ansible/roles/haproxy/`, `ansible/roles/ui_haproxy/`, `ansible/roles/k8s_haproxy/` — the roles described here.

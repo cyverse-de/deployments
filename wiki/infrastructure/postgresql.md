@@ -1,8 +1,8 @@
 ---
 type: Service
 title: PostgreSQL
-description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml.
-resource: /ansible/docs/postgresql.md
+description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
+resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
 timestamp: 2026-07-20T00:00:00Z
 ---
@@ -54,7 +54,7 @@ created. The Grouper, QMS, Harbor, Keycloak, and User Portal databases
 are each created only when their feature toggle is enabled.
 
 This pass needs the `migrate` command (golang-migrate) on the control host's
-`PATH`. See `ansible/docs/index.md` for tool requirements.
+`PATH`. See `docs/index.md` for tool requirements.
 
 ```bash
 ansible-playbook -i /path/to/inventory --tags=setup-databases kubernetes.yml
@@ -102,8 +102,73 @@ owners, and migration repository refs.
 production database contents; it is not part of the standard deployment flow
 described above.
 
+## Day-to-day database operations
+
+PostgreSQL runs on the `dbms` inventory host, not as a Kubernetes service, and is
+typically reachable directly from operator workstations (or via VPN). Connect with
+`psql -h <dbms-host> -U de -d <database>`, authenticating with
+`dbms_connection_pass` from the inventory. The databases are:
+
+| Database        | Purpose                                                    |
+| --------        | -------                                                    |
+| `de`            | Main DE database: analyses, apps, tools, users, subscriptions |
+| `notifications` | Notification records                                       |
+| `metadata`      | Metadata templates and AVUs                                |
+| `qms`           | Quota/subscription management (if QMS enabled)             |
+| `keycloak`      | Keycloak user and realm data                               |
+
+### Backups
+
+For a one-off backup of a single database, use a compressed custom-format dump:
+
+```bash
+pg_dump -h $DBMS_HOST -U de -d de -Fc -f de-backup-$(date +%Y%m%d).dump
+```
+
+Restore with `pg_restore -h $DBMS_HOST -U de -d de <dump-file>`. Restoring over a
+live database replaces all data — only do this in a recovery scenario after
+stopping the DE services.
+
+### Running migrations manually
+
+If the `setup-databases` pass fails partway through, migrations can be applied
+directly with the `migrate` tool against the appropriate database. The migration
+repositories are `cyverse-de/de-database` (for `de`), `cyverse-de/notifications-db`,
+and `cyverse-de/metadata-db`:
+
+```bash
+git clone https://github.com/cyverse-de/de-database /tmp/de-database
+migrate \
+  -database "postgresql://de:$DBMS_PASS@$DBMS_HOST:5432/de?sslmode=disable" \
+  -path /tmp/de-database/migrations \
+  up
+```
+
+Substitute `version` for `up` to check the current migration version.
+
+### Diagnostic queries
+
+Useful queries against `pg_stat_activity` and the catalog tables (full SQL in
+`docs/postgresql.md`):
+
+* connection counts grouped by `state` and `application_name` — checks for
+  connection pool exhaustion,
+* queries running longer than 5 minutes — finds locks and runaway queries,
+* `pg_database_size` / `pg_total_relation_size` — database and table sizes.
+
+For job/analysis-specific queries (stuck analyses, per-user lookups, status
+counts), see [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md).
+
+### Rotating the database password
+
+1. Update `dbms_connection_pass` in the private inventory.
+2. `ALTER ROLE de WITH PASSWORD '<new-password>';` in PostgreSQL.
+3. Push new service configs and restart services:
+   `ansible-playbook -i /path/to/inventory --tags=configure-services kubernetes.yml`
+   followed by `kubectl -n $NS rollout restart deployment --all`.
+
 # Citations
 
-[1] `ansible/docs/postgresql.md` — source document for this page.
+[1] `docs/postgresql.md` — source document for this page, including the full diagnostic SQL.
 [2] `ansible/roles/postgresql/`, `ansible/roles/postgresql_access/`, `ansible/roles/postgresql_init/` — roles run by the two passes.
 [3] `ansible/example/inventory/group_vars/all.yaml` — annotated reference of overridable variables.

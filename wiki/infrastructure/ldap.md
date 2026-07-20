@@ -2,7 +2,7 @@
 type: Service
 title: OpenLDAP
 description: How OpenLDAP is installed for the DE by the ldap_slapd.yml playbook, and the base entities, groups, and service accounts it defines.
-resource: /ansible/docs/ldap.md
+resource: /docs/ldap.md
 tags: [ldap, openldap, authentication]
 timestamp: 2026-07-20T00:00:00Z
 ---
@@ -73,5 +73,5 @@ $ ansible-playbook -i /path/to/inventory -K ldap_slapd.yml
 
 # Citations
 
-[1] `ansible/docs/ldap.md` — source document for this page.
+[1] `docs/ldap.md` — source document for this page.
 [2] `ansible/ldap_slapd.yml` — the playbook described here.

@@ -2,7 +2,7 @@
 type: Service
 title: NATS
 description: How NATS is installed via its Helm chart by the nats role, and how to download its TLS certs and creds from cluster secrets.
-resource: /ansible/docs/nats.md
+resource: /docs/nats.md
 tags: [nats, messaging, tls, kubernetes.yml]
 timestamp: 2026-07-20T00:00:00Z
 ---
@@ -22,6 +22,8 @@ ansible-playbook -i /path/to/inventory --tags nats kubernetes.yml
 The best way to get an accurate version of the services.creds and TLS files is to grab them directly from the secrets and ConfigMaps used by the services. The `nats-box` pod does not keep those files around across restarts, so you may get invalid files or be fooled into thinking that the cluster hasn't been initialized if that pod has restarted at some point.
 
 In most cases, the client and server certificate authorities will be the same, but we're showing how to download them both for completeness.
+
+These certificates are cert-manager-managed and self-signed; if they expire, see [Certificate Management](/playbooks/certificate-management.md) for renewal and the list of NATS-connected services to restart.
 
 Make sure that your KUBECONFIG environment variable is set to the correct kubeconfig file. Replace the namespace as needed in each case.
 
@@ -77,5 +79,5 @@ kubectl -n qa get secrets nats-server-tls -o json | jq -r '.data["tls.key"]' | b
 
 # Citations
 
-[1] `ansible/docs/nats.md` — source document for this page.
+[1] `docs/nats.md` — source document for this page.
 [2] `ansible/roles/nats/` — role that installs NATS via its Helm chart.
