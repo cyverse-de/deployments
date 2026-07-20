@@ -57,7 +57,7 @@
                       - name: EXIM_PASSWORD
                         value: "{{ exim_password }}"
                       - name: EXIM_ALLOWED_SENDERS
-                        value: "{{ exim_allowed_senders }}"
+                        value: "{{ k8s_pods_cidr }}:{{ k8s_services_cidr }}:{{ exim_allowed_senders }}"
                     ports:
                       - name: listen-port
                         containerPort: 25

@@ -1,9 +1,9 @@
 ---
-- name: build the unleash image
+- name: build the openldap image
   ansible.builtin.include_role:
     name: build-service
     tasks_from: main
   vars:
-    project_name: unleash
+    project_name: openldap-docker
   tags:
     - build

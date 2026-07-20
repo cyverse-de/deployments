@@ -155,6 +155,19 @@
         dir: /etc/nats/tls/ca/
         ca: ca.crt
 
+      {% if nats_pod_anti_affinity %}
+      podTemplate:
+        merge:
+          spec:
+            affinity:
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector:
+                      matchLabels:
+                        app.kubernetes.io/name: nats
+                    topologyKey: kubernetes.io/hostname
+      {% endif %}
+
       service:
         enabled: true
         ports:
@@ -172,7 +185,7 @@
           enabled: true
           noAdvertise: true
           port: 6222
-          replicas: 4
+          replicas: {{ nats_replicas }}
           routeURLs:
             useFQDN: false
             k8sClusterDomain: cluster.local

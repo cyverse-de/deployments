@@ -55,6 +55,8 @@
       tags: metadata
     - role: services/notifications
       tags: notifications
+    - role: services/openldap-docker
+      tags: openldap-docker
     - role: services/permissions
       tags: permissions
     - role: services/qms

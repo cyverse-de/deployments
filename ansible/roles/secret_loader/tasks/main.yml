@@ -13,21 +13,6 @@
     - name: Debug repo and secrets directories
       ansible.builtin.debug:
         msg: "repo dir: '{{ repo_dir }}', secrets_dir: '{{ secrets_dir }}'"
-    - name: Create secret ui-nginx-tls secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: ui-nginx-tls
-            namespace: "{{ ns }}"
-          type: kubernetes.io/tls
-          data:
-            tls.crt: "{{ lookup('file', secrets_dir + secrets_loader_ui_tls_cert_filepath) | b64encode }}"
-            tls.key: "{{ lookup('file', secrets_dir + secrets_loader_ui_tls_key_filepath) | b64encode }}"
-      when: secrets_loader_load_ui_secret
-
     - name: Generate gpg data
       ansible.builtin.set_fact:
         gpg_data: "{{ gpg_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item) | b64encode}) }}"
@@ -45,24 +30,6 @@
             namespace: "{{ ns }}"
           data: "{{ gpg_data }}"
       when: secrets_loader_load_gpg_secret
-
-    - name: Generate pgpass data
-      ansible.builtin.set_fact:
-        pgpass_data: "{{ pgpass_data | default({}) | combine({item | basename: lookup('file', secrets_dir + item) | b64encode}) }}"
-      with_items: "{{ secrets_loader_pgpass_filepaths }}"
-      when: secrets_loader_load_pgpass_secret
-
-    - name: Load pgpass secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: "{{ secrets_loader_pgpass_secret }}"
-            namespace: "{{ ns }}"
-          data: "{{ pgpass_data }}"
-      when: secrets_loader_load_pgpass_secret
 
     - name: Generate signing keys data
       ansible.builtin.set_fact:
@@ -117,20 +84,3 @@
             namespace: "{{ ns }}"
           data: "{{ ssl_data }}"
       when: secrets_loader_load_ssl_secret
-
-    - name: Load unleash secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: unleash-secret
-            namespace: "{{ ns }}"
-          type: Opaque
-          stringData:
-            database_host: "{{ groups['dbms'][0] }}"
-            database_ssl: "{{ unleash_db_ssl_enabled }}"
-            database_name: "{{ unleash_db_name }}"
-            database_username: "{{ unleash_db_user }}"
-            database_password: "{{ unleash_db_password }}"

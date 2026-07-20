@@ -245,7 +245,7 @@
 # instance set up in Phase 1 or against a pre-existing PostgreSQL
 # instance.
 #
-# The Grouper, QMS, Unleash, Harbor, Keycloak, and User Portal sections
+# The Grouper, QMS, Harbor, Keycloak, and User Portal sections
 # only take effect when their feature toggle is enabled.
 #
 # Every variable below has a default in `roles/common/defaults/main.yml`.
@@ -408,19 +408,6 @@
 # qms_version: main
 
 
-# ---------------------------------------------------------------------
-# Unleash database
-# ---------------------------------------------------------------------
-# Created only when `unleash` is true. Owned by `dbms_connection_user`.
-
-# Whether to create the Unleash database.
-# Default: true
-# unleash: true
-
-# Name of the Unleash database.
-# Default: unleash
-# unleash_db_name: unleash
-
 
 # ---------------------------------------------------------------------
 # Harbor databases
@@ -513,6 +500,66 @@
 # Git ref of the GRID institutions CSV repo.
 # Default: main
 # grid_csv_version: main
+
+
+# ---------------------------------------------------------------------
+# User Portal bootstrap admin (bootstrap_portal_admin.yml)
+# ---------------------------------------------------------------------
+# Optional, on-demand. Creates a login-capable portal admin without
+# going through self-registration: an LDAP identity (so Keycloak can
+# authenticate the user), an account_user row with is_staff=true, an iRODS
+# account plus home collection (provisioned through portal-conductor so
+# data-store operations work), and a DE users row plus workspace (registered
+# through terrain). DE admin is granted by adding the user to the first group
+# in admin_groups.
+# Run it directly:
+#   ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> \
+#     bootstrap_portal_admin.yml
+# The LDAP half targets the in-cluster OpenLDAP and binds as cn=Manager,
+# so ldap_root_pw must be the real Manager password, and it needs
+# python-ldap on the control host. The iRODS half calls the in-cluster
+# portal-conductor over its self-signed SSL port using
+# portal_conductor_auth_username/password. The DE half port-forwards the
+# in-cluster terrain service and authenticates as the bootstrap user itself.
+# Leave portal_bootstrap_user empty (the default) to skip.
+
+# Username of the bootstrap admin; must match the Keycloak/LDAP uid.
+# Empty disables the playbook.
+# Default: ""
+# portal_bootstrap_user: portal-admin
+
+# Password for the bootstrap admin's account, reused across LDAP login and
+# the iRODS/data-store account.
+# Default: ""
+# portal_bootstrap_password: replace_me
+
+# Email address for the bootstrap admin; also its primary portal email.
+# Default: ""
+# portal_bootstrap_email: admin@example.org
+
+# Given and family name on the account_user profile.
+# Defaults: "Portal" / "Admin"
+# portal_bootstrap_first_name: Portal
+# portal_bootstrap_last_name: Admin
+
+# Institution and department on the account_user profile.
+# Defaults: "CyVerse" / "N/A"
+# portal_bootstrap_institution: CyVerse
+# portal_bootstrap_department: N/A
+
+# Whether the bootstrap admin is a portal superuser (is_superuser).
+# Default: true
+# portal_bootstrap_superuser: true
+
+# posixAccount uidNumber for the LDAP entry; must not collide with
+# existing accounts (40000/40001 are the seeded service accounts).
+# Default: 40002
+# portal_bootstrap_uid_number: 40002
+
+# Local port used to port-forward to the in-cluster OpenLDAP service
+# while creating the entry; any free local port works.
+# Default: 3389
+# ldap_local_port: 3389
 
 
 # =====================================================================
@@ -1213,6 +1260,16 @@
 # Default: dc=example,dc=org
 # ldap_dn_suffix: dc=example,dc=org
 
+# Number of OpenLDAP replicas. The mdb data volume is per-replica and
+# not replicated, so leave this at 1 unless replication is configured.
+# Default: 1
+# openldap_replicas: 1
+
+# Whether to require the OpenLDAP pods to be scheduled on different
+# nodes. Only relevant with more than one replica.
+# Default: false
+# openldap_pod_anti_affinity: false
+
 
 # ---------------------------------------------------------------------
 # Seed credentials
@@ -1226,7 +1283,9 @@
 # Default: "{SSHA}replace_me_with_a_real_hash"
 # ldap_rootpw_hash: "{SSHA}..."
 
-# Plaintext root password — documentation only, not consumed.
+# Plaintext root/Manager password. Not consumed by the seed (which uses
+# the hash above), but bootstrap_portal_admin.yml binds as cn=Manager
+# with it — set it to the real password if you use that playbook.
 # Default: replace_me
 # ldap_root_pw: replace_me
 
@@ -1278,6 +1337,14 @@
 # Defaults: kcadmin / notreal
 # keycloak_admin_username: kcadmin
 # keycloak_admin_password: replace_me
+# Email set on the realm admin account by the keycloak_install role.
+# Default: kcadmin@example.org
+# keycloak_admin_email: kcadmin@example.org
+
+# Admin-API service-account client terrain uses to manage users in the realm.
+# Defaults: de-admin-api-qa / replace_me
+# keycloak_admin_client_id: de-admin-api-qa
+# keycloak_admin_client_secret: replace_me
 
 # Keycloak service-account client for the formation service.
 # Default: replace_me
@@ -1292,15 +1359,25 @@
 # data-search services (dewey, infosquito2) use. Search is enabled by
 # default (`es_enabled: true`); set `es_enabled: false` instead if the
 # deployment will not run OpenSearch.
+#
+# By default the `opensearch` role deploys a single-node OpenSearch in-cluster
+# and `es_base_uri` points at its Service. Override the value below to use an
+# external instance instead (and set `opensearch_enabled: false` to skip the
+# in-cluster deploy).
 
 # Base URI of the OpenSearch instance.
-# Default: http://replace_me
+# Default: http://opensearch.<ns>.svc.cluster.local:9200 (in-cluster)
 # es_base_uri: https://opensearch.example.org:9200
 
 # OpenSearch credentials.
 # Default: replace_me
 # es_username: de-user
 # es_password: replace_me
+
+# Index the data-search services (dewey, infosquito2, search, terrain) read
+# and write. infosquito2/dewey create it on first index.
+# Default: replace_me
+# es_index: data
 
 
 # =====================================================================
@@ -1319,6 +1396,14 @@
 # Password for the PGP key used by the data-store services.
 # Default: replace_me
 # pgp_key_password: replace_me
+
+# Password for terrain's JWT signing key.
+# Default: replace_me
+# jwt_signing_key_password: replace_me
+
+# Base URL of the Local Contexts Hub API sonora links against.
+# Default: https://sandbox.localcontextshub.org/api/v1/
+# de_services_local_contexts_base: https://sandbox.localcontextshub.org/api/v1/
 
 # URL users are sent to for subscription checkout, and whether
 # subscription limits are enforced.
@@ -1351,6 +1436,16 @@
 # irods_amqp_password: replace_me
 # irods_amqp_host: amqp.example.org
 # irods_amqp_vhost: /qa/data-store
+
+# Admin account used to provision the RabbitMQ broker itself, consumed by
+# rabbitmq.yml (install + configure) and rabbitmq_configure.yml (configure
+# only). Both playbooks run against the `amqp-brokers` inventory group (see
+# the 06_amqp host file) and create the DE and iRODS vhosts and users from
+# the de_amqp_*/irods_amqp_* settings above. A broker left unprovisioned
+# refuses service logins with ACCESS_REFUSED.
+# Default: replace_me
+# amqp_admin_user: admin
+# amqp_admin_password: replace_me
 
 
 # =====================================================================
@@ -1429,15 +1524,30 @@
 # portal_keycloak_client: portal
 # portal_keycloak_secret: replace_me
 
+# LDAP bind DN the portal creates user entries as. Must be the rootdn, so its
+# password (portal_ldap_password) has to match ldap_root_pw.
+# Default: "{{ ldap_cn }},{{ ldap_base_dn }}"
+# portal_ldap_admin: "{{ ldap_cn }},{{ ldap_base_dn }}"
+
 # LDAP bind password and the everyone-group users are added to.
 # Default: replace_me
 # portal_ldap_password: replace_me
 # portal_ldap_everyone_group: everyone
 
-# Terrain account the portal calls the DE with.
-# Default: replace_me
+# Terrain account the portal calls the DE with, and the terrain base URL.
+# Defaults: replace_me / https://{{ de_hostname }}/terrain/
 # portal_terrain_user: replace_me
 # portal_terrain_password: replace_me
+# portal_terrain_url: "https://{{ de_hostname }}/terrain/"
+
+# Formation service base URL portal-conductor calls.
+# Default: https://{{ de_hostname }}/formation
+# formation_api_url: "https://{{ de_hostname }}/formation"
+
+# Outbound SMTP relay for portal2/portal-conductor mail.
+# Defaults: local-exim / "25"
+# portal_smtp_host: local-exim
+# portal_smtp_port: "25"
 
 # Optional integrations; empty string disables each.
 # Default: replace_me
@@ -1494,6 +1604,36 @@
 # vice_operator_keycloak_client_secret: replace_me
 # vice_operator_swagger_client_secret: replace_me
 # vice_api_keycloak_client_secret: replace_me
+
+
+# =====================================================================
+# Secrets loader
+# =====================================================================
+# Files the `secret_loader` role reads from the private inventory's secrets/
+# directory and loads into cluster Secrets. Each is a list of paths relative to
+# that directory; the defaults are empty, so a deployment that ships these keys
+# must list them here.
+
+# GPG keyrings to load (e.g. secring.gpg).
+# Default: []
+# secrets_loader_gpg_filepaths:
+#   - secring.gpg
+
+# JWT signing keypair to load.
+# Default: []
+# secrets_loader_signing_keys_filepaths:
+#   - signing_key/private-key.pem
+#   - signing_key/public-key.pem
+
+# Accepted public keys to load.
+# Default: []
+# secrets_loader_accepted_keys_filepaths:
+#   - accepted_keys/terrain.pem
+
+# Whether to load the ssl-files Secret. Set false when nothing mounts ssl-files
+# (as in the sw-cacti deployment).
+# Default: true
+# secrets_loader_load_ssl_secret: true
 
 
 # =====================================================================
@@ -1587,6 +1727,9 @@
 # group_propagator_replicas: 2
 # group_propagator_pod_anti_affinity: true
 
+# grouper-ws
+# grouper_ws_replicas: 2
+
 # info-typer
 # info_typer_replicas: 2
 
@@ -1622,6 +1765,10 @@
 # metadata
 # metadata_replicas: 2
 # metadata_pod_anti_affinity: true
+
+# nats (StatefulSet size; also the NATS cluster route count)
+# nats_replicas: 4
+# nats_pod_anti_affinity: true
 
 # notifications
 # notifications_replicas: 2
@@ -1674,10 +1821,6 @@
 # timelord
 # timelord_replicas: 2
 # timelord_pod_anti_affinity: true
-
-# unleash
-# unleash_replicas: 2
-# unleash_pod_anti_affinity: true
 
 # user-info
 # user_info_replicas: 2

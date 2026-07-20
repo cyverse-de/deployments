@@ -173,7 +173,7 @@
                       - name: KC_DB_URL_HOST
                         value: "{{ groups['dbms'][0] }}"
                       - name: KC_DB_URL_PORT
-                        value: "{{ keycloak_db_port }}"
+                        value: "{{ keycloak_db_port | string }}"
                       - name: KC_DB_USERNAME
                         valueFrom:
                           secretKeyRef:

@@ -3,8 +3,12 @@
   become: true
   roles:
     - role: rabbitmq-configure
-      admin_user: "{{ amqp.admin_user }}"
-      admin_password: "{{ amqp.admin_password }}"
+      admin_user: "{{ amqp_admin_user }}"
+      admin_password: "{{ amqp_admin_password }}"
       vhosts:
-        - "{{ amqp.de }}"
-        - "{{ amqp.irods }}"
+        - vhost: "{{ de_amqp_vhost }}"
+          user: "{{ de_amqp_user }}"
+          password: "{{ de_amqp_password }}"
+        - vhost: "{{ irods_amqp_vhost }}"
+          user: "{{ irods_amqp_user }}"
+          password: "{{ irods_amqp_password }}"

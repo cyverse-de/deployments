@@ -1,0 +1,25 @@
+---
+# Single-node OpenSearch backing the DE data-search pipeline (dewey,
+# infosquito2, search, terrain). Deployed in-cluster so the DE is
+# self-contained; set opensearch_enabled: false to rely on an external
+# instance instead (point es_base_uri at it).
+opensearch_enabled: true
+
+opensearch_image: opensearchproject/opensearch
+opensearch_version: "2.19.1"
+opensearch_replicas: 1
+opensearch_cluster_name: de-opensearch
+
+# JVM heap. Keep it at roughly half of opensearch_mem_limit so the rest is
+# available for the OS page cache and off-heap Lucene structures.
+opensearch_heap_size: 1g
+
+opensearch_storage_size: 20Gi
+opensearch_storage_class: longhorn
+
+opensearch_cpu_request: "500m"
+opensearch_cpu_limit: "2"
+opensearch_mem_request: "2Gi"
+opensearch_mem_limit: "4Gi"
+opensearch_ephemeral_request: "256Mi"
+opensearch_ephemeral_limit: "512Mi"

@@ -23,12 +23,6 @@
   tags:
     - update-databases
 
-- name: Setup and migrate unleash database
-  when: unleash
-  ansible.builtin.include_tasks: unleash.yml
-  tags:
-    - update-databases
-
 - name: Setup and migrate harbor databases
   when: harbor
   ansible.builtin.include_tasks: harbor.yml
