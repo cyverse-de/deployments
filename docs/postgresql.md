@@ -43,7 +43,7 @@ inventory group. It runs the `postgresql_init` role, which:
 * checks out the migration repositories and applies them with the `migrate` tool.
 
 The Discovery Environment databases (`de`, `notifications`, `metadata`) are always
-created. The Grouper, QMS, Unleash, Harbor, Keycloak, and User Portal databases
+created. The Grouper, QMS, Harbor, Keycloak, and User Portal databases
 are each created only when their feature toggle is enabled.
 
 This pass needs the `migrate` command (golang-migrate) on the control host's

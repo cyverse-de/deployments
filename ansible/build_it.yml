@@ -195,6 +195,12 @@
           tags: notifications
       tags: notifications
     - ansible.builtin.include_role:
+        name: services/openldap-docker
+        tasks_from: build
+        apply:
+          tags: openldap-docker
+      tags: openldap-docker
+    - ansible.builtin.include_role:
         name: services/permissions
         tasks_from: build
         apply:

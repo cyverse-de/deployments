@@ -1,0 +1,20 @@
+---
+- name: Deploy single-node OpenSearch
+  delegate_to: localhost
+  run_once: true
+  when: opensearch_enabled | bool
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: Create the installation namespace
+      kubernetes.core.k8s:
+        name: "{{ ns }}"
+        state: present
+        kind: Namespace
+        api_version: v1
+
+    - name: Apply the OpenSearch StatefulSet and Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ns }}"
+        template: k8s/opensearch.yml.j2

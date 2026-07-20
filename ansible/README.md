@@ -34,7 +34,6 @@ ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
 | metadata                  | `dbms_connection_user`  | always          | yes        |
 | grouper                   | `grouper_connection_user` | `grouper` var | no — Grouper initializes its own schema |
 | qms                       | `dbms_connection_user`  | `qms` var       | yes        |
-| unleash                   | `dbms_connection_user`  | `unleash` var   | no — Unleash initializes its own schema |
 | keycloak                  | `keycloak_db_username`  | `keycloak` var  | no — Keycloak manages its own schema |
 | harbor_core, harbor_clair | `harbor_database_user`  | `harbor` var    | no         |
 | portal                    | `portal_db_user`        | `portal` var    | yes        |

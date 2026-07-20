@@ -1,21 +1,21 @@
 apiVersion: skaffold/v3
 kind: Config
 metadata:
-  name: unleash
+  name: openldap
 build:
   artifacts:
-    - image: harbor.cyverse.org/de/unleash
+    - image: harbor.cyverse.org/de/openldap
       custom:
         buildCommand: ./buildx-build.sh
         dependencies:
           paths: ["**"]
+  platforms:
+    - "linux/amd64"
   tagPolicy:
     gitCommit: {}
   local: {}
-  platforms:
-    - "linux/amd64"
 manifests:
   rawYaml:
-    - k8s/unleash.yml
+    - k8s/openldap-docker.yml
 deploy:
   kubectl: {}

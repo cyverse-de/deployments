@@ -145,8 +145,12 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
-    - role: openldap-docker
+    - role: services/openldap-docker
       tags: openldap-docker
+
+    - role: keycloak_install
+      tags: keycloak
+      when: "'keycloak' in ansible_run_tags"
 
     - role: service_configurations
       tags: configure-services
@@ -166,6 +170,9 @@
 
     - role: nats
       tags: nats
+
+    - role: opensearch
+      tags: opensearch
 
     - role: kubernetes_node_feature_discovery
       tags: feature-discovery
@@ -304,10 +311,6 @@
   roles:
     - role: cronjobs
       tags: cronjobs
-
-    - role: keycloak_install
-      tags: keycloak
-      when: "'keycloak' in ansible_run_tags"
 
     - role: jaeger
       tags: jaeger

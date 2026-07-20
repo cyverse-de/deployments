@@ -1,0 +1,9 @@
+---
+- name: Deploy single-node OpenSearch
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: opensearch
+      tags: opensearch
