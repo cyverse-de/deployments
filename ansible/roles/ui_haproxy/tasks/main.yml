@@ -34,8 +34,25 @@
     port: "{{ item }}"
   notify: Reload firewalld
   with_items:
-    - "80/tcp" # join api port
-    - "443/tcp" # konnectivity server
+    - "80/tcp"
+    - "443/tcp"
+  when: active_firewall == "firewalld"
+
+# Cluster nodes fall into the internal zone (ipset source match), and pod
+# traffic hairpinning to the ingress is SNAT'd to the node IP, so in-cluster
+# clients (e.g. vice-proxy calling Keycloak) need these ports there too.
+- name: Open the HTTP/S port in the internal zone
+  become: true
+  ansible.posix.firewalld:
+    permanent: true
+    immediate: true
+    zone: internal
+    state: enabled
+    port: "{{ item }}"
+  notify: Reload firewalld
+  with_items:
+    - "80/tcp"
+    - "443/tcp"
   when: active_firewall == "firewalld"
 
 - name: Set repo_dir fact
