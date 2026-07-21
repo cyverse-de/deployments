@@ -1,18 +1,24 @@
-[tool.poetry]
+[project]
 name = "appei"
-version = "0.1.0"
-description = "Import and exports app information for the DE"
-authors = ["John Wregglesworth <wregglej@cyverse.org>"]
-license = "BSD"
+version = "0.2.0"
+description = "Export and import DE app and tool definitions via the Terrain API"
 readme = "README.md"
+authors = [
+    { name = "John Wregglesworth", email = "wregglej@arizona.edu" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "deepmerge>=1.1",
+    "requests>=2.31",
+    "tabulate>=0.9",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-requests = "^2.31.0"
-tabulate = "^0.9.0"
-deepmerge = "^1.1.1"
+[project.scripts]
+appei = "appei.cli:main"
 
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.5"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"

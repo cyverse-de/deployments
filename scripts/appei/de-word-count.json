@@ -1,0 +1,234 @@
+{
+  "app_type": "DE",
+  "beta": false,
+  "can_favor": true,
+  "can_rate": true,
+  "can_run": true,
+  "categories": [
+    {
+      "id": "5401bd14-6c14-4470-aedd-57b47ea1b979",
+      "name": "Beta"
+    }
+  ],
+  "deleted": false,
+  "description": "Counts the number of words in a file",
+  "disabled": false,
+  "documentation": {
+    "app_id": "67d15627-22c5-42bd-8daf-9af5deecceab",
+    "created_by": "sarahr@iplantcollaborative.org",
+    "created_on": "2025-07-23T22:49:26.000Z",
+    "documentation": "### DE Word Count\n> #### Description and Quick Start\n>> To use Word Count, upload your data in plain text format.\n>> Resources: http://www.gnu.org/software/coreutils/manual/coreutils.html#wc-invocation\n> #### Test Data\n>> Community Data > iplantcollaborative > example_data > wordcount\n> #### Input File(s)\n>> Use SampleText.txt  as test data.\n> #### Parameters Used in App\n>> no parameters to selecgt\n> #### Output File(s)\n>> Look under the logs folder. Results are stored in condor-stdout-0.",
+    "modified_by": "sarahr@iplantcollaborative.org",
+    "modified_on": "2025-07-23T22:49:26.000Z",
+    "references": [],
+    "version_id": "48c522c2-6817-11f0-b765-008cfa5ae621"
+  },
+  "edited_date": "2025-07-23T22:49:26.000Z",
+  "groups": [
+    {
+      "id": "48c60106-6817-11f0-b765-008cfa5ae621",
+      "label": "Parameters",
+      "name": "",
+      "parameters": [
+        {
+          "arguments": [],
+          "description": "The file to count words in.",
+          "id": "48c5d28a-6817-11f0-b765-008cfa5ae621_48c6417a-6817-11f0-b765-008cfa5ae621",
+          "isVisible": true,
+          "label": "Input Filename",
+          "name": "",
+          "required": true,
+          "type": "FileInput",
+          "validators": []
+        },
+        {
+          "arguments": [],
+          "defaultValue": "wc.out",
+          "description": "The name of the output file.",
+          "id": "48c5d28a-6817-11f0-b765-008cfa5ae621_48c6fbb0-6817-11f0-b765-008cfa5ae621",
+          "isVisible": true,
+          "label": "Output File",
+          "name": "",
+          "required": true,
+          "type": "FileOutput",
+          "validators": []
+        },
+        {
+          "arguments": [
+            {
+              "display": "All",
+              "id": "48c7e034-6817-11f0-b765-008cfa5ae621",
+              "isDefault": true,
+              "name": "",
+              "value": ""
+            },
+            {
+              "display": "Bytes",
+              "id": "48c7fd76-6817-11f0-b765-008cfa5ae621",
+              "isDefault": false,
+              "name": "-c",
+              "value": ""
+            },
+            {
+              "display": "Lines",
+              "id": "48c81734-6817-11f0-b765-008cfa5ae621",
+              "isDefault": false,
+              "name": "-l",
+              "value": ""
+            },
+            {
+              "display": "Words",
+              "id": "48c83444-6817-11f0-b765-008cfa5ae621",
+              "isDefault": false,
+              "name": "-w",
+              "value": ""
+            }
+          ],
+          "defaultValue": {
+            "display": "All",
+            "id": "48c7e034-6817-11f0-b765-008cfa5ae621",
+            "isDefault": true,
+            "name": "",
+            "value": ""
+          },
+          "description": "",
+          "id": "48c5d28a-6817-11f0-b765-008cfa5ae621_48c7bb7c-6817-11f0-b765-008cfa5ae621",
+          "isVisible": true,
+          "label": "Count Options",
+          "name": "",
+          "required": true,
+          "type": "TextSelection",
+          "validators": []
+        }
+      ],
+      "step_number": 0
+    }
+  ],
+  "hierarchies": [
+    {
+      "iri": "http://edamontology.org/operation_0004",
+      "label": "Operation",
+      "subclasses": [
+        {
+          "iri": "http://edamontology.org/operation_2409",
+          "label": "Data handling"
+        }
+      ]
+    }
+  ],
+  "id": "67d15627-22c5-42bd-8daf-9af5deecceab",
+  "integrator_email": "sarah.cyverse@gmail.com",
+  "integrator_name": "Sarah Roberts",
+  "isBlessed": false,
+  "is_favorite": false,
+  "is_public": true,
+  "job_stats": {
+    "job_count": 6904,
+    "job_count_completed": 6431,
+    "job_count_failed": 228,
+    "job_last_completed": "2026-07-14T21:35:54.000Z",
+    "last_used": "2026-07-14T21:34:14.000Z"
+  },
+  "label": "DE Word Count",
+  "limitChecks": {
+    "canRun": true,
+    "results": []
+  },
+  "name": "DE Word Count",
+  "overall_job_type": "executable",
+  "permission": "read",
+  "pipeline_eligibility": {
+    "is_valid": true,
+    "reason": ""
+  },
+  "rating": {
+    "average": 4.0,
+    "total": 2
+  },
+  "references": [],
+  "requirements": [
+    {
+      "step_number": 0
+    }
+  ],
+  "step_count": 1,
+  "suggested_categories": [],
+  "system_id": "de",
+  "tools": [
+    {
+      "container": {
+        "container_volumes_from": [
+          {
+            "deprecated": false,
+            "id": "dc9ebf24-5bb8-11e5-b0d5-23f27069e639",
+            "name": "harbor.cyverse.org/de/url-import",
+            "name_prefix": "wc-data",
+            "osg_image_path": null,
+            "read_only": true,
+            "tag": "latest",
+            "url": "https://registry.hub.docker.com/u/discoenv/url-import/"
+          }
+        ],
+        "entrypoint": "wc",
+        "id": "16f52050-3ac6-11e5-90b9-475ce27d079e",
+        "image": {
+          "deprecated": false,
+          "id": "15959300-b972-4571-ace2-081af0909599",
+          "name": "harbor.cyverse.org/de/url-import",
+          "osg_image_path": null,
+          "tag": "latest",
+          "url": "https://registry.hub.docker.com/u/discoenv/url-import/"
+        },
+        "network_mode": "none",
+        "skip_tmp_mount": false
+      },
+      "description": "Word Count",
+      "id": "85cf7a33-386b-46fe-87c7-8c9d59972624",
+      "implementation": {
+        "implementor": "Default DE Tools",
+        "implementor_email": "support@iplantcollaborative.org",
+        "test": {
+          "input_files": [],
+          "output_files": []
+        }
+      },
+      "interactive": false,
+      "is_public": true,
+      "location": "",
+      "name": "wc",
+      "permission": "read",
+      "restricted": false,
+      "time_limit_seconds": 0,
+      "type": "executable",
+      "version": "0.0.1"
+    }
+  ],
+  "version": "0.0.3",
+  "version_id": "48c522c2-6817-11f0-b765-008cfa5ae621",
+  "versions": [
+    {
+      "version": "0.0.3",
+      "version_id": "48c522c2-6817-11f0-b765-008cfa5ae621"
+    },
+    {
+      "version": "0.0.2",
+      "version_id": "2d959828-c74d-11ed-8d18-008cfa5ae621"
+    },
+    {
+      "version": "Unversioned",
+      "version_id": "8c97ccf2-127a-11ed-9c8c-008cfa5ae621"
+    },
+    {
+      "version": "0.0.3",
+      "version_id": "48c522c2-6817-11f0-b765-008cfa5ae621"
+    },
+    {
+      "version": "0.0.2",
+      "version_id": "2d959828-c74d-11ed-8d18-008cfa5ae621"
+    },
+    {
+      "version": "Unversioned",
+      "version_id": "8c97ccf2-127a-11ed-9c8c-008cfa5ae621"
+    }
+  ]
+}

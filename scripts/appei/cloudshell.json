@@ -1,0 +1,204 @@
+{
+  "app_type": "DE",
+  "beta": false,
+  "can_favor": true,
+  "can_rate": true,
+  "can_run": true,
+  "categories": [],
+  "deleted": false,
+  "description": "Terminal Only, built from Jupyter Minimal",
+  "disabled": false,
+  "documentation": {
+    "app_id": "5f2f1824-57b3-11ec-8180-008cfa5ae621",
+    "created_by": "tswetnam@iplantcollaborative.org",
+    "created_on": "2025-08-19T13:55:45.000Z",
+    "documentation": "[![Project Supported by CyVerse](https://de.cyverse.org/Powered-By-CyVerse-blue.svg)](https://learning.cyverse.org/projects/vice/en/latest/) [![Project Status: WIP \u2013 Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip) [![license](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0) \n\n# Cloud Shell\n\nBrowser based interactive terminal for use in [CyVere Discovery Environment](https://learning.cyverse.org/vice/about/) Featured Apps listing. \n\n## Developer Instructions\n\nLaunch in CyVerse with a [verified user account (free)](https://user.cyverse.org):\n\n[![!Harbor](https://github.com/cyverse-vice/cli/actions/workflows/harbor.yml/badge.svg)](https://github.com/cyverse-vice/cli/actions) ![GitHub commits since tagged version](https://img.shields.io/github/commits-since/cyverse-vice/cli/latest/main?style=flat-square) \n\n[![quicklaunch](https://img.shields.io/badge/Ubuntu%2020.04-bash-red?style=plastic&logo=ubuntu)](https://de.cyverse.org/apps/de/5f2f1824-57b3-11ec-8180-008cfa5ae621/launch)\n\nShell with BASH and ZSH command line interface (CLI). Intended for running shell commands on [CyVerse VICE](https://learning.cyverse.org/vice/extend_apps/).\n\nUses `tini` and `ttyd` to run a terminal in a browser.\n\nBuilt with an Ubuntu 20.04 base, also includes MiniConda `conda`, `python`, `go`, and iRODS `icommands`\n\nText editors include `emacs`, `nano`, `vi`, & `vim`\n\nMonitors include `top`, `htop`, & `glances`\n\nTo build and run the image locally:\n\n```\ngit clone https://github.com/cyverse-vice/cli.git\ncd cli/zsh\ndocker build -t cli:zsh .\ndocker run -it -p 7681:7861 cli:zsh\n```\n\nTest from [CyVerse Harbor](https://harbor.cyverse.org/harbor/projects/17/repositories/cli%2Fbash):\n\n```\ndocker run -it --rm -p 7681:7681 harbor.cyverse.org/vice/cli/bash:latest\n```\n\nTo build your own version of this image, you can use the hosted version:\n\n```\nFROM harbor.cyverse.org/vice/cli/bash:latest\n```\n\n[Integrate your own Containers and Apps into CyVerse](https://learning.cyverse.org/de/create_apps/)\n\n### License\n[![license](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0) \n\nhttps://github.com/cyverse-vice/cli/blob/main/LICENSE\n\n### Reference(s)\n",
+    "modified_by": "tswetnam@iplantcollaborative.org",
+    "modified_on": "2025-08-19T13:55:45.000Z",
+    "references": [],
+    "version_id": "33e7f454-7d04-11f0-82b5-008cfa5ae621"
+  },
+  "edited_date": "2025-08-19T13:55:45.000Z",
+  "groups": [
+    {
+      "id": "33e890bc-7d04-11f0-82b5-008cfa5ae621",
+      "label": "Input Data (not required)",
+      "name": "",
+      "parameters": [
+        {
+          "arguments": [],
+          "description": "select a single folder from the data store",
+          "id": "33e869d4-7d04-11f0-82b5-008cfa5ae621_33e8cee2-7d04-11f0-82b5-008cfa5ae621",
+          "isVisible": true,
+          "label": "Input Folder",
+          "name": "",
+          "required": false,
+          "type": "FolderInput",
+          "validators": []
+        },
+        {
+          "arguments": [],
+          "description": "select a single file from the data store",
+          "id": "33e869d4-7d04-11f0-82b5-008cfa5ae621_33e98490-7d04-11f0-82b5-008cfa5ae621",
+          "isVisible": true,
+          "label": "Input File",
+          "name": "",
+          "required": false,
+          "type": "FileInput",
+          "validators": []
+        },
+        {
+          "arguments": [],
+          "description": "select multiple input files from the data store",
+          "id": "33e869d4-7d04-11f0-82b5-008cfa5ae621_33ea00dc-7d04-11f0-82b5-008cfa5ae621",
+          "isVisible": true,
+          "label": "Multiple Input Files",
+          "name": "",
+          "required": false,
+          "type": "MultiFileSelector",
+          "validators": []
+        }
+      ],
+      "step_number": 0
+    }
+  ],
+  "hierarchies": [],
+  "id": "5f2f1824-57b3-11ec-8180-008cfa5ae621",
+  "integrator_email": "tswetnam@arizona.edu",
+  "integrator_name": "Tyson Swetnam",
+  "isBlessed": true,
+  "is_favorite": false,
+  "is_public": true,
+  "job_stats": {
+    "job_count": 9957,
+    "job_count_completed": 8857,
+    "job_count_failed": 10,
+    "job_last_completed": "2026-07-20T21:12:07.000Z",
+    "last_used": "2026-07-20T21:18:06.000Z"
+  },
+  "label": "CloudShell",
+  "limitChecks": {
+    "canRun": true,
+    "results": []
+  },
+  "name": "CloudShell",
+  "overall_job_type": "interactive",
+  "permission": "read",
+  "pipeline_eligibility": {
+    "is_valid": false,
+    "reason": "Job type, interactive, can't currently be included in a pipeline."
+  },
+  "rating": {
+    "average": 4.333333333333333,
+    "total": 6
+  },
+  "references": [],
+  "requirements": [
+    {
+      "gpu_models": [
+        "NVIDIA-A16"
+      ],
+      "max_cpu_cores": 4.0,
+      "max_gpus": 0,
+      "memory_limit": 17179869184,
+      "step_number": 0
+    }
+  ],
+  "step_count": 1,
+  "suggested_categories": [],
+  "system_id": "de",
+  "tools": [
+    {
+      "attribution": "",
+      "container": {
+        "container_devices": [
+          {
+            "container_path": "/mnt/notused",
+            "host_path": "/dev/nvidia",
+            "id": "2cd853b6-7d04-11f0-82b5-008cfa5ae621"
+          }
+        ],
+        "container_ports": [
+          {
+            "bind_to_host": false,
+            "container_port": 7681,
+            "host_port": null,
+            "id": "2cd893c6-7d04-11f0-82b5-008cfa5ae621"
+          }
+        ],
+        "id": "979bcff6-e4b1-11eb-8726-008cfa5ae621",
+        "image": {
+          "deprecated": false,
+          "id": "7d707c18-1a6f-11ed-a858-008cfa5ae621",
+          "name": "harbor.cyverse.org/vice/cli/bash",
+          "osg_image_path": "",
+          "tag": "latest",
+          "url": ""
+        },
+        "interactive_apps": {
+          "cas_url": "https://olson.cyverse.org/cas",
+          "cas_validate": "validate",
+          "frontend_url": null,
+          "id": "2cd7b802-7d04-11f0-82b5-008cfa5ae621",
+          "image": "discoenv/cas-proxy",
+          "name": "cas-proxy",
+          "ssl_cert_path": null,
+          "ssl_key_path": null
+        },
+        "memory_limit": 17179869184,
+        "network_mode": "bridge",
+        "pids_limit": 1024,
+        "skip_tmp_mount": true,
+        "uid": 1000,
+        "working_directory": "/home/jovyan/data-store"
+      },
+      "description": "GPU Cloud Shell 24.04 Latest (Jupyter Minimal)",
+      "id": "979b1638-e4b1-11eb-8726-008cfa5ae621",
+      "implementation": {
+        "implementor": "Tyson Swetnam",
+        "implementor_email": "tswetnam@arizona.edu",
+        "test": {
+          "input_files": [],
+          "output_files": []
+        }
+      },
+      "interactive": true,
+      "is_public": true,
+      "location": "",
+      "name": "gpu-cli",
+      "permission": "read",
+      "restricted": true,
+      "time_limit_seconds": 14400,
+      "type": "interactive",
+      "version": "gpu-24.04"
+    }
+  ],
+  "version": "gpu-2404",
+  "version_id": "33e7f454-7d04-11f0-82b5-008cfa5ae621",
+  "versions": [
+    {
+      "version": "gpu-2404",
+      "version_id": "33e7f454-7d04-11f0-82b5-008cfa5ae621"
+    },
+    {
+      "version": "24.04",
+      "version_id": "52fbf0a0-60b9-11f0-9c1d-008cfa5ae621"
+    },
+    {
+      "version": "20.04",
+      "version_id": "8c8f2b4c-127a-11ed-9c8c-008cfa5ae621"
+    },
+    {
+      "version": "gpu-2404",
+      "version_id": "33e7f454-7d04-11f0-82b5-008cfa5ae621"
+    },
+    {
+      "version": "24.04",
+      "version_id": "52fbf0a0-60b9-11f0-9c1d-008cfa5ae621"
+    },
+    {
+      "version": "20.04",
+      "version_id": "8c8f2b4c-127a-11ed-9c8c-008cfa5ae621"
+    }
+  ]
+}

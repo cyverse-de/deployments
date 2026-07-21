@@ -1,7 +1,12 @@
 # Wiki Update Log
 
+## 2026-07-21
+
+* **Update**: [Copying Apps Between DE Instances](/playbooks/app-export-import.md) — documented the new appei behavior: private-app export via temporary admin self-share, imports staying private by default with `--publish`/`--feature` opt-ins, and empty-documentation publishing for undocumented apps.
+
 ## 2026-07-20
 
+* **Creation**: Added [Copying Apps Between DE Instances](/playbooks/app-export-import.md) documenting the rebuilt uv-managed `scripts/appei` tool for exporting/importing apps and tools via the Terrain API.
 * **Creation**: Populated the services section with a page per DE microservice role under `ansible/roles/services/` (49 pages, from [analyses](/services/analyses.md) to [vice-status-listener](/services/vice-status-listener.md)).
 * **Creation**: Added infrastructure pages for [cert-manager](/infrastructure/cert-manager.md), [HTCondor](/infrastructure/condor.md), [GoCD](/infrastructure/gocd.md), [GPU Workers](/infrastructure/gpu-workers.md), [Grouper](/infrastructure/grouper.md), [Harbor](/infrastructure/harbor.md), [Ingress](/infrastructure/ingress.md), [Jaeger](/infrastructure/jaeger.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Longhorn](/infrastructure/longhorn.md), and [OpenSearch](/infrastructure/opensearch.md).
 * **Creation**: Added playbook pages for [Full Deployment](/playbooks/full-deployment.md), [CI to QA](/playbooks/ci-to-qa.md), [Bootstrap Portal Admin](/playbooks/bootstrap-portal-admin.md), [Node Maintenance](/playbooks/node-maintenance.md), [portal-exim](/playbooks/portal-exim.md), [VICE Image Cache](/playbooks/vice-image-cache.md), [Argo Resources](/playbooks/argo-resources.md), and [Misc Utility Playbooks](/playbooks/misc-utility-playbooks.md).
