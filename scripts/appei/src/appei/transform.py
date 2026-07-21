@@ -126,6 +126,7 @@ def clean_app_for_import(app: dict) -> dict:
             }
             tool["container"].get("image", {}).pop("id", None)
     for group in cleaned.get("groups", []):
+        group.pop("id", None)
         group.pop("step_number", None)
         for param in group.get("parameters", []):
             param.pop("id", None)

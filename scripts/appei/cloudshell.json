@@ -95,9 +95,6 @@
   "references": [],
   "requirements": [
     {
-      "gpu_models": [
-        "NVIDIA-A16"
-      ],
       "max_cpu_cores": 4.0,
       "max_gpus": 0,
       "memory_limit": 17179869184,
@@ -111,13 +108,6 @@
     {
       "attribution": "",
       "container": {
-        "container_devices": [
-          {
-            "container_path": "/mnt/notused",
-            "host_path": "/dev/nvidia",
-            "id": "2cd853b6-7d04-11f0-82b5-008cfa5ae621"
-          }
-        ],
         "container_ports": [
           {
             "bind_to_host": false,
@@ -126,7 +116,6 @@
             "id": "2cd893c6-7d04-11f0-82b5-008cfa5ae621"
           }
         ],
-        "id": "979bcff6-e4b1-11eb-8726-008cfa5ae621",
         "image": {
           "deprecated": false,
           "id": "7d707c18-1a6f-11ed-a858-008cfa5ae621",
@@ -152,8 +141,7 @@
         "uid": 1000,
         "working_directory": "/home/jovyan/data-store"
       },
-      "description": "GPU Cloud Shell 24.04 Latest (Jupyter Minimal)",
-      "id": "979b1638-e4b1-11eb-8726-008cfa5ae621",
+      "description": "Cloud Shell 24.04 Latest (Jupyter Minimal)",
       "implementation": {
         "implementor": "Tyson Swetnam",
         "implementor_email": "tswetnam@arizona.edu",
@@ -165,15 +153,15 @@
       "interactive": true,
       "is_public": true,
       "location": "",
-      "name": "gpu-cli",
+      "name": "cli",
       "permission": "read",
       "restricted": true,
       "time_limit_seconds": 14400,
       "type": "interactive",
-      "version": "gpu-24.04"
+      "version": "24.04"
     }
   ],
-  "version": "gpu-2404",
+  "version": "24.04",
   "version_id": "33e7f454-7d04-11f0-82b5-008cfa5ae621",
   "versions": [
     {

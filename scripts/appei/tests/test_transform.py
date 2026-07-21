@@ -140,6 +140,7 @@ class TestCleanAppForImport:
     def test_strips_group_and_parameter_ids(self):
         cleaned = transform.clean_app_for_import(make_app())
         group = cleaned["groups"][0]
+        assert "id" not in group
         assert "step_number" not in group
         assert all("id" not in p for p in group["parameters"])
 
