@@ -2,6 +2,7 @@
 
 ## 2026-07-21
 
+* **Update**: [openldap-docker](/services/openldap-docker.md) — seed.ldif.j2 now also seeds the `community` group that portal-conductor adds new portal users to; its absence made registration 500 with LDAP "No Such Object".
 * **Update**: [portal2](/services/portal2.md) — documented the new `portal_disable_require_new_user_email_confirmation` var (default `false`) feeding `features.disableRequireNewUserEmailConfirmation` in the rendered config.
 * **Update**: [Longhorn](/infrastructure/longhorn.md) — documented the new `longhorn_tolerations` default (vice/analysis NoSchedule taints) and how it feeds `global.tolerations` and `defaultSettings.taintToleration` so the CSI plugin registers on tainted analysis nodes.
 * **Update**: [Copying Apps Between DE Instances](/playbooks/app-export-import.md) — documented the new appei behavior: private-app export via temporary admin self-share, imports staying private by default with `--publish`/`--feature` opt-ins, and empty-documentation publishing for undocumented apps.

@@ -4,7 +4,7 @@ title: openldap-docker
 description: In-cluster OpenLDAP directory for DE deployments without an external LDAP server, deployed as a StatefulSet with config and seed data rendered from templates.
 resource: /ansible/roles/services/openldap-docker
 tags: [openldap, ldap, directory, statefulset, authentication]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-21T00:00:00Z
 ---
 
 Runs an OpenLDAP (`slapd`) directory inside the Kubernetes cluster for
@@ -21,9 +21,11 @@ This role is unusual among the service roles:
 - There is no app config template. Instead it renders two secrets before the
   skaffold deploy: `openldap-config` (from `slapd.conf.j2`: `ldap_dn_suffix`,
   `ldap_rootpw_hash`, mdb backend, indexes, ACLs) and `openldap-seed` (from
-  `seed.ldif.j2`: base DN, `ou=People`/`ou=Groups`, `everyone` and `de_admins`
-  groups, and the `de_grouper` and `ldap_reader` accounts with
-  `ldap_de_grouper_pw_hash` / `ldap_ldap_reader_pw_hash`).
+  `seed.ldif.j2`: base DN, `ou=People`/`ou=Groups`, the `everyone`,
+  `de_admins`, and `community` groups (portal-conductor adds every new portal
+  user to `community` during registration), and the `de_grouper` and
+  `ldap_reader` accounts with `ldap_de_grouper_pw_hash` /
+  `ldap_ldap_reader_pw_hash`).
 - The manifest is a StatefulSet (`openldap_replicas`,
   `openldap_pod_anti_affinity`) with a 1Gi PVC for the mdb database. Init
   containers convert `slapd.conf` to the `cn=config` tree on every boot and
