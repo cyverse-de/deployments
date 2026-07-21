@@ -492,14 +492,11 @@
 # Default: main
 # portal_version: main
 
-# Git repo holding the GRID institutions CSV loaded into the portal
-# database.
-# Default: replace_me
-# grid_csv_repo: replace_me
-
-# Git ref of the GRID institutions CSV repo.
-# Default: main
-# grid_csv_version: main
+# URL of a zip file holding the GRID institutions CSV loaded into the portal
+# database. The zip must contain a top-level grid_institutions/ directory
+# with grid.csv inside it.
+# Default: https://data.cyverse.org/dav-anon/iplant/home/wregglej/grid_institutions/grid_institutions.zip
+# grid_csv_repo: https://data.cyverse.org/dav-anon/iplant/home/wregglej/grid_institutions/grid_institutions.zip
 
 
 # ---------------------------------------------------------------------
