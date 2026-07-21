@@ -1565,6 +1565,11 @@
 # portal_smtp_host: local-exim
 # portal_smtp_port: "25"
 
+# Set to "true" to let new accounts skip the email-confirmation step during
+# self-registration (features.disableRequireNewUserEmailConfirmation).
+# Default: "false"
+# portal_disable_require_new_user_email_confirmation: "false"
+
 # Optional integrations; empty string disables each.
 # Default: replace_me
 # portal_google_analytics_id: ""

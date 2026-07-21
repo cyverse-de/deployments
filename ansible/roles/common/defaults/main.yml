@@ -575,6 +575,7 @@ portal_bcc_new_account_confirmation: "{{ email_dest }}"
 portal_bcc_password_change_request: "{{ email_dest }}"
 portal_bcc_service_access_granted: "{{ email_dest }}"
 portal_bcc_workshop_enrollment_request: "{{ email_dest }}"
+portal_disable_require_new_user_email_confirmation: "false"
 portal_intercom_enabled: "false"
 portal_intercom_app_id: replace_me
 portal_intercom_token: replace_me
