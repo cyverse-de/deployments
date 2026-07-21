@@ -2,6 +2,7 @@
 
 ## 2026-07-21
 
+* **Update**: [Longhorn](/infrastructure/longhorn.md) — documented the new `longhorn_tolerations` default (vice/analysis NoSchedule taints) and how it feeds `global.tolerations` and `defaultSettings.taintToleration` so the CSI plugin registers on tainted analysis nodes.
 * **Update**: [Copying Apps Between DE Instances](/playbooks/app-export-import.md) — documented the new appei behavior: private-app export via temporary admin self-share, imports staying private by default with `--publish`/`--feature` opt-ins, and empty-documentation publishing for undocumented apps.
 
 ## 2026-07-20

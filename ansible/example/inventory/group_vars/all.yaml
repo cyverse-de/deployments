@@ -1114,6 +1114,25 @@
 # Set to 0 to disable polling.
 # Default: 300
 # longhorn_backupstore_poll_interval: 300
+
+# Tolerations for all Longhorn workloads. Longhorn's node CSI plugin must
+# run on every node where pods mount its volumes — without it, volume
+# attach fails with "CSINode <node> does not contain driver
+# driver.longhorn.io" — so the default tolerates the vice/analysis
+# NoSchedule taints used on analysis nodes (the same pair the openebs
+# role patches onto its workloads). Entries must use the Equal operator;
+# the role derives Longhorn's system-managed-component toleration string
+# from each entry's key/value/effect.
+# Default: vice=only:NoSchedule and analysis=only:NoSchedule
+# longhorn_tolerations:
+#   - key: vice
+#     operator: Equal
+#     value: only
+#     effect: NoSchedule
+#   - key: analysis
+#     operator: Equal
+#     value: only
+#     effect: NoSchedule
 # =====================================================================
 
 

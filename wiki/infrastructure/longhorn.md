@@ -4,7 +4,7 @@ title: Longhorn
 description: The opt-in longhorn role that installs Longhorn replicated block storage via Helm — default StorageClass, replica sizing, and backup-target handling. Superseded by OpenEBS.
 resource: /ansible/roles/longhorn
 tags: [longhorn, storage, helm, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-21T00:00:00Z
 ---
 
 Longhorn provides replicated block storage for the cluster. The `longhorn` role installs
@@ -30,6 +30,15 @@ Harbor's PVCs use the `longhorn` StorageClass (`harbor_storage_class`); the
   to clusters with fewer than three nodes.
 - Data lives at `longhorn_data_path` (default `/var/lib/longhorn`) on each node; the
   StorageClass reclaim policy is `longhorn_reclaim_policy` (default `Retain`).
+- Tolerations: `longhorn_tolerations` defaults to tolerating the `vice=only:NoSchedule`
+  and `analysis=only:NoSchedule` taints (the same pair the
+  [OpenEBS](/infrastructure/openebs.md) role patches onto its workloads), because the
+  node CSI plugin must run on every node where pods mount Longhorn volumes — without it,
+  attach fails with `CSINode <node> does not contain driver driver.longhorn.io`. The list
+  feeds two chart values: `global.tolerations` for the user-deployed workloads (manager,
+  UI, driver deployer) and `defaultSettings.taintToleration` — derived as a
+  semicolon-separated `key=value:effect` string, so entries must use the `Equal`
+  operator — for the system-managed ones (CSI plugin, instance managers, engine images).
 - Backups: the `defaultBackupStore` values (`longhorn_backup_target`,
   `longhorn_backup_target_credential_secret`, `longhorn_backupstore_poll_interval`) are
   only passed to the chart when `longhorn_backup_target` is non-empty. The chart omits

@@ -378,6 +378,21 @@ longhorn_storage_class: longhorn
 longhorn_backup_target: ""
 longhorn_backup_target_credential_secret: ""
 longhorn_backupstore_poll_interval: 300
+# Longhorn must run on every node where pods mount its volumes: without the
+# node CSI plugin registered, attach fails with "CSINode <node> does not
+# contain driver driver.longhorn.io". Tolerate the vice/analysis taints (same
+# pair the openebs role patches in) so tainted analysis nodes are covered.
+# Entries must use the Equal operator — the role derives Longhorn's
+# "key=value:effect" taintToleration setting string from key/value/effect.
+longhorn_tolerations:
+  - key: vice
+    operator: Equal
+    value: only
+    effect: NoSchedule
+  - key: analysis
+    operator: Equal
+    value: only
+    effect: NoSchedule
 
 # OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
 openebs_enabled: false
