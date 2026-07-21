@@ -100,8 +100,14 @@ def clean_tool_for_import(tool: dict) -> dict:
     container = cleaned.get("container", {})
     container.get("interactive_apps", {}).pop("id", None)
     container.get("image", {}).pop("id", None)
-    for port in container.get("container_ports", []):
-        port.pop("id", None)
+    for key in (
+        "container_ports",
+        "container_devices",
+        "container_volumes",
+        "container_volumes_from",
+    ):
+        for entry in container.get(key) or []:
+            entry.pop("id", None)
     return cleaned
 
 

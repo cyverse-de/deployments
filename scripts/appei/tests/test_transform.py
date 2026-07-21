@@ -21,6 +21,15 @@ def make_tool() -> dict:
             "interactive_apps": {"id": "ia-uuid", "image": "img"},
             "image": {"id": "image-uuid", "name": "quay.io/cat", "tag": "latest"},
             "container_ports": [{"id": "port-uuid", "container_port": 80}],
+            "container_devices": [
+                {
+                    "id": "device-uuid",
+                    "host_path": "/dev/nvidia",
+                    "container_path": "/mnt/notused",
+                }
+            ],
+            "container_volumes": [{"id": "volume-uuid", "host_path": "/tmp"}],
+            "container_volumes_from": [{"id": "vf-uuid", "name": "data"}],
         },
     }
 
@@ -54,6 +63,11 @@ class TestCleanToolForImport:
         assert "id" not in cleaned["container"]["interactive_apps"]
         assert "id" not in cleaned["container"]["image"]
         assert all("id" not in p for p in cleaned["container"]["container_ports"])
+        assert all("id" not in d for d in cleaned["container"]["container_devices"])
+        assert all("id" not in v for v in cleaned["container"]["container_volumes"])
+        assert all(
+            "id" not in v for v in cleaned["container"]["container_volumes_from"]
+        )
 
     def test_keeps_everything_else(self):
         cleaned = transform.clean_tool_for_import(make_tool())
