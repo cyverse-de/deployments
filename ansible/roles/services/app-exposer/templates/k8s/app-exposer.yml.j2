@@ -34,12 +34,6 @@ spec:
             items:
               - key: app-exposer.yml
                 path: service.yml
-        - name: nats-client-tls
-          secret:
-            secretName: nats-client-tls
-        - name: nats-services-creds
-          secret:
-            secretName: nats-services-creds
       containers:
         - name: app-exposer
           image: harbor.cyverse.org/de/app-exposer
@@ -88,11 +82,6 @@ spec:
                 secretKeyRef:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
-            - name: DISCOENV_NATS_CLUSTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: NATS_URLS
             - name: CLUSTER_CONFIG_SECRET
               valueFrom:
                 secretKeyRef:
@@ -104,12 +93,6 @@ spec:
           volumeMounts:
             - name: app-exposer-configs
               mountPath: /etc/cyverse/de/configs
-              readOnly: true
-            - name: nats-client-tls
-              mountPath: /etc/nats/tls
-              readOnly: true
-            - name: nats-services-creds
-              mountPath: /etc/nats/creds
               readOnly: true
           livenessProbe:
             httpGet:

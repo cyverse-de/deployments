@@ -89,6 +89,9 @@ qms:
   base: "{{ baseurls_qms|string|regex_replace("\/$","") }}"
   usage: "/v1/admin/usages"
 
+subscriptions:
+  base: "{{ baseurls_subscriptions|string|regex_replace("\/$","") }}"
+
 tickets_path_list:
   file_identifier: "# application/vnd.de.tickets-path-list+csv; version=1"
 
