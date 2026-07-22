@@ -1,7 +1,19 @@
 # Wiki Update Log
 
+## 2026-07-22
+
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [openldap-docker](/services/openldap-docker.md) — documented the new `openldap_community_group.yml` playbook that backfills the `community` group on already-deployed OpenLDAP instances (the seed LDIF only loads on a fresh volume).
+
+## 2026-07-21
+
+* **Update**: [openldap-docker](/services/openldap-docker.md) — seed.ldif.j2 now also seeds the `community` group that portal-conductor adds new portal users to; its absence made registration 500 with LDAP "No Such Object".
+* **Update**: [portal2](/services/portal2.md) — documented the new `portal_disable_require_new_user_email_confirmation` var (default `false`) feeding `features.disableRequireNewUserEmailConfirmation` in the rendered config.
+* **Update**: [Longhorn](/infrastructure/longhorn.md) — documented the new `longhorn_tolerations` default (vice/analysis NoSchedule taints) and how it feeds `global.tolerations` and `defaultSettings.taintToleration` so the CSI plugin registers on tainted analysis nodes.
+* **Update**: [Copying Apps Between DE Instances](/playbooks/app-export-import.md) — documented the new appei behavior: private-app export via temporary admin self-share, imports staying private by default with `--publish`/`--feature` opt-ins, and empty-documentation publishing for undocumented apps.
+
 ## 2026-07-20
 
+* **Creation**: Added [Copying Apps Between DE Instances](/playbooks/app-export-import.md) documenting the rebuilt uv-managed `scripts/appei` tool for exporting/importing apps and tools via the Terrain API.
 * **Creation**: Populated the services section with a page per DE microservice role under `ansible/roles/services/` (49 pages, from [analyses](/services/analyses.md) to [vice-status-listener](/services/vice-status-listener.md)).
 * **Creation**: Added infrastructure pages for [cert-manager](/infrastructure/cert-manager.md), [HTCondor](/infrastructure/condor.md), [GoCD](/infrastructure/gocd.md), [GPU Workers](/infrastructure/gpu-workers.md), [Grouper](/infrastructure/grouper.md), [Harbor](/infrastructure/harbor.md), [Ingress](/infrastructure/ingress.md), [Jaeger](/infrastructure/jaeger.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Longhorn](/infrastructure/longhorn.md), and [OpenSearch](/infrastructure/opensearch.md).
 * **Creation**: Added playbook pages for [Full Deployment](/playbooks/full-deployment.md), [CI to QA](/playbooks/ci-to-qa.md), [Bootstrap Portal Admin](/playbooks/bootstrap-portal-admin.md), [Node Maintenance](/playbooks/node-maintenance.md), [portal-exim](/playbooks/portal-exim.md), [VICE Image Cache](/playbooks/vice-image-cache.md), [Argo Resources](/playbooks/argo-resources.md), and [Misc Utility Playbooks](/playbooks/misc-utility-playbooks.md).

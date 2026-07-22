@@ -4,7 +4,7 @@ title: portal2
 description: The CyVerse user portal web application, handling account self-registration, sessions, and service access via Keycloak, portal-conductor, and terrain.
 resource: /ansible/roles/services/portal2
 tags: [portal, user-portal, nodejs, keycloak, accounts]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-21T00:00:00Z
 ---
 
 The CyVerse user portal, a Node.js web application (`NODE_ENV=production`,
@@ -25,7 +25,10 @@ Configuration: the role renders `templates/portal2.json.j2` into the
 `/etc/cyverse/portal2/portal2.json` and located via `CONFIG_PATH`. Notable
 group_vars: `portal_db_*`, `portal_session_*`, `portal_keycloak_*`,
 `portal_conductor_url` and `portal_conductor_auth_*`, `portal_terrain_*`,
-`portal_ui_base_url`, `portal_smtp_*`, and `portal_uid_number_offset`.
+`portal_ui_base_url`, `portal_smtp_*`, and `portal_uid_number_offset`. The
+`portal_disable_require_new_user_email_confirmation` flag (default `false`)
+maps to `features.disableRequireNewUserEmailConfirmation` and, when `true`,
+lets new accounts skip the email-confirmation step during self-registration.
 
 Runtime: a Deployment with `portal2_replicas` (default 1), its own `timezone`
 ConfigMap (America/Phoenix), a readiness probe on `/api/ready`, and a

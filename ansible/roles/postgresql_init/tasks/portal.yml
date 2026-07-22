@@ -92,14 +92,13 @@
       tags:
         - update-databases
 
-    - name: Check out the grid csv files
-      ansible.builtin.git:
-        repo: "{{grid_csv_repo}}"
-        dest: "{{dbs_dir.path}}/grid_institutions"
-        clone: yes
-        update: yes
-        force: yes
-        version: "{{grid_csv_version}}"
+    # The zip contains a top-level grid_institutions/ directory, so extracting
+    # into dbs_dir yields the grid_institutions/grid.csv path used below.
+    - name: Download and extract the grid csv files
+      ansible.builtin.unarchive:
+        src: "{{ grid_csv_repo }}"
+        dest: "{{ dbs_dir.path }}"
+        remote_src: yes
       tags:
         - update-databases
 

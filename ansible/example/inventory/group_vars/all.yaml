@@ -492,14 +492,11 @@
 # Default: main
 # portal_version: main
 
-# Git repo holding the GRID institutions CSV loaded into the portal
-# database.
-# Default: replace_me
-# grid_csv_repo: replace_me
-
-# Git ref of the GRID institutions CSV repo.
-# Default: main
-# grid_csv_version: main
+# URL of a zip file holding the GRID institutions CSV loaded into the portal
+# database. The zip must contain a top-level grid_institutions/ directory
+# with grid.csv inside it.
+# Default: https://data.cyverse.org/dav-anon/iplant/home/wregglej/grid_institutions/grid_institutions.zip
+# grid_csv_repo: https://data.cyverse.org/dav-anon/iplant/home/wregglej/grid_institutions/grid_institutions.zip
 
 
 # ---------------------------------------------------------------------
@@ -1114,6 +1111,25 @@
 # Set to 0 to disable polling.
 # Default: 300
 # longhorn_backupstore_poll_interval: 300
+
+# Tolerations for all Longhorn workloads. Longhorn's node CSI plugin must
+# run on every node where pods mount its volumes — without it, volume
+# attach fails with "CSINode <node> does not contain driver
+# driver.longhorn.io" — so the default tolerates the vice/analysis
+# NoSchedule taints used on analysis nodes (the same pair the openebs
+# role patches onto its workloads). Entries must use the Equal operator;
+# the role derives Longhorn's system-managed-component toleration string
+# from each entry's key/value/effect.
+# Default: vice=only:NoSchedule and analysis=only:NoSchedule
+# longhorn_tolerations:
+#   - key: vice
+#     operator: Equal
+#     value: only
+#     effect: NoSchedule
+#   - key: analysis
+#     operator: Equal
+#     value: only
+#     effect: NoSchedule
 # =====================================================================
 
 
@@ -1548,6 +1564,11 @@
 # Defaults: local-exim / "25"
 # portal_smtp_host: local-exim
 # portal_smtp_port: "25"
+
+# Set to "true" to let new accounts skip the email-confirmation step during
+# self-registration (features.disableRequireNewUserEmailConfirmation).
+# Default: "false"
+# portal_disable_require_new_user_email_confirmation: "false"
 
 # Optional integrations; empty string disables each.
 # Default: replace_me

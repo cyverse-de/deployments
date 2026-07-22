@@ -25,6 +25,13 @@ cn: de_admins
 description: DE administrators
 gidNumber: 10001
 
+# portal-conductor adds every new portal user to this group during registration
+dn: cn=community,ou=Groups,{{ ldap_dn_suffix }}
+objectClass: posixGroup
+cn: community
+description: Portal community members
+gidNumber: 10003
+
 dn: uid=de_grouper,ou=People,{{ ldap_dn_suffix }}
 objectClass: inetOrgPerson
 objectClass: posixAccount

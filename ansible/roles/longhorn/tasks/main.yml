@@ -29,6 +29,13 @@
         values: "{{ longhorn_base_values | combine(longhorn_backup_store_values) }}"
       vars:
         longhorn_base_values:
+          # longhorn_tolerations has to reach the chart through two values:
+          # global.tolerations covers the user-deployed workloads (manager, UI,
+          # driver deployer), while defaultSettings.taintToleration covers the
+          # system-managed ones (CSI plugin, instance managers, engine images)
+          # and takes a semicolon-separated string in `kubectl taint` syntax.
+          global:
+            tolerations: "{{ longhorn_tolerations }}"
           persistence:
             defaultClass: true
             defaultClassReplicaCount: "{{ longhorn_replica_count | int }}"
@@ -36,6 +43,7 @@
           defaultSettings:
             defaultReplicaCount: "{{ longhorn_replica_count | int }}"
             defaultDataPath: "{{ longhorn_data_path }}"
+            taintToleration: "{% for t in longhorn_tolerations %}{{ t.key }}={{ t.value }}:{{ t.effect }}{% if not loop.last %};{% endif %}{% endfor %}"
         longhorn_backup_store_values: >-
           {{
             {

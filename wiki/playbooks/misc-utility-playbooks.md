@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-22T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -61,6 +61,17 @@ Runs the `service_configurations` role on its own, regenerating the shared
 equivalent of `--tags configure-services`. Run after changing inventory
 values that feed service configuration.
 
+## openldap_community_group.yml
+
+Backfills the `community` LDAP group on an already-deployed
+[openldap-docker](/services/openldap-docker.md) instance. portal-conductor
+adds every new portal user to that group during registration, but the seed
+LDIF only loads on a fresh volume, so instances seeded before the group was
+added to the template fail registration with LDAP "No Such Object". Runs from
+localhost over a `kubectl port-forward` to the `openldap` service and asserts
+`ldap_in_cluster`/`ldap_root_pw`; requires python-ldap on the control host.
+Idempotent — safe to re-run.
+
 ## vice-operator-eks.yml
 
 Brings up VICE on an AWS EKS cluster: the `vice-operator-eks` role
@@ -85,5 +96,6 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [4] `ansible/print_host_distros.yml` — distro survey.
 [5] `ansible/big_dumper.yml`, `ansible/roles/db_copy_prod/tasks/` — production database copy.
 [6] `ansible/config_files.yml` — standalone service_configurations run.
-[7] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
-[8] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[7] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
+[8] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
+[9] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.

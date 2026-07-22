@@ -1,0 +1,149 @@
+{
+  "app_type": "DE",
+  "beta": false,
+  "can_favor": true,
+  "can_rate": true,
+  "can_run": true,
+  "categories": [],
+  "deleted": false,
+  "description": "Deletes a user from the Discovery Environment.",
+  "disabled": false,
+  "edited_date": "2025-12-03T19:02:32.000Z",
+  "groups": [
+    {
+      "id": "92dbf8c6-d078-11f0-9c43-008cfa5ae621",
+      "label": "Parameters",
+      "name": "",
+      "parameters": [
+        {
+          "arguments": [],
+          "defaultValue": {
+            "path": "/iplant/home/apprunner/portal-delete-user.json"
+          },
+          "description": "The path to the config file.",
+          "id": "92dbaa2e-d078-11f0-9c43-008cfa5ae621_92dc7710-d078-11f0-9c43-008cfa5ae621",
+          "isVisible": false,
+          "label": "Config File",
+          "name": "",
+          "required": true,
+          "type": "FileInput",
+          "validators": []
+        },
+        {
+          "arguments": [],
+          "defaultValue": "/de-app-work/portal-delete-user.json",
+          "description": "",
+          "id": "92dbaa2e-d078-11f0-9c43-008cfa5ae621_92ddcda4-d078-11f0-9c43-008cfa5ae621",
+          "isVisible": true,
+          "label": "Config File Path",
+          "name": "--config",
+          "required": true,
+          "type": "Text",
+          "validators": []
+        },
+        {
+          "arguments": [],
+          "description": "",
+          "id": "92dbaa2e-d078-11f0-9c43-008cfa5ae621_92de52c4-d078-11f0-9c43-008cfa5ae621",
+          "isVisible": true,
+          "label": "Username",
+          "name": "",
+          "required": true,
+          "type": "Text",
+          "validators": []
+        }
+      ],
+      "step_number": 0
+    }
+  ],
+  "hierarchies": [],
+  "id": "92d8fbbc-d078-11f0-9c43-008cfa5ae621",
+  "integrator_email": "wregglej+apprunner@gmail.com",
+  "integrator_name": "App Runner",
+  "isBlessed": false,
+  "is_favorite": false,
+  "is_public": false,
+  "job_stats": {
+    "job_count": 3447,
+    "job_count_completed": 3076,
+    "job_count_failed": 371,
+    "job_last_completed": "2026-03-31T10:10:41.000Z",
+    "last_used": "2026-03-16T21:21:43.000Z"
+  },
+  "label": "portal-delete-user",
+  "limitChecks": {
+    "canRun": true,
+    "results": []
+  },
+  "name": "portal-delete-user",
+  "overall_job_type": "executable",
+  "permission": "",
+  "pipeline_eligibility": {
+    "is_valid": true,
+    "reason": ""
+  },
+  "rating": {
+    "average": 0.0,
+    "total": 0
+  },
+  "references": [],
+  "requirements": [
+    {
+      "memory_limit": 17179869184,
+      "step_number": 0
+    }
+  ],
+  "step_count": 1,
+  "suggested_categories": [],
+  "system_id": "de",
+  "tools": [
+    {
+      "container": {
+        "entrypoint": "uv run python /app/scripts/delete-user.py",
+        "id": "5d7553e0-d072-11f0-9c74-008cfa5ae621",
+        "image": {
+          "deprecated": false,
+          "id": "5d752140-d072-11f0-9c74-008cfa5ae621",
+          "name": "harbor.cyverse.org/de/portal-delete-user",
+          "osg_image_path": null,
+          "tag": "qa2",
+          "url": ""
+        },
+        "memory_limit": 17179869184,
+        "network_mode": "none",
+        "pids_limit": 1024,
+        "skip_tmp_mount": false
+      },
+      "description": "Deletes a user from the Discovery Environment",
+      "id": "5d724a38-d072-11f0-9c74-008cfa5ae621",
+      "implementation": {
+        "implementor": "App Runner",
+        "implementor_email": "wregglej+apprunner@gmail.com",
+        "test": {
+          "input_files": [],
+          "output_files": []
+        }
+      },
+      "interactive": false,
+      "is_public": false,
+      "name": "portal-delete-user",
+      "permission": "",
+      "restricted": true,
+      "time_limit_seconds": 86400,
+      "type": "executable",
+      "version": "0.1"
+    }
+  ],
+  "version": "0.1",
+  "version_id": "92dac71c-d078-11f0-9c43-008cfa5ae621",
+  "versions": [
+    {
+      "version": "0.1",
+      "version_id": "92dac71c-d078-11f0-9c43-008cfa5ae621"
+    },
+    {
+      "version": "0.1",
+      "version_id": "92dac71c-d078-11f0-9c43-008cfa5ae621"
+    }
+  ]
+}
