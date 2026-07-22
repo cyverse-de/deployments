@@ -1,0 +1,39 @@
+---
+# Remove a running discoenv-analyses deployment from the cluster.
+#
+# discoenv-analyses has been retired: no deployed DE service consumes its NATS
+# lookups, and the service role has been removed from this repo, so
+# deploy_it.yml and kubernetes.yml no longer manage it. This playbook deletes
+# what an earlier deploy left behind: the discoenv-analyses Deployment and the
+# discoenv-analyses-configs secret (the service creates no Kubernetes Service
+# object). Idempotent and safe to re-run — deleting resources that are
+# already gone succeeds silently.
+#
+# Run: ansible-playbook -i <inventory> discoenv_analyses_cleanup.yml
+
+- name: Clean up the discoenv-analyses deployment
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ns default from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  tasks:
+    - name: Remove the discoenv-analyses Deployment
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        name: discoenv-analyses
+        namespace: "{{ ns }}"
+
+    - name: Remove the discoenv-analyses-configs secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: discoenv-analyses-configs
+        namespace: "{{ ns }}"
