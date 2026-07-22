@@ -888,7 +888,6 @@ source_repos:
   - de-webhooks
   - dewey
   - discoenv-analyses
-  - discoenv-users
   - email-requests
   - event-recorder
   - formation

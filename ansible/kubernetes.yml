@@ -269,7 +269,6 @@
     - role: services/de-webhooks
     - role: services/dewey
     - role: services/discoenv-analyses
-    - role: services/discoenv-users
     - role: services/email-requests
     - role: services/event-recorder
     - role: services/info-typer

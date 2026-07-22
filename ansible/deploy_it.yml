@@ -29,8 +29,6 @@
       tags: dewey
     - role: services/discoenv-analyses
       tags: discoenv-analyses
-    - role: services/discoenv-users
-      tags: discoenv-users
     - role: services/email-requests
       tags: email-requests
     - role: services/event-recorder

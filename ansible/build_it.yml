@@ -111,12 +111,6 @@
           tags: discoenv-analyses
       tags: discoenv-analyses
     - ansible.builtin.include_role:
-        name: services/discoenv-users
-        tasks_from: build
-        apply:
-          tags: discoenv-users
-      tags: discoenv-users
-    - ansible.builtin.include_role:
         name: services/email-requests
         tasks_from: build
         apply:
