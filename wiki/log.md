@@ -2,6 +2,7 @@
 
 ## 2026-07-22
 
+* **Update**: [app-exposer](/services/app-exposer.md) and [Certificate Management](/playbooks/certificate-management.md) — app-exposer no longer uses NATS; it now performs user overage checks against [subscriptions](/services/subscriptions.md) over HTTP (`GET /users/{username}/overages`), so it was removed from the NATS cert-renewal consumer list and restart command.
 * **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [openldap-docker](/services/openldap-docker.md) — documented the new `openldap_community_group.yml` playbook that backfills the `community` group on already-deployed OpenLDAP instances (the seed LDIF only loads on a fresh volume).
 
 ## 2026-07-21
