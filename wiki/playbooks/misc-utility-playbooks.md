@@ -72,6 +72,14 @@ localhost over a `kubectl port-forward` to the `openldap` service and asserts
 `ldap_in_cluster`/`ldap_root_pw`; requires python-ldap on the control host.
 Idempotent — safe to re-run.
 
+## discoenv_analyses_cleanup.yml
+
+Deletes a running discoenv-analyses deployment after the service's retirement
+from this repo: removes the `discoenv-analyses` Deployment and the
+`discoenv-analyses-configs` secret from the DE namespace (the service created
+no Kubernetes Service object). Idempotent — deleting already-absent resources
+succeeds silently.
+
 ## vice-operator-eks.yml
 
 Brings up VICE on an AWS EKS cluster: the `vice-operator-eks` role
