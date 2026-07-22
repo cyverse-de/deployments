@@ -4,15 +4,14 @@ title: discoenv-analyses
 description: NATS-based service providing analysis (job) information from the DE database to other discoenv services.
 resource: /ansible/roles/services/discoenv-analyses
 tags: [analyses, jobs, nats, de]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-22T00:00:00Z
 ---
 
 discoenv-analyses is one of the NATS-connected "discoenv" services: its pod
 mounts the `nats-client-tls` and `nats-services-creds` secrets so it can talk
 to [NATS](/infrastructure/nats.md) with TLS and credentials. Rather than a
 dedicated config, it consumes the shared job-services config
-(`jobservices.yml.j2` — the same template used by
-[discoenv-users](/services/discoenv-users.md)), which carries the DE and
+(`jobservices.yml.j2`), which carries the DE and
 notifications [PostgreSQL](/infrastructure/postgresql.md) URIs, the DE
 [RabbitMQ](/infrastructure/rabbitmq.md) `de` topic exchange, and settings for
 [apps](/services/apps.md), [metadata](/services/metadata.md),
