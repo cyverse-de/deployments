@@ -1,0 +1,72 @@
+---
+# Backfill the community LDAP group on an already-deployed in-cluster OpenLDAP.
+#
+# portal-conductor adds every new portal user to the community group during registration,
+# but openldap-docker only loads seed.ldif.j2 on a fresh volume, so instances seeded before
+# the group existed in the template fail POST /users/ with LDAP "No Such Object". This
+# playbook adds the group over a port-forward; it is idempotent and safe to re-run.
+#
+# Run: ansible-playbook -i <inventory> openldap_community_group.yml
+#
+# Requires python-ldap on the control host and ldap_root_pw set to the OpenLDAP Manager
+# password. Targets the in-cluster OpenLDAP (ldap_in_cluster).
+
+- name: Add the community group to the in-cluster OpenLDAP
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ldap_* defaults from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    ldap_server_uri: "ldap://127.0.0.1:{{ ldap_local_port }}"
+    ldap_manager_dn: "cn=Manager,{{ ldap_dn_suffix }}"
+  tasks:
+    - name: Require the in-cluster OpenLDAP
+      ansible.builtin.assert:
+        that:
+          - ldap_in_cluster | bool
+          - ldap_root_pw | length > 0
+        fail_msg: >-
+          This playbook targets the openldap-docker deployment; ldap_in_cluster must be
+          true and ldap_root_pw must be set in the inventory.
+
+    - name: Port-forward to the in-cluster OpenLDAP service
+      ansible.builtin.shell:
+        cmd: >-
+          nohup kubectl port-forward -n {{ ldap_ns }} svc/openldap
+          {{ ldap_local_port }}:389 >/tmp/openldap-portforward.log 2>&1 & echo $!
+      register: ldap_port_forward
+      changed_when: false
+
+    - name: Create the community group
+      block:
+        - name: Wait for the local LDAP port to be ready
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ ldap_local_port }}"
+            timeout: 30
+
+        # Mirrors the cn=community entry in openldap-docker's seed.ldif.j2; keep in sync.
+        # gid 10003 because 10002 is already ldap_reader's primary gidNumber in the seed.
+        - name: "LDAP group: community"
+          community.general.ldap_entry:
+            server_uri: "{{ ldap_server_uri }}"
+            bind_dn: "{{ ldap_manager_dn }}"
+            bind_pw: "{{ ldap_root_pw }}"
+            dn: "cn=community,ou=Groups,{{ ldap_dn_suffix }}"
+            objectClass: posixGroup
+            attributes:
+              cn: community
+              description: Portal community members
+              gidNumber: "10003"
+            state: present
+      always:
+        - name: Stop the port-forward
+          ansible.builtin.command:
+            cmd: "kill {{ ldap_port_forward.stdout }}"
+          changed_when: false
+          failed_when: false

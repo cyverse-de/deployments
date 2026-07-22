@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-07-22
+
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [openldap-docker](/services/openldap-docker.md) — documented the new `openldap_community_group.yml` playbook that backfills the `community` group on already-deployed OpenLDAP instances (the seed LDIF only loads on a fresh volume).
+
 ## 2026-07-21
 
 * **Update**: [openldap-docker](/services/openldap-docker.md) — seed.ldif.j2 now also seeds the `community` group that portal-conductor adds new portal users to; its absence made registration 500 with LDAP "No Such Object".

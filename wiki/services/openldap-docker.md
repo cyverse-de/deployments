@@ -4,7 +4,7 @@ title: openldap-docker
 description: In-cluster OpenLDAP directory for DE deployments without an external LDAP server, deployed as a StatefulSet with config and seed data rendered from templates.
 resource: /ansible/roles/services/openldap-docker
 tags: [openldap, ldap, directory, statefulset, authentication]
-timestamp: 2026-07-21T00:00:00Z
+timestamp: 2026-07-22T00:00:00Z
 ---
 
 Runs an OpenLDAP (`slapd`) directory inside the Kubernetes cluster for
@@ -29,7 +29,11 @@ This role is unusual among the service roles:
 - The manifest is a StatefulSet (`openldap_replicas`,
   `openldap_pod_anti_affinity`) with a 1Gi PVC for the mdb database. Init
   containers convert `slapd.conf` to the `cn=config` tree on every boot and
-  bulk-load the seed LDIF once (skipped when `data.mdb` already exists).
+  bulk-load the seed LDIF once (skipped when `data.mdb` already exists) — so
+  entries added to the seed template later never reach an existing instance;
+  `ansible/openldap_community_group.yml` backfills the `community` group on
+  such instances (see
+  [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md)).
 - `slapd` runs as uid 65532 and listens on 1389/1636; the `openldap` Service
   exposes the standard ports 389 (ldap) and 636 (ldaps).
 
