@@ -4,7 +4,7 @@ title: Certificate Management
 description: TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 resource: /docs/certificate-management.md
 tags: [tls, certificates, cert-manager, letsencrypt, haproxy, nats, keycloak]
-timestamp: 2026-07-22T00:00:00Z
+timestamp: 2026-07-23T00:00:00Z
 ---
 
 This runbook covers the TLS certificates used by the DE, how they are issued and renewed,
@@ -234,7 +234,7 @@ self-signed certificates. To extract them for debugging or out-of-cluster use, s
 
 If the NATS certificates expire, services that connect to NATS
 ([subscriptions](/services/subscriptions.md), [terrain](/services/terrain.md),
-[app-exposer](/services/app-exposer.md), [jex-adapter](/services/jex-adapter.md),
+[jex-adapter](/services/jex-adapter.md),
 [data-usage-api](/services/data-usage-api.md),
 [resource-usage-api](/services/resource-usage-api.md)) will fail to connect. Symptoms:
 services log TLS handshake errors; NATS-dependent operations silently fail.
@@ -251,7 +251,6 @@ After renewal, restart all NATS-connected services so they pick up the new certi
 
 ```bash
 kubectl -n $NS rollout restart \
-  deployment/app-exposer \
   deployment/data-usage-api \
   deployment/jex-adapter \
   deployment/resource-usage-api \

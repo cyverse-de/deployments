@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-07-23
+
+* **Update**: [app-exposer](/services/app-exposer.md) — removed the NATS client TLS/creds mounts and `NATS_URLS` env wiring from the deployment; the app-exposer source no longer connects to NATS. Also dropped app-exposer from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists.
+
 ## 2026-07-22
 
 * **Removal**: Deleted the discoenv-users service page — the service was retired from the repo (no deployed DE service consumed its NATS lookups). Removed it from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists, and documented the new `discoenv_users_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).

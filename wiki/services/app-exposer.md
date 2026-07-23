@@ -3,8 +3,8 @@ type: Service
 title: app-exposer
 description: In-cluster API that launches and manages VICE and batch analyses, exposing them via Kubernetes resources.
 resource: /ansible/roles/services/app-exposer
-tags: [app-exposer, vice, batch, kubernetes, amqp, nats]
-timestamp: 2026-07-20T00:00:00Z
+tags: [app-exposer, vice, batch, kubernetes, amqp]
+timestamp: 2026-07-23T00:00:00Z
 ---
 
 app-exposer is the DE's job-orchestration API inside the cluster. Its config
@@ -18,8 +18,7 @@ client), [Harbor](/infrastructure/harbor.md) robot credentials, a
 [notifications](/services/notifications.md),
 [iplant-groups](/services/iplant-groups.md),
 [job-status-listener](/services/job-status-listener.md),
-[qms](/services/qms.md), and iplant-email. The pod also mounts NATS client TLS
-and creds secrets and reads `NATS_URLS` for [NATS](/infrastructure/nats.md).
+[qms](/services/qms.md), and iplant-email.
 The config also names the porklock data-transfer image, and its VICE section
 covers the gateway provider, base domain, file-transfers image, and the
 default backend loading page.
@@ -52,6 +51,6 @@ See [Building and Deploying Services](/playbooks/build-and-deploy.md).
 
 1. `ansible/roles/services/app-exposer/templates/app-exposer.yml.j2` — config template listing AMQP, DB, iRODS, Keycloak, Harbor, and service URLs.
 2. `ansible/roles/services/app-exposer/tasks/main.yml` — service accounts, RBAC, config secret, and deploy-service include.
-3. `ansible/roles/services/app-exposer/templates/k8s/app-exposer.yml.j2` — deployment with NATS TLS/creds mounts and env wiring.
+3. `ansible/roles/services/app-exposer/templates/k8s/app-exposer.yml.j2` — deployment manifest with volumes, env wiring, and probes.
 4. `ansible/roles/services/app-exposer/files/app-exposer.json` — build descriptor pinning the image.
 5. `ansible/roles/services/app-exposer/defaults/main.yml` — replica and anti-affinity defaults.
