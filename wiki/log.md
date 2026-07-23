@@ -2,7 +2,8 @@
 
 ## 2026-07-22
 
-* **Removal**: Deleted the discoenv-users service page — the service was retired from the repo (no deployed DE service consumed its NATS lookups). Removed it from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists, dropped the cross-reference from [discoenv-analyses](/services/discoenv-analyses.md), and documented the new `discoenv_users_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+* **Removal**: Deleted the discoenv-users service page — the service was retired from the repo (no deployed DE service consumed its NATS lookups). Removed it from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists, and documented the new `discoenv_users_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+* **Removal**: Deleted the discoenv-analyses service page — the service was retired from the repo (no deployed DE service consumed its NATS lookups). Removed it from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists, and documented the new `discoenv_analyses_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [openldap-docker](/services/openldap-docker.md) — documented the new `openldap_community_group.yml` playbook that backfills the `community` group on already-deployed OpenLDAP instances (the seed LDIF only loads on a fresh volume).
 
 ## 2026-07-21

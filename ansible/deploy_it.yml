@@ -27,8 +27,6 @@
       tags: de-webhooks
     - role: services/dewey
       tags: dewey
-    - role: services/discoenv-analyses
-      tags: discoenv-analyses
     - role: services/email-requests
       tags: email-requests
     - role: services/event-recorder

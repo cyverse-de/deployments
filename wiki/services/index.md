@@ -14,7 +14,6 @@
 * [de-mailer](/services/de-mailer.md) - Sends DE email notifications, building links from the DE base URL and relaying through an in-cluster Exim SMTP host.
 * [de-webhooks](/services/de-webhooks.md) - Consumes DE notification messages from RabbitMQ and forwards them to users' configured webhook endpoints.
 * [dewey](/services/dewey.md) - Indexes data-store changes into OpenSearch by consuming iRODS change messages from the irods AMQP exchange.
-* [discoenv-analyses](/services/discoenv-analyses.md) - NATS-based service providing analysis (job) information from the DE database to other discoenv services.
 * [email-requests](/services/email-requests.md) - AMQP worker that consumes email request messages from the de exchange and hands them to iplant-email for delivery, configured from the shared jobservices.yml template.
 * [event-recorder](/services/event-recorder.md) - AMQP worker that consumes event messages from the de exchange and records them, sharing the jobservices.yml configuration with the other jobservices workers.
 * [formation](/services/formation.md) - Keycloak-authenticated HTTP API (with MCP support) fronting apps, app-exposer, and permissions for launching and managing analyses, including VICE URL readiness checks.
