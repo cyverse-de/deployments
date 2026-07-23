@@ -887,7 +887,6 @@ source_repos:
   - de-mailer
   - de-webhooks
   - dewey
-  - discoenv-users
   - email-requests
   - event-recorder
   - formation

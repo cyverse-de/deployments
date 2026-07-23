@@ -235,7 +235,6 @@ self-signed certificates. To extract them for debugging or out-of-cluster use, s
 If the NATS certificates expire, services that connect to NATS
 ([subscriptions](/services/subscriptions.md), [terrain](/services/terrain.md),
 [app-exposer](/services/app-exposer.md), [jex-adapter](/services/jex-adapter.md),
-[discoenv-users](/services/discoenv-users.md),
 [data-usage-api](/services/data-usage-api.md),
 [resource-usage-api](/services/resource-usage-api.md)) will fail to connect. Symptoms:
 services log TLS handshake errors; NATS-dependent operations silently fail.
@@ -254,7 +253,6 @@ After renewal, restart all NATS-connected services so they pick up the new certi
 kubectl -n $NS rollout restart \
   deployment/app-exposer \
   deployment/data-usage-api \
-  deployment/discoenv-users \
   deployment/jex-adapter \
   deployment/resource-usage-api \
   deployment/subscriptions \

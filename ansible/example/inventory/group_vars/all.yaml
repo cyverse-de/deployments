@@ -1726,10 +1726,6 @@
 # dewey
 # dewey_replicas: 2
 
-# discoenv-users
-# discoenv_users_replicas: 2
-# discoenv_users_pod_anti_affinity: true
-
 # email-requests
 # email_requests_replicas: 2
 
