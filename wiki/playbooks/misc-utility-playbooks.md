@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-22T00:00:00Z
+timestamp: 2026-07-23T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -96,6 +96,15 @@ endpoint, and apps and terrain now point their JEX base URL there. Removes the
 `jex-adapter` Deployment, its `jex-adapter` Service, and the
 `jex-adapter-configs` secret from the DE namespace. Idempotent — deleting
 already-absent resources succeeds silently.
+
+## qms_adapter_cleanup.yml
+
+Deletes a running qms-adapter deployment after the service's retirement from
+this repo: nothing publishes to the `qms.usages` AMQP routing key it consumed
+(usage updates moved to NATS and the [subscriptions](/services/subscriptions.md)
+service in 2022). Removes the `qms-adapter` Deployment, its `qms-adapter`
+Service, and the `qms-adapter-configs` secret from the DE namespace.
+Idempotent — deleting already-absent resources succeeds silently.
 
 ## vice-operator-eks.yml
 

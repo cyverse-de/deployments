@@ -1,0 +1,49 @@
+---
+# Remove a running qms-adapter deployment from the cluster.
+#
+# qms-adapter has been retired: nothing publishes to the qms.usages AMQP
+# routing key it consumed anymore. Usage updates moved off AMQP in 2022 when
+# resource-usage-api switched to sending them over NATS to the subscriptions
+# service, leaving qms-adapter consuming from a dead queue. The service role
+# has been removed from this repo, so deploy_it.yml and kubernetes.yml no
+# longer manage it. This playbook deletes what an earlier deploy left behind:
+# the qms-adapter Deployment, its Service, and the qms-adapter-configs secret.
+# Idempotent and safe to re-run — deleting resources that are already gone
+# succeeds silently.
+#
+# Run: ansible-playbook -i <inventory> qms_adapter_cleanup.yml
+
+- name: Clean up the qms-adapter deployment
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ns default from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  tasks:
+    - name: Remove the qms-adapter Deployment
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        name: qms-adapter
+        namespace: "{{ ns }}"
+
+    - name: Remove the qms-adapter Service
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        name: qms-adapter
+        namespace: "{{ ns }}"
+
+    - name: Remove the qms-adapter-configs secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: qms-adapter-configs
+        namespace: "{{ ns }}"

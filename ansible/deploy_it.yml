@@ -55,8 +55,6 @@
       tags: permissions
     - role: services/qms
       tags: qms
-    - role: services/qms-adapter
-      tags: qms-adapter
     - role: services/requests
       tags: requests
     - role: services/resource-usage-api

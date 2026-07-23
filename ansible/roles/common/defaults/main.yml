@@ -907,7 +907,6 @@ source_repos:
   - portal-conductor
   - portal2
   - qms
-  - qms-adapter
   - requests
   - resource-usage-api
   - search

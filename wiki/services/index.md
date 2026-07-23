@@ -33,8 +33,7 @@
 * [permissions](/services/permissions.md) - DE permissions service backed by its own PostgreSQL database, with read access to the Grouper database for group information.
 * [portal-conductor](/services/portal-conductor.md) - Account-provisioning API used by the user portal, acting on LDAP, iRODS, terrain, Mailman, and formation, with an exim sidecar for outbound mail.
 * [portal2](/services/portal2.md) - The CyVerse user portal web application, handling account self-registration, sessions, and service access via Keycloak, portal-conductor, and terrain.
-* [qms-adapter](/services/qms-adapter.md) - Adapter that bridges the DE AMQP exchange and QMS, forwarding usage updates to the QMS admin usages endpoint.
-* [qms](/services/qms.md) - The Quota Management Service, tracking subscription plans and resource usage in its own PostgreSQL database and exchanging updates over AMQP.
+* [qms](/services/qms.md) - The Quota Management Service, tracking subscription plans and resource usage in its own PostgreSQL database.
 * [requests](/services/requests.md) - HTTP service for administrative requests in the DE, backed by the DE database via the shared jobservices configuration.
 * [resource-usage-api](/services/resource-usage-api.md) - HTTP API for DE resource usage data, connected to NATS with TLS and service credentials and to the DE database.
 * [search](/services/search.md) - Search API that queries the data-store Elasticsearch/OpenSearch index and consults data-info for path information.

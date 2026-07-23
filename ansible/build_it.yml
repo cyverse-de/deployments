@@ -195,12 +195,6 @@
           tags: qms
       tags: qms
     - ansible.builtin.include_role:
-        name: services/qms-adapter
-        tasks_from: build
-        apply:
-          tags: qms-adapter
-      tags: qms-adapter
-    - ansible.builtin.include_role:
         name: services/requests
         tasks_from: build
         apply:

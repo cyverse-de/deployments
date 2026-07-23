@@ -1,10 +1,10 @@
 ---
 type: Service
 title: qms
-description: The Quota Management Service, tracking subscription plans and resource usage in its own PostgreSQL database and exchanging updates over AMQP.
+description: The Quota Management Service, tracking subscription plans and resource usage in its own PostgreSQL database.
 resource: /ansible/roles/services/qms
 tags: [qms, quotas, subscriptions, postgresql, amqp]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-23T00:00:00Z
 ---
 
 The Quota Management Service (QMS). Unusually among DE services, its source
@@ -28,8 +28,7 @@ Runtime: a Deployment with `qms_replicas` (default 2), optional pod
 anti-affinity, and the `configurator` service account, listening on port 9000
 behind a `qms` Service on port 80. OpenTelemetry tracing goes to
 [Jaeger](/infrastructure/jaeger.md). Other services reach its usage endpoint
-via `baseurls_qms`; [qms-adapter](/services/qms-adapter.md) feeds it usage
-updates.
+via `baseurls_qms`.
 
 Build and deploy with
 `ansible-playbook -i $INVENTORY deploy_it.yml --tags qms`; see

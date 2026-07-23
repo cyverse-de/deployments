@@ -281,7 +281,6 @@
     - role: services/notifications
     - role: services/permissions
     - role: services/qms
-    - role: services/qms-adapter
     - role: services/requests
     - role: services/resource-usage-api
     - role: services/data-usage-api
