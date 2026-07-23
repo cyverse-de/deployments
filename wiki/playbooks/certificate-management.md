@@ -233,7 +233,7 @@ self-signed certificates. To extract them for debugging or out-of-cluster use, s
 [NATS](/infrastructure/nats.md).
 
 If the NATS certificates expire, services that connect to NATS
-([subscriptions](/services/subscriptions.md), [terrain](/services/terrain.md),
+([subscriptions](/services/subscriptions.md),
 [data-usage-api](/services/data-usage-api.md),
 [resource-usage-api](/services/resource-usage-api.md)) will fail to connect. Symptoms:
 services log TLS handshake errors; NATS-dependent operations silently fail.
@@ -252,8 +252,7 @@ After renewal, restart all NATS-connected services so they pick up the new certi
 kubectl -n $NS rollout restart \
   deployment/data-usage-api \
   deployment/resource-usage-api \
-  deployment/subscriptions \
-  deployment/terrain
+  deployment/subscriptions
 ```
 
 ## 7. What to do when a certificate has already expired

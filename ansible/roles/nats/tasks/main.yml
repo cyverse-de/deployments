@@ -288,39 +288,6 @@
       data:
         services.creds: "{{ lookup('pipe', 'base64 ' + download_dir.path + '/services.creds') }}"
 
-- name: Check if the nats-client-tls-pkcs8 secret exists
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ kubeconfig }}"
-  kubernetes.core.k8s_info:
-    kind: Secret
-    namespace: "{{ ns }}"
-    name: nats-client-tls-pkcs8
-  register: pkcs8_result
-
-- name: Debug pkcs8 secret lookup result
-  ansible.builtin.debug:
-    msg: "{{ pkcs8_result }}"
-
-- name: Get the client tls.key file for nats
-  delegate_to: localhost
-  environment:
-    KUBECONFIG: "{{ kubeconfig }}"
-  ansible.builtin.shell:
-    cmd: |
-      kubectl -n {{ ns }} get secrets nats-client-tls -o json | \
-      jq -r '.data["tls.key"]' | \
-      base64 -d | \
-      openssl pkcs8 -topk8 -inform pem -outform pem -nocrypt > tls.pkcs8 && \
-      kubectl -n {{ ns }} create secret generic nats-client-tls-pkcs8 --from-file=tls.pkcs8
-  when: (pkcs8_result.resources | length | int) == 0
-
-- name: Remove local tls.pkcs8 file
-  delegate_to: localhost
-  ansible.builtin.file:
-    path: ./tls.pkcs8
-    state: absent
-
 - name: Delete the download directory
   delegate_to: localhost
   ansible.builtin.file:
