@@ -19,7 +19,7 @@ configured for the DE realm. The key clients are:
 | Client | ID variable | Secret variable | Used by |
 |---|---|---|---|
 | DE (terrain) | `keycloak_client_id` | `keycloak_client_secret` | [terrain](/services/terrain.md) (user token validation, API calls) |
-| VICE services | `keycloak_vice_client_id` | `keycloak_vice_client_secret` | [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), [jex-adapter](/services/jex-adapter.md), job-status-\*, and most Go services |
+| VICE services | `keycloak_vice_client_id` | `keycloak_vice_client_secret` | [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), job-status-\*, and most Go services |
 | DE admin | `keycloak_admin_client_id` | `keycloak_admin_client_secret` | terrain admin API calls to Keycloak |
 | VICE API | `vice_api_keycloak_client_id` | `vice_api_keycloak_client_secret` | [vice-operator](/services/vice-operator.md) API authentication |
 | VICE operator | `vice_operator_keycloak_client_id` | `vice_operator_keycloak_client_secret` | vice-operator internal auth |

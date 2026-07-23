@@ -22,7 +22,6 @@
 * [info-typer](/services/info-typer.md) - JVM worker that consumes iRODS change messages from the irods AMQP exchange and stamps files with an ipc-filetype metadata attribute.
 * [infosquito2](/services/infosquito2.md) - Periodic indexer that reconciles the iRODS ICAT and metadata database into the OpenSearch/Elasticsearch index used by DE search.
 * [iplant-groups](/services/iplant-groups.md) - HTTP facade over the Grouper Web Services API that the rest of the DE uses for group and subject management.
-* [jex-adapter](/services/jex-adapter.md) - HTTP front door for batch analysis submissions, bridging the DE to the job-execution backend over AMQP and NATS.
 * [job-status-listener](/services/job-status-listener.md) - HTTP endpoint that receives job status updates from running analyses and feeds them into the job-services pipeline.
 * [job-status-recorder](/services/job-status-recorder.md) - Background worker that consumes job status update messages from AMQP and records them in the DE database.
 * [job-status-to-apps-adapter](/services/job-status-to-apps-adapter.md) - Background worker that forwards recorded job status updates from the DE database to the apps service's job callbacks endpoint.

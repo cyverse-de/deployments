@@ -2,6 +2,7 @@
 
 ## 2026-07-23
 
+* **Removal**: Deleted the jex-adapter service page — the service was retired from the repo. Its HTTP job-submission role was folded into app-exposer's `/batch` endpoint, and apps and terrain now point their JEX base URL there. Dropped jex-adapter from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists and from the [Keycloak](/infrastructure/keycloak.md) VICE-client list, trimmed the stale `(jex-adapter)` attribution in the [Ops Runbook](/playbooks/ops-runbook.md), and documented the new `jex_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Update**: [app-exposer](/services/app-exposer.md) — removed the NATS client TLS/creds mounts and `NATS_URLS` env wiring from the deployment; the app-exposer source no longer connects to NATS. Also dropped app-exposer from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists.
 
 ## 2026-07-22

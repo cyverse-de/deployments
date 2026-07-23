@@ -55,7 +55,7 @@ Keycloak token or admin credentials):
 curl -s $DE_HOST/terrain/admin/status | jq .
 ```
 
-This returns the health of iRODS, JEX (jex-adapter), Apps, the notification agent, and
+This returns the health of iRODS, JEX, Apps, the notification agent, and
 DataCite as seen by Terrain.
 
 ### Check that cert-manager and Traefik are healthy

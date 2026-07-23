@@ -88,6 +88,15 @@ from this repo: removes the `discoenv-users` Deployment and the
 Kubernetes Service object). Idempotent — deleting already-absent resources
 succeeds silently.
 
+## jex_adapter_cleanup.yml
+
+Deletes a running jex-adapter deployment after the service's retirement from
+this repo: its HTTP job-submission role was folded into app-exposer's `/batch`
+endpoint, and apps and terrain now point their JEX base URL there. Removes the
+`jex-adapter` Deployment, its `jex-adapter` Service, and the
+`jex-adapter-configs` secret from the DE namespace. Idempotent — deleting
+already-absent resources succeeds silently.
+
 ## vice-operator-eks.yml
 
 Brings up VICE on an AWS EKS cluster: the `vice-operator-eks` role
