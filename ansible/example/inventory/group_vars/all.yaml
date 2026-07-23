@@ -1799,10 +1799,6 @@
 # qms_replicas: 2
 # qms_pod_anti_affinity: true
 
-# qms-adapter
-# qms_adapter_replicas: 2
-# qms_adapter_pod_anti_affinity: true
-
 # requests
 # requests_replicas: 2
 # requests_pod_anti_affinity: true
