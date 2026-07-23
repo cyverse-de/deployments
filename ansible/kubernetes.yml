@@ -273,7 +273,6 @@
     - role: services/info-typer
     - role: services/infosquito2
     - role: services/iplant-groups
-    - role: services/jex-adapter
     - role: services/job-status-listener
     - role: services/job-status-recorder
     - role: services/job-status-to-apps-adapter

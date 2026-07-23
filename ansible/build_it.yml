@@ -141,12 +141,6 @@
           tags: iplant-groups
       tags: iplant-groups
     - ansible.builtin.include_role:
-        name: services/jex-adapter
-        tasks_from: build
-        apply:
-          tags: jex-adapter
-      tags: jex-adapter
-    - ansible.builtin.include_role:
         name: services/job-status-listener
         tasks_from: build
         apply:

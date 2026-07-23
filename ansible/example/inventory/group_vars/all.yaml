@@ -1753,10 +1753,6 @@
 # iplant_groups_replicas: 2
 # iplant_groups_pod_anti_affinity: true
 
-# jex-adapter
-# jex_adapter_replicas: 2
-# jex_adapter_pod_anti_affinity: true
-
 # job-status-listener
 # job_status_listener_replicas: 2
 # job_status_listener_pod_anti_affinity: true

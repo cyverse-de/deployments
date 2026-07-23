@@ -1,0 +1,48 @@
+---
+# Remove a running jex-adapter deployment from the cluster.
+#
+# jex-adapter has been retired: its HTTP job-submission functionality was
+# rolled into app-exposer (the /batch endpoint), and the apps and terrain
+# services now point their JEX base URL at app-exposer instead. The service
+# role has been removed from this repo, so deploy_it.yml and kubernetes.yml no
+# longer manage it. This playbook deletes what an earlier deploy left behind:
+# the jex-adapter Deployment, its Service, and the jex-adapter-configs secret.
+# Idempotent and safe to re-run — deleting resources that are already gone
+# succeeds silently.
+#
+# Run: ansible-playbook -i <inventory> jex_adapter_cleanup.yml
+
+- name: Clean up the jex-adapter deployment
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ns default from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  tasks:
+    - name: Remove the jex-adapter Deployment
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        name: jex-adapter
+        namespace: "{{ ns }}"
+
+    - name: Remove the jex-adapter Service
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        name: jex-adapter
+        namespace: "{{ ns }}"
+
+    - name: Remove the jex-adapter-configs secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: jex-adapter-configs
+        namespace: "{{ ns }}"

@@ -37,8 +37,6 @@
       tags: infosquito2
     - role: services/iplant-groups
       tags: iplant-groups
-    - role: services/jex-adapter
-      tags: jex-adapter
     - role: services/job-status-listener
       tags: job-status-listener
     - role: services/job-status-recorder

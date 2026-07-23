@@ -109,7 +109,6 @@ baseurls_data_info: http://data-info
 baseurls_grouper_web_services: http://grouper-ws/grouper-ws
 baseurls_iplant_email: http://de-mailer
 baseurls_iplant_groups: http://iplant-groups
-baseurls_jex_adapter: http://jex-adapter
 baseurls_job_status_listener: http://job-status-listener
 baseurls_metadata: http://metadata
 baseurls_notifications: http://notifications/v1
@@ -895,7 +894,6 @@ source_repos:
   - info-typer
   - infosquito2
   - iplant-groups
-  - jex-adapter
   - job-status-listener
   - job-status-recorder
   - job-status-to-apps-adapter
