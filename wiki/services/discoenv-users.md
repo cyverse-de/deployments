@@ -4,15 +4,14 @@ title: discoenv-users
 description: NATS-based service providing DE user information from the DE database to other discoenv services.
 resource: /ansible/roles/services/discoenv-users
 tags: [users, nats, de]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-22T00:00:00Z
 ---
 
 discoenv-users is the user-lookup member of the NATS-connected "discoenv"
 services. The pod mounts the `nats-client-tls` and `nats-services-creds`
 secrets for authenticated TLS connections to [NATS](/infrastructure/nats.md)
 and reads the cluster URLs from the `DISCOENV_NATS_CLUSTER` env var (sourced
-from the `configs` secret). Like
-[discoenv-analyses](/services/discoenv-analyses.md) it consumes the shared
+from the `configs` secret). It consumes the shared
 job-services config (`jobservices.yml.j2`), which supplies the DE
 [PostgreSQL](/infrastructure/postgresql.md) URI, the DE
 [RabbitMQ](/infrastructure/rabbitmq.md) exchange, the `uid_domain` used to
