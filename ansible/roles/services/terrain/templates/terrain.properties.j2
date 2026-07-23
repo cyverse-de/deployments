@@ -174,7 +174,8 @@ terrain.permanent-id.datacite.doi-prefix = {{ perm_id_datacite_doi_prefix }}
 # Dashboard Settings
 terrain.dashboard-aggregator.base-uri = {{ baseurls_dashboard_aggregator|string|regex_replace("\/$","") }}
 
-terrain.nats.urls = {{ nats_urls }}
+# Subscriptions Settings
+terrain.subscriptions.base-uri = {{ baseurls_subscriptions|string|regex_replace("\/$","") }}
 
 # Portal Conductor Settings
 terrain.portal-conductor.base-url = {{ portal_conductor_url }}

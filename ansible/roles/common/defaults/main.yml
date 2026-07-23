@@ -116,6 +116,7 @@ baseurls_permissions: http://permissions
 baseurls_qms: http://qms
 baseurls_requests: http://requests
 baseurls_search: http://search
+baseurls_subscriptions: http://subscriptions
 baseurls_terrain: http://terrain
 baseurls_user_info: http://user-info
 
