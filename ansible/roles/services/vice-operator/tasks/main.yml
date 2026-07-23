@@ -28,6 +28,24 @@
           metadata:
             name: "{{ vice_ns }}"
 
+    - name: Create the porklock iRODS credentials secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: porklock-config
+            namespace: "{{ vice_ns }}"
+          stringData:
+            irods-config.properties: |
+              porklock.irods-host={{ irods_host }}
+              porklock.irods-port={{ irods_port | default('1247') }}
+              porklock.irods-user={{ irods_user }}
+              porklock.irods-pass={{ irods_password }}
+              porklock.irods-home={{ irods_home | default('/iplant/home') }}
+              porklock.irods-zone={{ irods_zone }}
+
     - name: Set up the vice-operator service account
       kubernetes.core.k8s:
         state: present
