@@ -4,7 +4,7 @@ title: Certificate Management
 description: TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 resource: /docs/certificate-management.md
 tags: [tls, certificates, cert-manager, letsencrypt, haproxy, nats, keycloak]
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-07-24T00:00:00Z
 ---
 
 This runbook covers the TLS certificates used by the DE, how they are issued and renewed,
