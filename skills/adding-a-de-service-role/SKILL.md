@@ -126,8 +126,8 @@ the real `<image>:<ref>@sha256:<digest>`):
 don't hand-write from scratch. **Copy the closest existing service** (a Go
 service like `app-exposer` or `data-usage-api`; a Clojure service like `terrain`)
 and rename. The manifest is a `Deployment` + `Service`; keep the config-secret
-volume/mount wiring consistent with the invariants above, and trim RBAC/NATS/DB
-bits the service doesn't use.
+volume/mount wiring consistent with the invariants above, and trim RBAC/DB bits
+the service doesn't use.
 
 ## Files to Edit (the wiring — 4 points)
 
