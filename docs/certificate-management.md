@@ -236,10 +236,11 @@ NATS uses its own client and server TLS certificates. These are cert-manager-man
 self-signed certificates. To extract them for debugging or out-of-cluster use, see
 [nats.md](nats.md).
 
-If the NATS certificates expire, services that connect to NATS (subscriptions,
-data-usage-api,
-resource-usage-api) will fail to connect. Symptoms: services log TLS
-handshake errors; NATS-dependent operations silently fail.
+subscriptions is the only remaining service that connects to NATS. If the NATS
+certificates expire it will fail to connect; symptoms are TLS handshake errors
+in its logs. Its HTTP API is unaffected, and since every remaining caller —
+terrain, data-usage-api, and resource-usage-api — now uses that HTTP API, an
+expired NATS certificate no longer breaks QMS operations.
 
 To renew:
 
@@ -249,13 +250,10 @@ kubectl -n $NS delete secret nats-client-tls nats-server-tls
 kubectl -n $NS get certificate | grep nats -w
 ```
 
-After renewal, restart all NATS-connected services so they pick up the new certificates:
+After renewal, restart subscriptions so it picks up the new certificates:
 
 ```bash
-kubectl -n $NS rollout restart \
-  deployment/data-usage-api \
-  deployment/resource-usage-api \
-  deployment/subscriptions
+kubectl -n $NS rollout restart deployment/subscriptions
 ```
 
 ---

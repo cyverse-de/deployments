@@ -4,7 +4,7 @@ title: Certificate Management
 description: TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 resource: /docs/certificate-management.md
 tags: [tls, certificates, cert-manager, letsencrypt, haproxy, nats, keycloak]
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-07-24T00:00:00Z
 ---
 
 This runbook covers the TLS certificates used by the DE, how they are issued and renewed,
@@ -232,11 +232,13 @@ NATS uses its own client and server TLS certificates. These are cert-manager-man
 self-signed certificates. To extract them for debugging or out-of-cluster use, see
 [NATS](/infrastructure/nats.md).
 
-If the NATS certificates expire, services that connect to NATS
-([subscriptions](/services/subscriptions.md),
-[data-usage-api](/services/data-usage-api.md),
-[resource-usage-api](/services/resource-usage-api.md)) will fail to connect. Symptoms:
-services log TLS handshake errors; NATS-dependent operations silently fail.
+[subscriptions](/services/subscriptions.md) is the only remaining service that
+connects to NATS. If the NATS certificates expire it will fail to connect;
+symptoms are TLS handshake errors in its logs. Its HTTP API is unaffected, and
+since every remaining caller — [terrain](/services/terrain.md),
+[data-usage-api](/services/data-usage-api.md), and
+[resource-usage-api](/services/resource-usage-api.md) — now uses that HTTP API,
+an expired NATS certificate no longer breaks QMS operations.
 
 To renew:
 
@@ -246,13 +248,10 @@ kubectl -n $NS delete secret nats-client-tls nats-server-tls
 kubectl -n $NS get certificate | grep nats -w
 ```
 
-After renewal, restart all NATS-connected services so they pick up the new certificates:
+After renewal, restart subscriptions so it picks up the new certificates:
 
 ```bash
-kubectl -n $NS rollout restart \
-  deployment/data-usage-api \
-  deployment/resource-usage-api \
-  deployment/subscriptions
+kubectl -n $NS rollout restart deployment/subscriptions
 ```
 
 ## 7. What to do when a certificate has already expired
