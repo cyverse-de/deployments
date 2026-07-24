@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-07-24T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -106,6 +106,22 @@ service in 2022). Removes the `qms-adapter` Deployment, its `qms-adapter`
 Service, and the `qms-adapter-configs` secret from the DE namespace.
 Idempotent — deleting already-absent resources succeeds silently.
 
+## nats_cleanup.yml
+
+Removes the DE's NATS installation after its retirement from this repo. NATS
+carried the QMS request/reply traffic between
+[terrain](/services/terrain.md), [data-usage-api](/services/data-usage-api.md),
+[resource-usage-api](/services/resource-usage-api.md), and
+[subscriptions](/services/subscriptions.md); all four now use the subscriptions
+HTTP API. Uninstalls the `nats` Helm release and deletes the `nats-server-tls`,
+`nats-client-tls`, and `selfsigned-ca` Certificates, the `ca-issuer` Issuer, and
+the NATS secrets from the DE namespace. It first asserts that no workload still
+mounts a NATS secret and fails with the offending pod names if one does, so a
+half-migrated cluster can't be left with a service that cannot reconnect.
+Idempotent — deleting already-absent resources succeeds silently. Leaves the
+argo-events EventBus alone; that is a separate NATS instance under argo-events'
+control.
+
 ## vice-operator-eks.yml
 
 Brings up VICE on an AWS EKS cluster: the `vice-operator-eks` role
@@ -131,5 +147,6 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [5] `ansible/big_dumper.yml`, `ansible/roles/db_copy_prod/tasks/` — production database copy.
 [6] `ansible/config_files.yml` — standalone service_configurations run.
 [7] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
-[8] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
-[9] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[8] `ansible/nats_cleanup.yml` — NATS Helm release, certificate, and secret teardown.
+[9] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
+[10] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.

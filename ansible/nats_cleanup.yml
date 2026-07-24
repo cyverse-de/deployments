@@ -1,0 +1,109 @@
+---
+# Remove the DE's NATS installation from the cluster.
+#
+# NATS has been retired: it carried the QMS request/reply traffic between
+# terrain, data-usage-api, resource-usage-api, and subscriptions, and all four
+# now use the subscriptions HTTP API instead. The nats role has been removed
+# from this repo, so kubernetes.yml no longer manages it. This playbook deletes
+# what an earlier deploy left behind: the nats Helm release, the cert-manager
+# Certificates and Issuer that backed its TLS, and the services.creds secret.
+# Idempotent and safe to re-run — deleting resources that are already gone
+# succeeds silently.
+#
+# This does NOT touch the argo-events EventBus, which runs its own separate
+# NATS instance in the argo-events namespace under argo-events' control.
+#
+# Run: ansible-playbook -i <inventory> nats_cleanup.yml
+
+- name: Clean up the NATS installation
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ns default from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    nats_secret_names:
+      - nats-client-tls
+      - nats-server-tls
+      - nats-services-creds
+  tasks:
+    - name: Look up the pods in the DE namespace
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ ns }}"
+      register: nats_cleanup_pods
+
+    # The NATS server's own pods mount nats-server-tls; they are what this
+    # playbook removes, so only other workloads count as consumers.
+    - name: Collect the pods that still mount a NATS secret
+      ansible.builtin.set_fact:
+        nats_consumers: "{{ (nats_consumers | default([])) + [item.metadata.name] }}"
+      loop: "{{ nats_cleanup_pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+      when:
+        - not item.metadata.name is match('^nats-')
+        - >-
+          item.spec.volumes | default([])
+          | selectattr('secret', 'defined')
+          | map(attribute='secret.secretName')
+          | select('in', nats_secret_names) | list | length > 0
+
+    # Tearing down the certs while something still mounts them would leave that
+    # workload unable to reconnect, so fail loudly instead of half-removing NATS.
+    - name: Fail if any workload still mounts a NATS secret
+      ansible.builtin.assert:
+        that: (nats_consumers | default([])) | length == 0
+        fail_msg: >-
+          These pods still mount NATS secrets:
+          {{ (nats_consumers | default([])) | join(', ') }}.
+          Deploy their NATS-free images before running this playbook.
+        success_msg: No workload mounts the NATS secrets.
+
+    - name: Uninstall the nats Helm release
+      kubernetes.core.helm:
+        name: nats
+        release_namespace: "{{ ns }}"
+        state: absent
+        wait: true
+
+    - name: Remove the NATS certificates
+      kubernetes.core.k8s:
+        state: absent
+        api_version: cert-manager.io/v1
+        kind: Certificate
+        name: "{{ item }}"
+        namespace: "{{ ns }}"
+      loop:
+        - nats-server-tls
+        - nats-client-tls
+        - selfsigned-ca
+
+    # Named without a prefix, unlike every other component's issuer
+    # (de-ca-issuer, kc-ca-issuer, harbor-ca-issuer, ...), so it belonged to
+    # the nats role alone.
+    - name: Remove the ca-issuer issuer
+      kubernetes.core.k8s:
+        state: absent
+        api_version: cert-manager.io/v1
+        kind: Issuer
+        name: ca-issuer
+        namespace: "{{ ns }}"
+
+    - name: Remove the NATS secrets
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: "{{ item }}"
+        namespace: "{{ ns }}"
+      loop:
+        - nats-services-creds
+        - nats-client-tls
+        - nats-server-tls
+        - selfsigned-ca

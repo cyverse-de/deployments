@@ -168,9 +168,6 @@
         - networking
         - nodeports
 
-    - role: nats
-      tags: nats
-
     - role: opensearch
       tags: opensearch
 

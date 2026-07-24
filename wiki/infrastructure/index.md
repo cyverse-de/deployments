@@ -14,7 +14,6 @@
 * [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md) - How the k0s cluster is provisioned — node preparation, firewall, API load balancer, k0sctl apply, and the kubernetes.yml orchestration and tags.
 * [OpenLDAP](/infrastructure/ldap.md) - How OpenLDAP is installed for the DE by the ldap_slapd.yml playbook, and the base entities, groups, and service accounts it defines.
 * [Longhorn](/infrastructure/longhorn.md) - The opt-in longhorn role that installs Longhorn replicated block storage via Helm — default StorageClass, replica sizing, and backup-target handling. Superseded by OpenEBS.
-* [NATS](/infrastructure/nats.md) - How NATS is installed via its Helm chart by the nats role, and how to download its TLS certs and creds from cluster secrets.
 * [OpenEBS](/infrastructure/openebs.md) - How OpenEBS cluster storage is deployed by the opt-in openebs role in kubernetes.yml, and the kustomize/kubectl versions it requires.
 * [OpenSearch](/infrastructure/opensearch.md) - The single-node in-cluster OpenSearch StatefulSet backing the DE data-search pipeline, deployed by the opensearch role via kubernetes.yml or the standalone opensearch.yml playbook.
 * [PostgreSQL](/infrastructure/postgresql.md) - How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.

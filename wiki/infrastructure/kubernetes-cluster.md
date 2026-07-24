@@ -64,7 +64,7 @@ ConfigMap, local exim, and the Harbor image-pull secret), OpenLDAP,
 (`configure-services`, `secrets`), `kubernetes_ingress` (tag `ingress`), `kubernetes_networking`
 (tags `networking`, `nodeports` — NodePort services for kifshare, terrain, and
 job-status-listener that [HAProxy](/infrastructure/haproxy.md) fronts),
-[NATS](/infrastructure/nats.md), [OpenSearch](/infrastructure/opensearch.md), node feature
+[OpenSearch](/infrastructure/opensearch.md), node feature
 discovery (`feature-discovery`), [Grouper](/infrastructure/grouper.md) init, the VICE image
 cache, the iRODS CSI driver (tag `irods-csi-driver`, including plugin directories created on
 workers under `/var/lib/k0s/kubelet/`), and finally service deploys (`deploy-all-services` or
