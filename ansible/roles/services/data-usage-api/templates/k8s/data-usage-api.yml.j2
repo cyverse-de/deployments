@@ -34,17 +34,6 @@ spec:
             items:
               - key: data-usage-api.yml
                 path: data-usage-api.yml
-        - name: nats-client-tls
-          secret:
-            secretName: nats-client-tls
-        - name: nats-services-creds
-          secret:
-            secretName: nats-services-creds
-            items:
-              - key: services.creds
-                path: services.creds
-              - key: services.creds
-                path: service.creds
       containers:
         - name: data-usage-api
           image: harbor.cyverse.org/de/data-usage-api
@@ -73,23 +62,15 @@ spec:
                 secretKeyRef:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
-            - name: DISCOENV_NATS_CLUSTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: NATS_URLS
+          args:
+            - --subscriptions-base-uri
+            - {{ baseurls_subscriptions }}
           ports:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
             - name: data-usage-api-configs
               mountPath: /etc/iplant/de
-              readOnly: true
-            - name: nats-client-tls
-              mountPath: /etc/nats/tls
-              readOnly: true
-            - name: nats-services-creds
-              mountPath: /etc/nats/creds
               readOnly: true
           livenessProbe:
             httpGet:

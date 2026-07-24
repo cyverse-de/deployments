@@ -34,19 +34,6 @@ spec:
             items:
               - key: jobservices.yml
                 path: service.yml
-        - name: nats-client-tls
-          secret:
-            secretName: nats-client-tls
-        - name: nats-services-creds
-          secret:
-            secretName: nats-services-creds
-            items:
-              - key: services.creds
-                path: services.creds
-              - key: services.creds
-                path: service.creds
-        - name: nats-configuration
-          emptyDir: {}
       containers:
         - name: resource-usage-api
           image: harbor.cyverse.org/de/resource-usage-api
@@ -75,29 +62,17 @@ spec:
                 secretKeyRef:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
-            - name: DISCOENV_NATS_CLUSTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: NATS_URLS
           args:
             - --log-level
             - debug
+            - --subscriptions-base-uri
+            - {{ baseurls_subscriptions }}
           ports:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
             - name: resource-usage-api-configs
               mountPath: /etc/cyverse/de/configs
-              readOnly: true
-            - name: nats-client-tls
-              mountPath: /etc/nats/tls
-              readOnly: true
-            - name: nats-services-creds
-              mountPath: /etc/nats/creds
-              readOnly: true
-            - name: nats-configuration
-              mountPath: /etc/cyverse/de/env
               readOnly: true
           livenessProbe:
             httpGet:

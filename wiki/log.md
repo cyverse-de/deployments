@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-07-24
+
+* **Update**: [data-usage-api](/services/data-usage-api.md) and [resource-usage-api](/services/resource-usage-api.md) — both now reach [subscriptions](/services/subscriptions.md) over HTTP instead of NATS, so removed their NATS secret mounts, the `nats-configuration` volume, and the `DISCOENV_NATS_CLUSTER` env from the deployments, passing `--subscriptions-base-uri` (from `baseurls_subscriptions`) instead. Rewrote [Certificate Management](/playbooks/certificate-management.md)'s NATS section: subscriptions is now the only NATS consumer, and since every caller uses its HTTP API, an expired NATS certificate no longer breaks QMS operations.
+
 ## 2026-07-23
 
 * **Removal**: Deleted the qms-adapter service page — the service was retired from the repo. Nothing publishes to the `qms.usages` AMQP routing key it consumed; usage updates moved to NATS and the [subscriptions](/services/subscriptions.md) service in 2022. Dropped the cross-reference and the stale "exchanging updates over AMQP" description from [qms](/services/qms.md), and documented the new `qms_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
