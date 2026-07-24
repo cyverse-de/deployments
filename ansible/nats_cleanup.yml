@@ -105,5 +105,12 @@
       loop:
         - nats-services-creds
         - nats-client-tls
+        # PKCS8 form of the client key, generated for terrain; its generation
+        # was removed from the nats role during terrain's HTTP migration, but the
+        # already-deployed secret outlives that change.
+        - nats-client-tls-pkcs8
         - nats-server-tls
+        # nats-box context store, created by the nsc-init flow rather than by
+        # Helm, so `helm uninstall` does not own it.
+        - nats-box-contexts
         - selfsigned-ca
