@@ -56,7 +56,7 @@ afterwards with `deploy_it.yml`, see
 * Cluster and storage: `create-cluster`, `haproxy` / `ui-haproxy`,
   `cert-manager`, `cert-issuers`, `longhorn`, `openebs`
 * Third-party subsystems: `de-reqs`, `argo`, `ingress-nginx`, `traefik`,
-  `nats`, `opensearch`, `grouper`, `image-cache`, `ingress`, `networking`
+  `opensearch`, `grouper`, `image-cache`, `ingress`, `networking`
 * Opt-in only (skipped unless the tag is passed explicitly): `harbor`,
   `keycloak`, `jaeger`
 * Databases and services: `install-postgres`, `setup-databases`,

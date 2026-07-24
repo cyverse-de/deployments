@@ -3,7 +3,7 @@ type: Runbook
 title: Certificate Management
 description: TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 resource: /docs/certificate-management.md
-tags: [tls, certificates, cert-manager, letsencrypt, haproxy, nats, keycloak]
+tags: [tls, certificates, cert-manager, letsencrypt, haproxy, keycloak]
 timestamp: 2026-07-24T00:00:00Z
 ---
 
@@ -28,13 +28,12 @@ the cert-manager certificates become user-facing.
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
 | Traefik default TLS | `traefik` | cert-manager self-signed CA (always) | Internal routing breaks |
-| NATS client/server TLS | `prod` | cert-manager self-signed CA (always) | Services using NATS fail to connect |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
 controls the issuer for the DE UI, VICE, portal, and [Keycloak](/infrastructure/keycloak.md)
-certificates. Internal-only certificates (Traefik, [NATS](/infrastructure/nats.md),
-portal-conductor) are always self-signed regardless of this setting.
+certificates. Internal-only certificates (Traefik and portal-conductor) are
+always self-signed regardless of this setting.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
 certificates for the DE UI and VICE are not directly user-facing — HAProxy presents its own
@@ -82,8 +81,7 @@ kubectl -n $NS describe certificate <name>
 Look at the `Status.Conditions` section. If `Ready` is `False`, the `Message` field explains why.
 
 > **Note:** Most certificates are in `$NS`, but Keycloak certificates are in the `keycloak`
-> namespace. Use `kubectl -n keycloak get certificates` for those. NATS certificates are
-> named `nats-client-tls` and `nats-server-tls` in `$NS`.
+> namespace. Use `kubectl -n keycloak get certificates` for those.
 
 ### Decode the actual certificate to see expiry
 
@@ -164,7 +162,7 @@ kubectl -n cert-manager logs -l app=cert-manager --since=1h | grep -i "error\|ac
 
 Some deployments use self-signed CAs managed by cert-manager. The CA certificates
 themselves are also managed as cert-manager `Certificate` objects (e.g., `selfsigned-ca` in
-the DE namespace for NATS, `kc-selfsigned-ca` in the keycloak namespace) and have a 1-year
+`kc-selfsigned-ca` in the keycloak namespace) and have a 1-year
 validity (`8766h`).
 
 ### Check the CA certificates
@@ -226,35 +224,7 @@ openssl x509 -enddate -noout -in /etc/ssl/cyverse.combined
      -a "name=haproxy state=reloaded"
    ```
 
-## 6. NATS TLS certificates
-
-NATS uses its own client and server TLS certificates. These are cert-manager-managed
-self-signed certificates. To extract them for debugging or out-of-cluster use, see
-[NATS](/infrastructure/nats.md).
-
-[subscriptions](/services/subscriptions.md) is the only remaining service that
-connects to NATS. If the NATS certificates expire it will fail to connect;
-symptoms are TLS handshake errors in its logs. Its HTTP API is unaffected, and
-since every remaining caller — [terrain](/services/terrain.md),
-[data-usage-api](/services/data-usage-api.md), and
-[resource-usage-api](/services/resource-usage-api.md) — now uses that HTTP API,
-an expired NATS certificate no longer breaks QMS operations.
-
-To renew:
-
-```bash
-kubectl -n $NS delete secret nats-client-tls nats-server-tls
-# cert-manager will reissue; watch progress:
-kubectl -n $NS get certificate | grep nats -w
-```
-
-After renewal, restart subscriptions so it picks up the new certificates:
-
-```bash
-kubectl -n $NS rollout restart deployment/subscriptions
-```
-
-## 7. What to do when a certificate has already expired
+## 6. What to do when a certificate has already expired
 
 If a cert expired and services are already failing:
 
@@ -268,7 +238,7 @@ If a cert expired and services are already failing:
 
 For HAProxy-managed external certs, follow step 5.
 
-## 8. cert-manager is not renewing automatically
+## 7. cert-manager is not renewing automatically
 
 If a cert is approaching expiry and cert-manager is not renewing it automatically:
 

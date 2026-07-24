@@ -65,19 +65,15 @@ kubectl -n cert-manager get pods
 kubectl -n traefik get pods
 ```
 
-### Check NATS and RabbitMQ
+### Check RabbitMQ
 
 ```bash
-# NATS runs in-cluster
-kubectl -n $NS get pods -l de-app=nats
-
 # RabbitMQ runs externally — check via its management interface
 # (rabbitmq_host from the inventory, management port 15672)
 curl -s -u guest:guest http://$RABBITMQ_HOST:15672/api/overview | jq '{rabbitmq_version, cluster_name}'
 ```
 
-See [NATS](/infrastructure/nats.md) and [RabbitMQ](/infrastructure/rabbitmq.md) for details
-on either broker.
+See [RabbitMQ](/infrastructure/rabbitmq.md) for details on the broker.
 
 ### Check Argo (batch job execution)
 

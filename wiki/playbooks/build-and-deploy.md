@@ -60,8 +60,7 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
 * `build_release.yml` is best-effort: a failed service doesn't stop the others,
   and a rebuilt/skipped/failed summary is printed at the end.
 * Deploys assume the cluster subsystems are already installed — see
-  [PostgreSQL](/infrastructure/postgresql.md) and
-  [NATS](/infrastructure/nats.md).
+  [PostgreSQL](/infrastructure/postgresql.md).
 
 # Citations
 

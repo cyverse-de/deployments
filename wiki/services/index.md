@@ -38,7 +38,7 @@
 * [resource-usage-api](/services/resource-usage-api.md) - HTTP API for DE resource usage data, backed by the DE database and the subscriptions service.
 * [search](/services/search.md) - Search API that queries the data-store Elasticsearch/OpenSearch index and consults data-info for path information.
 * [sonora](/services/sonora.md) - The Discovery Environment web user interface, a Node.js app that fronts terrain and Keycloak.
-* [subscriptions](/services/subscriptions.md) - QMS subscription service that answers subscription requests over NATS and HTTP, backed by the QMS database.
+* [subscriptions](/services/subscriptions.md) - QMS subscription service that answers subscription requests over HTTP, backed by the QMS database.
 * [terrain](/services/terrain.md) - The DE's public API gateway, routing UI requests to the backend services and talking to iRODS and Keycloak directly.
 * [timelord](/services/timelord.md) - Background worker that tracks VICE analysis time limits, using the shared job-services configuration and Kubernetes API access.
 * [user-info](/services/user-info.md) - HTTP service backing user preferences, sessions, and saved searches, stored in the DE database.

@@ -631,16 +631,6 @@ admin_attribute: entitlement
 analytics_enabled: false
 analytics_id: g-id
 
-# NATS Variables
-ca_duration: 8766h # 1 year
-ca_renew_before: 240h # 10 days
-nats_urls: tls://nats
-nats_cmd_pod: nats-box
-nats_server_cert_duration: 8766h # 1 year
-nats_server_cert_renew_before: 240h # 10 days
-nats_client_cert_duration: 8766h # 1 year
-nats_client_cert_renew_before: 240h # 10 days
-
 # Grouper Variables
 grouper_version: v3.0.1-rc01
 grouper_client_auth: false # actual useful value

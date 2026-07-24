@@ -18,7 +18,6 @@ inventory setup), see [ansible/docs/index.md](../ansible/docs/index.md).
 | [keycloak.md](keycloak.md) | Client secret rotation, admin users, auth failure diagnosis |
 | [postgresql.md](postgresql.md) | Migrations, backups, diagnostic queries |
 | [irods.md](irods.md) | data-info connectivity, CSI driver, service account rotation, file transfers |
-| [nats.md](nats.md) | NATS installation, cert/creds extraction |
 | [rabbitmq.md](rabbitmq.md) | RabbitMQ installation and configuration |
 | [haproxy.md](haproxy.md) | HAProxy deployment |
 | [ldap.md](ldap.md) | OpenLDAP deployment |
