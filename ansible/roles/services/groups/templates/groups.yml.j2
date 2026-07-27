@@ -1,0 +1,38 @@
+# -*- mode: yaml -*-
+
+# Groups, membership, and the effective-membership closure live in the
+# permissions schema of the DE database, alongside the tables the permissions
+# service owns.
+db:
+  uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ permissions_db_name }}?sslmode=disable"
+  schema: "permissions"
+
+# Appended to a bare username to find the matching public.users row when a new
+# subject is created. Must match the suffix the DE actually uses, or subjects are
+# left uncorrelated rather than failing loudly.
+users:
+  suffix: "{{ groups_user_suffix }}"
+
+# Keycloak supplies user attributes only -- names, email addresses, and
+# institutions. The service account needs to read users, not to manage groups.
+keycloak:
+  base-url: "{{ keycloak_server_uri }}"
+  realm: "{{ keycloak_realm_name }}"
+  client-id: "{{ groups_keycloak_client_id }}"
+  client-secret: "{{ groups_keycloak_client_secret }}"
+
+# Group authorization is delegated to the permissions service, where each group
+# is a resource of type "group".
+permissions:
+  base: "http://permissions"
+
+# Group change events, for downstream re-indexing.
+amqp:
+  uri: "amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}"
+  exchange: "de"
+
+# Service accounts that bypass ALL per-group permission checks. These have full
+# administrative control over every group, so list only trusted internal DE
+# services.
+admin:
+  users: {{ groups_admin_users | to_json }}

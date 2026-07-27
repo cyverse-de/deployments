@@ -1,0 +1,55 @@
+# The Grouper importer, as a suspended CronJob.
+#
+# It is created suspended deliberately. Until the permissions service reads group
+# data from this database there is nothing to keep in sync, and until then an
+# unattended import is write traffic nobody asked for. Resume it when the
+# permissions service is deployed:
+#
+#     kubectl -n {{ ns }} patch cronjob grouper-import -p '{"spec":{"suspend":false}}'
+#
+# It must run on a schedule for as long as Grouper stays authoritative: terrain
+# and apps still write group changes there, and those changes are invisible to
+# the permissions service until the next import. Suspend it again once terrain,
+# apps, group-propagator, and Sonora have cut over.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: grouper-import
+spec:
+  schedule: "{{ grouper_import_schedule }}"
+  suspend: {{ grouper_import_suspended | bool | lower }}
+  # The importer takes an advisory lock, so an overrun would block rather than
+  # corrupt -- but skipping is the honest behaviour for a job that reconciles to
+  # the current state anyway.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: grouper-import
+              image: harbor.cyverse.org/de/groups
+              command:
+                - grouper-import
+              envFrom:
+                - secretRef:
+                    name: grouper-import-configs
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                  ephemeral-storage: "1Gi"
+                limits:
+                  cpu: "1"
+                  memory: "1Gi"
+                  ephemeral-storage: "1Gi"
+              env:
+                - name: TZ
+                  valueFrom:
+                    configMapKeyRef:
+                      name: timezone
+                      key: timezone

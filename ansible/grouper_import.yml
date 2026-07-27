@@ -1,0 +1,112 @@
+---
+# Runs the Grouper importer once, as a Job, and reports what it did.
+#
+# Use this for the initial import and for dry runs. The recurring import that
+# keeps the new store in step with Grouper during the soak is the grouper-import
+# CronJob, deployed by `deploy_it.yml --tags groups`.
+#
+#   ansible-playbook -i <inventory> grouper_import.yml -e dry_run=true
+#   ansible-playbook -i <inventory> grouper_import.yml
+#   ansible-playbook -i <inventory> grouper_import.yml -e import_phase=groups
+#
+# The importer is convergent: it reconciles membership and grants to Grouper's
+# current state, including removals, so running it repeatedly is expected. It
+# refuses to run once group_data_source says this database is authoritative,
+# because reconciling after cutover would delete group data created natively.
+- name: Run the Grouper importer
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - role: common
+  vars:
+    dry_run: false
+    import_phase: all
+    import_job_name: "grouper-import-manual"
+    import_timeout: 1800
+  tasks:
+    - name: remove any previous manual import job
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s:
+        state: absent
+        api_version: batch/v1
+        kind: Job
+        name: "{{ import_job_name }}"
+        namespace: "{{ ns }}"
+        wait: true
+
+    - name: start the import job
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ns }}"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "{{ import_job_name }}"
+            namespace: "{{ ns }}"
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: grouper-import
+                    image: "{{ groups_image | default('harbor.cyverse.org/de/groups') }}"
+                    command:
+                      - grouper-import
+                    args: "{{ ['-dry-run'] if (dry_run | bool) else [] }}"
+                    envFrom:
+                      - secretRef:
+                          name: grouper-import-configs
+                    env:
+                      - name: GROUPS_IMPORT_PHASE
+                        value: "{{ import_phase }}"
+                    resources:
+                      requests:
+                        cpu: "100m"
+                        memory: "256Mi"
+                      limits:
+                        cpu: "1"
+                        memory: "1Gi"
+
+    - name: wait for the import to finish
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s_info:
+        api_version: batch/v1
+        kind: Job
+        name: "{{ import_job_name }}"
+        namespace: "{{ ns }}"
+      register: import_job
+      until: >-
+        (import_job.resources[0].status.succeeded | default(0) | int) > 0
+        or (import_job.resources[0].status.failed | default(0) | int) > 0
+      retries: "{{ (import_timeout | int) // 10 }}"
+      delay: 10
+
+    # The report is the point of the run: it names the groups that vanished from
+    # Grouper, the identifiers it had to trim, the privileges it could not
+    # translate, and whether the effective-membership closure matches Grouper's
+    # own expansion. A run that reports nothing is not the same as a run that
+    # changed nothing.
+    - name: show the importer's report
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      ansible.builtin.command:
+        cmd: >-
+          kubectl --namespace {{ ns }} logs job/{{ import_job_name }}
+      register: import_log
+      changed_when: false
+
+    - name: report
+      ansible.builtin.debug:
+        var: import_log.stdout_lines
+
+    - name: fail if the import did not succeed
+      ansible.builtin.fail:
+        msg: "the Grouper import failed; see the report above"
+      when: (import_job.resources[0].status.succeeded | default(0) | int) < 1

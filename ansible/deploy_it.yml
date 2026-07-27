@@ -51,6 +51,8 @@
       tags: notifications
     - role: services/openldap-docker
       tags: openldap-docker
+    - role: services/groups
+      tags: groups
     - role: services/permissions
       tags: permissions
     - role: services/qms

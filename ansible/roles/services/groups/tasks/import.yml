@@ -1,0 +1,39 @@
+---
+# Deploys the Grouper importer: the credentials it needs and a CronJob that runs
+# it. Separate from the service tasks so that deploying the groups service does
+# not imply running an import, and so the importer can be updated on its own.
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: create the grouper-import-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: grouper-import-configs
+            namespace: "{{ ns }}"
+          # The importer reads these as flags with GROUPS_IMPORT_* environment
+          # fallbacks, so credentials never appear in a command line that ps can
+          # read.
+          stringData:
+            GROUPS_IMPORT_GROUPER_URI: >-
+              postgresql://{{ grouper_db_user }}:{{ grouper_db_pass | urlencode }}@{{ grouper_db_host }}:{{ grouper_db_port }}/{{ grouper_db_name }}?sslmode=disable
+            GROUPS_IMPORT_GROUPER_PREFIX: "{{ grouper_folder_name_prefix }}"
+            GROUPS_IMPORT_DB_URI: >-
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ permissions_db_name }}?sslmode=disable
+            GROUPS_IMPORT_DB_SCHEMA: "permissions"
+            GROUPS_IMPORT_USER_SUFFIX: "{{ groups_user_suffix }}"
+            GROUPS_IMPORT_PERMISSIONS_BASE: "http://permissions"
+            GROUPS_IMPORT_PHASE: "{{ grouper_import_phase }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - name: deploy the grouper-import cronjob
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ns }}"
+        definition: "{{ lookup('template', 'k8s/grouper-import.yml.j2') | from_yaml }}"

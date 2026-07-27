@@ -58,6 +58,9 @@
 
 ## 2026-07-27
 
+* **Creation**: Added [groups](/services/groups.md) for the new group and membership service.
+* **Creation**: Added [Importing Groups from Grouper](/playbooks/grouper-import.md) for the grouper-import tool and its CronJob.
+* **Update**: Rewrote [permissions](/services/permissions.md) — it now reads group membership from its own schema and no longer connects to Grouper.
 * **New**: [Grafana](/infrastructure/grafana.md) — first metrics dashboards for the DE. The new `grafana` role installs the upstream Helm chart opt-in (`when: "'grafana' in ansible_run_tags"`, plus a standalone `grafana.yml`), with a bootstrap admin account, a read-only PostgreSQL datasource on the DE database, and a provisioned DE Logins dashboard built from `public.logins`. Grafana keeps its own state in a `grafana` database rather than a PVC, so the pod is disposable. Documented the two database roles and why they're separate, the `$__env{}` indirection that keeps both passwords out of the chart's ConfigMaps, and the timezone reasoning behind pinning the dashboard to UTC — `logins.login_time` is a naive `America/Phoenix` wall clock, and converting it to true instants would push post-17:00 logins into the next day's bucket. Added `grafana` to the opt-in tag list in [Full Deployment](/playbooks/full-deployment.md).
 * **Update**: [PostgreSQL](/infrastructure/postgresql.md) — added the Grafana database to the `setup-databases` feature-toggle list and the operator database table, and noted that the Grafana pass is the only one that grants table privileges rather than just creating a role and a database.
 

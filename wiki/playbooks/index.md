@@ -10,6 +10,7 @@
 * [Continuous Integration to QA](/playbooks/ci-to-qa.md) - The tag-triggered CI path that builds service images on GitHub Actions, publishes build descriptors to de-releases, and deploys to QA via GoCD.
 * [Deploying TLS Certificates](/playbooks/deploy-tls-certs.md) - How the tls_certs_main.yml playbook copies the combined TLS certificate to the proxy nodes for HAProxy.
 * [Deploying a Full DE Environment](/playbooks/full-deployment.md) - How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
+* [Importing Groups from Grouper](/playbooks/grouper-import.md) - Running the grouper-import tool to copy DE group data out of Grouper into the permissions schema, and keeping it in step during the migration.
 * [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) - How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 * [Longhorn Teardown](/playbooks/longhorn-teardown.md) - The all-or-nothing procedure for deleting a Longhorn install from a cluster, and how to recover if the default BackupTarget was deleted prematurely.
 * [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) - A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, app imports, and GoCD kubeconfig transfer.
