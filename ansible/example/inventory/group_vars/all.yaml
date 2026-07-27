@@ -468,6 +468,48 @@
 
 
 # ---------------------------------------------------------------------
+# Grafana database
+# ---------------------------------------------------------------------
+# Disabled by default — set `grafana` to true to create the database and
+# the two roles. Grafana manages its own schema, so nothing is migrated.
+# Two roles are created: one owns the database Grafana keeps its own
+# state in, the other is a read-only role Grafana queries the DE database
+# with. Keeping them separate matters because anyone holding the Grafana
+# admin password can run arbitrary SQL through the datasource.
+
+# Whether to create the Grafana database and roles.
+# Default: false
+# grafana: false
+
+# Role that owns the Grafana state database.
+# Default: grafana
+# grafana_db_user: grafana
+
+# Password for `grafana_db_user`.
+# Default: Ch@ng3M3
+# grafana_db_password: Ch@ng3M3
+
+# Name of the Grafana state database.
+# Default: grafana
+# grafana_db_name: grafana
+
+# Read-only role Grafana queries the DE database with.
+# Default: grafana_ro
+# grafana_ro_db_user: grafana_ro
+
+# Password for `grafana_ro_db_user`.
+# Default: Ch@ng3M3
+# grafana_ro_db_password: Ch@ng3M3
+
+# Tables in the DE database's public schema that `grafana_ro_db_user` is
+# granted SELECT on. Add a table here if a new dashboard needs it.
+# Default: [logins, users]
+# grafana_ro_db_tables:
+#   - logins
+#   - users
+
+
+# ---------------------------------------------------------------------
 # User Portal database
 # ---------------------------------------------------------------------
 # Disabled by default — set `portal` to true to create and migrate it.
@@ -1400,6 +1442,51 @@
 # and write. infosquito2/dewey create it on first index.
 # Default: replace_me
 # es_index: data
+
+
+# =====================================================================
+# Grafana
+# =====================================================================
+# Metrics dashboards for the DE. Opt-in: the role only runs when the
+# `grafana` tag is requested, either through kubernetes.yml or the
+# standalone grafana.yml playbook. The database settings it depends on are
+# in the "Grafana database" section above.
+#
+# Grafana is not exposed outside the cluster. Reach it with:
+#   kubectl -n grafana port-forward svc/grafana 3000:80
+
+# Namespace Grafana is installed into.
+# Default: grafana
+# grafana_namespace: grafana
+
+# Helm chart repository and pinned chart version.
+# Default: https://grafana.github.io/helm-charts and 10.5.15
+# grafana_repo: https://grafana.github.io/helm-charts
+# grafana_chart_version: "10.5.15"
+
+# Bootstrap administrator. This account exists so an administrator can log in
+# and create real accounts; it is not meant to be shared. Set the password.
+# Default: admin / Ch@ng3M3
+# grafana_admin_user: admin
+# grafana_admin_password: Ch@ng3M3
+
+# Whether visitors may create their own Grafana accounts. Leave this off;
+# accounts are created by an administrator.
+# Default: false
+# grafana_allow_sign_up: false
+
+# Number of Grafana replicas.
+# Default: 1
+# grafana_replicas: 1
+
+# Resource requests and limits.
+# Default: 100m/500m CPU, 256Mi/512Mi memory, 256Mi/512Mi ephemeral storage
+# grafana_cpu_request: "100m"
+# grafana_cpu_limit: "500m"
+# grafana_mem_request: "256Mi"
+# grafana_mem_limit: "512Mi"
+# grafana_ephemeral_request: "256Mi"
+# grafana_ephemeral_limit: "512Mi"
 
 
 # =====================================================================

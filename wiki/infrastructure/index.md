@@ -4,6 +4,7 @@
 * [HTCondor](/infrastructure/condor.md) - The HTCondor pool that runs DE batch analyses — inventory groups, the condor.yml install playbook, node configuration, and the uninstall playbook.
 * [GoCD](/infrastructure/gocd.md) - The GoCD continuous-deployment server and agents installed on hosts outside the cluster by gocd.yml, including agent tooling and kubeconfig distribution.
 * [GPU Workers](/infrastructure/gpu-workers.md) - How GPU worker nodes get NVIDIA drivers, a container-toolkit runtime, and device-plugin labeling so VICE analyses can schedule onto them.
+* [Grafana](/infrastructure/grafana.md) - Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and a provisioned logins dashboard, installed only when the grafana tag is named explicitly.
 * [Grouper](/infrastructure/grouper.md) - How the grouper_init role deploys Grouper in-cluster — config secret, one-time database and folder initialization via a gsh pod, and the grouper-loader and grouper-ws workloads.
 * [HAProxy](/infrastructure/haproxy.md) - The two HAProxy deployments in a DE install — the baseline de_proxy node and the ui_haproxy configuration fronting the DE UI — plus the Kubernetes API load balancer.
 * [Harbor](/infrastructure/harbor.md) - How the Harbor container registry is deployed via its Helm chart in kubernetes.yml, including TLS, Gateway/Ingress exposure, and its external PostgreSQL databases.

@@ -1,0 +1,174 @@
+---
+- name: Deploy Grafana
+  delegate_to: localhost
+  run_once: true
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: Create the grafana namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ grafana_namespace }}"
+
+    - name: Create the grafana admin secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: grafana-admin
+            namespace: "{{ grafana_namespace }}"
+            labels:
+              app: grafana
+          type: Opaque
+          data:
+            admin-user: "{{ grafana_admin_user | b64encode }}"
+            admin-password: "{{ grafana_admin_password | b64encode }}"
+
+    # The chart renders both grafana.ini and the datasource provisioning file
+    # into ConfigMaps, so neither password can be given to it literally. They're
+    # injected as environment variables instead: Grafana reads
+    # GF_DATABASE_PASSWORD for its own state database, and expands
+    # $__env{DE_DB_PASSWORD} in the provisioning file at load time.
+    - name: Create the grafana database secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: grafana-db
+            namespace: "{{ grafana_namespace }}"
+            labels:
+              app: grafana
+          type: Opaque
+          data:
+            state-password: "{{ grafana_db_password | b64encode }}"
+            de-ro-password: "{{ grafana_ro_db_password | b64encode }}"
+
+    - name: Create the DE dashboards config map
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: grafana-de-dashboards
+            namespace: "{{ grafana_namespace }}"
+            labels:
+              app: grafana
+          data:
+            de-logins.json: "{{ lookup('file', 'dashboards/de-logins.json') }}"
+
+    - name: Add the grafana helm repository
+      kubernetes.core.helm_repository:
+        name: grafana
+        repo_url: "{{ grafana_repo }}"
+        state: present
+
+    - name: Install the grafana helm chart
+      kubernetes.core.helm:
+        name: grafana
+        chart_ref: grafana/grafana
+        chart_version: "{{ grafana_chart_version }}"
+        create_namespace: true
+        release_namespace: "{{ grafana_namespace }}"
+        wait: true
+        values:
+          replicas: "{{ grafana_replicas }}"
+
+          # State lives in PostgreSQL, so there is nothing durable on disk.
+          persistence:
+            enabled: false
+
+          service:
+            type: ClusterIP
+
+          admin:
+            existingSecret: grafana-admin
+            userKey: admin-user
+            passwordKey: admin-password
+
+          envValueFrom:
+            GF_DATABASE_PASSWORD:
+              secretKeyRef:
+                name: grafana-db
+                key: state-password
+            DE_DB_PASSWORD:
+              secretKeyRef:
+                name: grafana-db
+                key: de-ro-password
+
+          resources:
+            requests:
+              cpu: "{{ grafana_cpu_request }}"
+              memory: "{{ grafana_mem_request }}"
+              ephemeral-storage: "{{ grafana_ephemeral_request }}"
+            limits:
+              cpu: "{{ grafana_cpu_limit }}"
+              memory: "{{ grafana_mem_limit }}"
+              ephemeral-storage: "{{ grafana_ephemeral_limit }}"
+
+          grafana.ini:
+            database:
+              type: postgres
+              host: "{{ groups['dbms'][0] }}:{{ pg_listen_port }}"
+              name: "{{ grafana_db_name }}"
+              user: "{{ grafana_db_user }}"
+              ssl_mode: disable
+            users:
+              allow_sign_up: "{{ grafana_allow_sign_up }}"
+            auth.anonymous:
+              enabled: false
+
+          # The DE database, queried with a role that can only SELECT from
+          # public.logins and public.users.
+          datasources:
+            datasources.yaml:
+              apiVersion: 1
+              datasources:
+                - name: DE
+                  uid: de-postgres
+                  type: postgres
+                  isDefault: true
+                  url: "{{ groups['dbms'][0] }}:{{ pg_listen_port }}"
+                  database: "{{ de_db_name }}"
+                  user: "{{ grafana_ro_db_user }}"
+                  secureJsonData:
+                    password: "$__env{DE_DB_PASSWORD}"
+                  jsonData:
+                    sslmode: disable
+                    postgresVersion: 1400
+
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+                - name: de
+                  orgId: 1
+                  folder: Discovery Environment
+                  type: file
+                  disableDeletion: false
+                  editable: true
+                  options:
+                    path: /var/lib/grafana/dashboards/de
+
+          dashboardsConfigMaps:
+            de: grafana-de-dashboards
+
+    - name: Wait for the grafana deployment to be available
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ grafana_namespace }}"
+        name: grafana
+        wait: true
+        wait_timeout: 300
+        wait_condition:
+          type: Available
+          status: "True"
+          reason: MinimumReplicasAvailable
