@@ -4,15 +4,15 @@
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
   block:
-    - name: Set repo_dir fact
-      ansible.builtin.set_fact:
-        repo_dir: "{{ inventory_dir | dirname }}"
-    - name: Set secrets_dir fact
-      ansible.builtin.set_fact:
-        secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}/"
-    - name: Print repo_dir and secrets_dir
-      ansible.builtin.debug:
-        msg: "repo dir: '{{ repo_dir }}', secrets_dir: '{{ secrets_dir }}'"
+    # - name: Set repo_dir fact
+    #   ansible.builtin.set_fact:
+    #     repo_dir: "{{ inventory_dir | dirname }}"
+    # - name: Set secrets_dir fact
+    #   ansible.builtin.set_fact:
+    #     secrets_dir: "{{ [repo_dir, secrets_loader_base_dir] | path_join }}/"
+    # - name: Print repo_dir and secrets_dir
+    #   ansible.builtin.debug:
+    #     msg: "repo dir: '{{ repo_dir }}', secrets_dir: '{{ secrets_dir }}'"
 
     - name: Create the wc-data secret
       kubernetes.core.k8s:
@@ -29,183 +29,183 @@
           data:
             test_data.txt: "{{ 'This file is a test of the data containers feature.' | b64encode }}"
 
-    - name: Create the matlab secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: matlab-mcr-2017b-data-v1-0
-            namespace: "{{ argo_ns }}"
-            annotations:
-              IRODS.env: irods_auth/IRODS.env
-          type: opaque
-          data:
-            IRODS.env: "{{ lookup('file', secrets_dir + '/matlab_mcr_2017b-data/v1.0/irods_auth/IRODS.env') | b64encode }}"
+    # - name: Create the matlab secret
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Secret
+    #       metadata:
+    #         name: matlab-mcr-2017b-data-v1-0
+    #         namespace: "{{ argo_ns }}"
+    #         annotations:
+    #           IRODS.env: irods_auth/IRODS.env
+    #       type: opaque
+    #       data:
+    #         IRODS.env: "{{ lookup('file', secrets_dir + '/matlab_mcr_2017b-data/v1.0/irods_auth/IRODS.env') | b64encode }}"
 
-    - name: Create the ncbi-sra-submit-configs-1-2 secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: ncbi-sra-submit-configs-1-2
-            namespace: "{{ argo_ns }}"
-            annotations:
-              init.py: config/__init__.py
-              ncbi_sra_submit_properties.py: config/ncbi_sra_submit_properties.py
-              bioproject.xsd: schemas/bioproject.xsd
-              biosample.xsd: schemas/biosample.xsd
-              SP.common.xsd: schemas/SP.common.xsd
-              submission.xsd: schemas/submission.xsd
-              bioproject-block.xml: templates/bioproject-block.xml
-              bioproject-create-comment.xml: templates/bioproject-create-comment.xml
-              bioproject-update-comment.xml: templates/bioproject-update-comment.xml
-              submission.xml: templates/submission.xml
-          type: opaque
-          data:
-            init.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/config/__init__.py') | b64encode }}"
-            ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/config/ncbi_sra_submit_properties.py') | b64encode }}"
-            bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/bioproject.xsd') | b64encode }}"
-            biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/biosample.xsd') | b64encode }}"
-            SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/SP.common.xsd') | b64encode }}"
-            submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/submission.xsd') | b64encode }}"
-            bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: >-
-              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-create-comment.xml') | b64encode }}
-            bioproject-update-comment.xml: >-
-              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}
-            submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/submission.xml') | b64encode }}"
+    # - name: Create the ncbi-sra-submit-configs-1-2 secret
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Secret
+    #       metadata:
+    #         name: ncbi-sra-submit-configs-1-2
+    #         namespace: "{{ argo_ns }}"
+    #         annotations:
+    #           init.py: config/__init__.py
+    #           ncbi_sra_submit_properties.py: config/ncbi_sra_submit_properties.py
+    #           bioproject.xsd: schemas/bioproject.xsd
+    #           biosample.xsd: schemas/biosample.xsd
+    #           SP.common.xsd: schemas/SP.common.xsd
+    #           submission.xsd: schemas/submission.xsd
+    #           bioproject-block.xml: templates/bioproject-block.xml
+    #           bioproject-create-comment.xml: templates/bioproject-create-comment.xml
+    #           bioproject-update-comment.xml: templates/bioproject-update-comment.xml
+    #           submission.xml: templates/submission.xml
+    #       type: opaque
+    #       data:
+    #         init.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/config/__init__.py') | b64encode }}"
+    #         ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/config/ncbi_sra_submit_properties.py') | b64encode }}"
+    #         bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/bioproject.xsd') | b64encode }}"
+    #         biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/biosample.xsd') | b64encode }}"
+    #         SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/SP.common.xsd') | b64encode }}"
+    #         submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/schemas/submission.xsd') | b64encode }}"
+    #         bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-block.xml') | b64encode }}"
+    #         bioproject-create-comment.xml: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-create-comment.xml') | b64encode }}
+    #         bioproject-update-comment.xml: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}
+    #         submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/submission.xml') | b64encode }}"
 
-    - name: Create the ncbi-sra-submit-configs-test-1-2 secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: ncbi-sra-submit-configs-test-1-2
-            namespace: "{{ argo_ns }}"
-            annotations:
-              init.py: config/__init__.py
-              ncbi_sra_submit_properties.py: config/ncbi_sra_submit_properties.py
-              bioproject.xsd: schemas/bioproject.xsd
-              biosample.xsd: schemas/biosample.xsd
-              SP.common.xsd: schemas/SP.common.xsd
-              submission.xsd: schemas/submission.xsd
-              bioproject-block.xml: templates/bioproject-block.xml
-              bioproject-create-comment.xml: templates/bioproject-create-comment.xml
-              bioproject-update-comment.xml: templates/bioproject-update-comment.xml
-              submission.xml: templates/submission.xml
-          type: opaque
-          data:
-            init.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/__init__.py') | b64encode }}"
-            ncbi_sra_submit_properties.py: >-
-              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/ncbi_sra_submit_properties.py') | b64encode }}
-            bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/bioproject.xsd') | b64encode }}"
-            biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/biosample.xsd') | b64encode }}"
-            SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/SP.common.xsd') | b64encode }}"
-            submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/submission.xsd') | b64encode }}"
-            bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: >-
-              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-create-comment.xml') | b64encode }}
-            bioproject-update-comment.xml: >-
-              {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode }}
-            submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/submission.xml') | b64encode }}"
+    # - name: Create the ncbi-sra-submit-configs-test-1-2 secret
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Secret
+    #       metadata:
+    #         name: ncbi-sra-submit-configs-test-1-2
+    #         namespace: "{{ argo_ns }}"
+    #         annotations:
+    #           init.py: config/__init__.py
+    #           ncbi_sra_submit_properties.py: config/ncbi_sra_submit_properties.py
+    #           bioproject.xsd: schemas/bioproject.xsd
+    #           biosample.xsd: schemas/biosample.xsd
+    #           SP.common.xsd: schemas/SP.common.xsd
+    #           submission.xsd: schemas/submission.xsd
+    #           bioproject-block.xml: templates/bioproject-block.xml
+    #           bioproject-create-comment.xml: templates/bioproject-create-comment.xml
+    #           bioproject-update-comment.xml: templates/bioproject-update-comment.xml
+    #           submission.xml: templates/submission.xml
+    #       type: opaque
+    #       data:
+    #         init.py: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/__init__.py') | b64encode }}"
+    #         ncbi_sra_submit_properties.py: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/config/ncbi_sra_submit_properties.py') | b64encode }}
+    #         bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/bioproject.xsd') | b64encode }}"
+    #         biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/biosample.xsd') | b64encode }}"
+    #         SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/SP.common.xsd') | b64encode }}"
+    #         submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/schemas/submission.xsd') | b64encode }}"
+    #         bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-block.xml') | b64encode }}"
+    #         bioproject-create-comment.xml: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-create-comment.xml') | b64encode }}
+    #         bioproject-update-comment.xml: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode }}
+    #         submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/submission.xml') | b64encode }}"
 
-    - name: Add the ncbi-sra-submit-ssh-key-data-latest secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: ncbi-sra-submit-ssh-key-data-latest
-            namespace: "{{ argo_ns }}"
-            annotations:
-              id_rsa_ncbi: ".ssh/id_rsa_ncbi"
-          type: opaque
-          data:
-            id_rsa_ncbi: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-ssh-key-data/latest/ssh/id_rsa_ncbi') | b64encode }}"
+    # - name: Add the ncbi-sra-submit-ssh-key-data-latest secret
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Secret
+    #       metadata:
+    #         name: ncbi-sra-submit-ssh-key-data-latest
+    #         namespace: "{{ argo_ns }}"
+    #         annotations:
+    #           id_rsa_ncbi: ".ssh/id_rsa_ncbi"
+    #       type: opaque
+    #       data:
+    #         id_rsa_ncbi: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-ssh-key-data/latest/ssh/id_rsa_ncbi') | b64encode }}"
 
-    - name: Add the ncbi-submit-configs-prod secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: ncbi-submit-configs-prod
-            namespace: "{{ argo_ns }}"
-            annotations:
-              init.py: config/__init__.py
-              ncbi_submit_properties.py: config/ncbi_submit_properties.py
-              bioproject.xsd: schemas/bioproject.xsd
-              biosample.xsd: schemas/biosample.xsd
-              genome.xsd: schemas/genome.xsd
-              SP.common.xsd: schemas/SP.common.xsd
-              submission.xsd: schemas/submission.xsd
-              bioproject-block.xml: templates/bioproject-block.xml
-              bioproject-create-comment.xml: templates/bioproject-create-comment.xml
-              bioproject-update-comment.xml: templates/bioproject-update-comment.xml
-              genome-metadata.xml: templates/genome-metadata.xml
-              submission.xml: templates/submission.xml
-              template.sbt: templates/template.sbt
-          type: opaque
-          data:
-            init.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/config/__init__.py') | b64encode }}"
-            ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/config/ncbi_submit_properties.py') | b64encode }}"
-            bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/bioproject.xsd') | b64encode }}"
-            biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/biosample.xsd') | b64encode }}"
-            genome.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/genome.xsd') | b64encode }}"
-            SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/SP.common.xsd') | b64encode }}"
-            submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/submission.xsd') | b64encode }}"
-            bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/bioproject-create-comment.xml') | b64encode }}"
-            bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/bioproject-update-comment.xml') | b64encode }}"
-            genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/genome-metadata.xml') | b64encode }}"
-            submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/submission.xml') | b64encode }}"
-            template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/template.sbt') | b64encode }}"
+    # - name: Add the ncbi-submit-configs-prod secret
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Secret
+    #       metadata:
+    #         name: ncbi-submit-configs-prod
+    #         namespace: "{{ argo_ns }}"
+    #         annotations:
+    #           init.py: config/__init__.py
+    #           ncbi_submit_properties.py: config/ncbi_submit_properties.py
+    #           bioproject.xsd: schemas/bioproject.xsd
+    #           biosample.xsd: schemas/biosample.xsd
+    #           genome.xsd: schemas/genome.xsd
+    #           SP.common.xsd: schemas/SP.common.xsd
+    #           submission.xsd: schemas/submission.xsd
+    #           bioproject-block.xml: templates/bioproject-block.xml
+    #           bioproject-create-comment.xml: templates/bioproject-create-comment.xml
+    #           bioproject-update-comment.xml: templates/bioproject-update-comment.xml
+    #           genome-metadata.xml: templates/genome-metadata.xml
+    #           submission.xml: templates/submission.xml
+    #           template.sbt: templates/template.sbt
+    #       type: opaque
+    #       data:
+    #         init.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/config/__init__.py') | b64encode }}"
+    #         ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/config/ncbi_submit_properties.py') | b64encode }}"
+    #         bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/bioproject.xsd') | b64encode }}"
+    #         biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/biosample.xsd') | b64encode }}"
+    #         genome.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/genome.xsd') | b64encode }}"
+    #         SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/SP.common.xsd') | b64encode }}"
+    #         submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/schemas/submission.xsd') | b64encode }}"
+    #         bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/bioproject-block.xml') | b64encode }}"
+    #         bioproject-create-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/bioproject-create-comment.xml') | b64encode }}"
+    #         bioproject-update-comment.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/bioproject-update-comment.xml') | b64encode }}"
+    #         genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/genome-metadata.xml') | b64encode }}"
+    #         submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/submission.xml') | b64encode }}"
+    #         template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/template.sbt') | b64encode }}"
 
-    - name: Add the ncbi-submit-configs-test-1-1 secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: ncbi-submit-configs-test-1-1
-            namespace: "{{ argo_ns }}"
-            annotations:
-              init.py: config/__init__.py
-              ncbi_submit_properties.py: config/ncbi_submit_properties.py
-              bioproject.xsd: schemas/bioproject.xsd
-              biosample.xsd: schemas/biosample.xsd
-              genome.xsd: schemas/genome.xsd
-              SP.common.xsd: schemas/SP.common.xsd
-              submission.xsd: schemas/submission.xsd
-              bioproject-block.xml: templates/bioproject-block.xml
-              bioproject-create-comment.xml: templates/bioproject-create-comment.xml
-              bioproject-update-comment.xml: templates/bioproject-update-comment.xml
-              genome-metadata.xml: templates/genome-metadata.xml
-              submission.xml: templates/submission.xml
-              template.sbt: templates/template.sbt
-          type: opaque
-          data:
-            init.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/config/__init__.py') | b64encode }}"
-            ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/config/ncbi_submit_properties.py') | b64encode }}"
-            bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/bioproject.xsd') | b64encode }}"
-            biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/biosample.xsd') | b64encode }}"
-            genome.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/genome.xsd') | b64encode }}"
-            SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/SP.common.xsd') | b64encode }}"
-            submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/submission.xsd') | b64encode }}"
-            bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-block.xml') | b64encode }}"
-            bioproject-create-comment.xml: >-
-              {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-create-comment.xml') | b64encode }}
-            bioproject-update-comment.xml: >-
-              {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-update-comment.xml') | b64encode }}
-            genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/genome-metadata.xml') | b64encode }}"
-            submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/submission.xml') | b64encode }}"
-            template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/template.sbt') | b64encode }}"
+    # - name: Add the ncbi-submit-configs-test-1-1 secret
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Secret
+    #       metadata:
+    #         name: ncbi-submit-configs-test-1-1
+    #         namespace: "{{ argo_ns }}"
+    #         annotations:
+    #           init.py: config/__init__.py
+    #           ncbi_submit_properties.py: config/ncbi_submit_properties.py
+    #           bioproject.xsd: schemas/bioproject.xsd
+    #           biosample.xsd: schemas/biosample.xsd
+    #           genome.xsd: schemas/genome.xsd
+    #           SP.common.xsd: schemas/SP.common.xsd
+    #           submission.xsd: schemas/submission.xsd
+    #           bioproject-block.xml: templates/bioproject-block.xml
+    #           bioproject-create-comment.xml: templates/bioproject-create-comment.xml
+    #           bioproject-update-comment.xml: templates/bioproject-update-comment.xml
+    #           genome-metadata.xml: templates/genome-metadata.xml
+    #           submission.xml: templates/submission.xml
+    #           template.sbt: templates/template.sbt
+    #       type: opaque
+    #       data:
+    #         init.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/config/__init__.py') | b64encode }}"
+    #         ncbi_sra_submit_properties.py: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/config/ncbi_submit_properties.py') | b64encode }}"
+    #         bioproject.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/bioproject.xsd') | b64encode }}"
+    #         biosample.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/biosample.xsd') | b64encode }}"
+    #         genome.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/genome.xsd') | b64encode }}"
+    #         SP.common.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/SP.common.xsd') | b64encode }}"
+    #         submission.xsd: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/schemas/submission.xsd') | b64encode }}"
+    #         bioproject-block.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-block.xml') | b64encode }}"
+    #         bioproject-create-comment.xml: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-create-comment.xml') | b64encode }}
+    #         bioproject-update-comment.xml: >-
+    #           {{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/bioproject-update-comment.xml') | b64encode }}
+    #         genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/genome-metadata.xml') | b64encode }}"
+    #         submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/submission.xml') | b64encode }}"
+    #         template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/template.sbt') | b64encode }}"
