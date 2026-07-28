@@ -7,15 +7,15 @@
     - name: Look up the nodes to reconcile
       kubernetes.core.k8s_info:
         kind: Node
-        name: "{{ local_node_name | default(omit, true) }}"
-      register: local_node_info
+        name: "{{ local_node_prep_node_name | default(omit, true) }}"
+      register: local_node_prep_node_info
 
     - name: Fail if no nodes matched
       ansible.builtin.fail:
         msg: >-
-          No nodes matched local_node_name={{ local_node_name | default('<all>', true) }}.
+          No nodes matched local_node_prep_node_name={{ local_node_prep_node_name | default('<all>', true) }}.
           Check that the kubeconfig points at the intended cluster.
-      when: local_node_info.resources | length == 0
+      when: local_node_prep_node_info.resources | length == 0
 
     - name: Apply the node labels
       kubernetes.core.k8s:
@@ -24,8 +24,8 @@
         name: "{{ item.metadata.name }}"
         definition:
           metadata:
-            labels: "{{ local_node_labels }}"
-      loop: "{{ local_node_info.resources }}"
+            labels: "{{ local_node_prep_labels }}"
+      loop: "{{ local_node_prep_node_info.resources }}"
       loop_control:
         label: "{{ item.metadata.name }}"
 
@@ -40,7 +40,7 @@
         name: "{{ item.metadata.name }}"
         definition:
           spec:
-            taints: "{{ item.spec.taints | default([]) | rejectattr('key', 'in', local_node_remove_taint_keys) | list }}"
-      loop: "{{ local_node_info.resources }}"
+            taints: "{{ item.spec.taints | default([]) | rejectattr('key', 'in', local_node_prep_remove_taint_keys) | list }}"
+      loop: "{{ local_node_prep_node_info.resources }}"
       loop_control:
         label: "{{ item.metadata.name }}"

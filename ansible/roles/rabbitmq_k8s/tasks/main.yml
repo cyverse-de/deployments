@@ -54,7 +54,7 @@
 
     - name: Create the rabbitmq deployment
       vars:
-        rabbitmq_data_volume: >-
+        rabbitmq_k8s_data_volume: >-
           {{
             {'name': 'rabbitmq-data', 'persistentVolumeClaim': {'claimName': 'rabbitmq-data'}}
             if rabbitmq_k8s_persistent | bool
@@ -89,7 +89,7 @@
               spec:
                 restartPolicy: Always
                 volumes:
-                  - "{{ rabbitmq_data_volume }}"
+                  - "{{ rabbitmq_k8s_data_volume }}"
                   - name: rabbitmq-conf
                     configMap:
                       name: rabbitmq-conf

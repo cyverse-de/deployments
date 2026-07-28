@@ -8,7 +8,7 @@
       kubernetes.core.k8s_info:
         kind: Node
         name: "{{ local_db_endpoint_node | default(omit, true) }}"
-      register: local_db_node_info
+      register: local_db_endpoint_node_info
       when: not local_db_endpoint_address
 
     # The CNI bridge takes the first host address of the node's podCIDR, so a
@@ -16,14 +16,14 @@
     # rather than configured so a DHCP lease change is a non-event.
     - name: Derive the database address from the node podCIDR
       ansible.builtin.set_fact:
-        local_db_address: >-
-          {{ ((local_db_node_info.resources[0].spec.podCIDR
+        local_db_endpoint_resolved_address: >-
+          {{ ((local_db_endpoint_node_info.resources[0].spec.podCIDR
                | split('/') | first | split('.'))[0:3] + ['1']) | join('.') }}
       when: not local_db_endpoint_address
 
     - name: Use the configured database address
       ansible.builtin.set_fact:
-        local_db_address: "{{ local_db_endpoint_address }}"
+        local_db_endpoint_resolved_address: "{{ local_db_endpoint_address }}"
       when: local_db_endpoint_address | length > 0
 
     - name: Create the database Service
@@ -33,7 +33,7 @@
           apiVersion: v1
           kind: Service
           metadata:
-            name: "{{ local_db_service_name }}"
+            name: "{{ local_db_endpoint_service_name }}"
             namespace: "{{ ns }}"
           spec:
             # No selector: the endpoints are managed below rather than by the
@@ -51,10 +51,10 @@
           apiVersion: discovery.k8s.io/v1
           kind: EndpointSlice
           metadata:
-            name: "{{ local_db_service_name }}"
+            name: "{{ local_db_endpoint_service_name }}"
             namespace: "{{ ns }}"
             labels:
-              kubernetes.io/service-name: "{{ local_db_service_name }}"
+              kubernetes.io/service-name: "{{ local_db_endpoint_service_name }}"
           addressType: IPv4
           ports:
             - name: postgres
@@ -62,6 +62,6 @@
               port: "{{ pg_listen_port | int }}"
           endpoints:
             - addresses:
-                - "{{ local_db_address }}"
+                - "{{ local_db_endpoint_resolved_address }}"
               conditions:
                 ready: true

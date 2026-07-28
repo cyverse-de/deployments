@@ -17,23 +17,23 @@
           - de-app=rabbitmq
         field_selectors:
           - status.phase=Running
-      register: rabbitmq_pods
-      until: rabbitmq_pods.resources | length > 0
+      register: rabbitmq_k8s_pods
+      until: rabbitmq_k8s_pods.resources | length > 0
       retries: 30
       delay: 10
 
     - name: Record the rabbitmq pod name
       ansible.builtin.set_fact:
-        rabbitmq_pod_name: "{{ rabbitmq_pods.resources[0].metadata.name }}"
+        rabbitmq_k8s_pod_name: "{{ rabbitmq_k8s_pods.resources[0].metadata.name }}"
 
     - name: Create the vhosts
       kubernetes.core.k8s_exec:
         namespace: "{{ rabbitmq_k8s_namespace }}"
-        pod: "{{ rabbitmq_pod_name }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl add_vhost {{ item.vhost }}"
-      register: rabbitmq_add_vhost
-      changed_when: rabbitmq_add_vhost.rc == 0
-      failed_when: rabbitmq_add_vhost.rc != 0 and 'already exists' not in rabbitmq_add_vhost.stderr
+      register: rabbitmq_k8s_add_vhost
+      changed_when: rabbitmq_k8s_add_vhost.rc == 0
+      failed_when: rabbitmq_k8s_add_vhost.rc != 0 and 'already exists' not in rabbitmq_k8s_add_vhost.stderr
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
         label: "{{ item.vhost }}"
@@ -41,11 +41,11 @@
     - name: Create the vhost users
       kubernetes.core.k8s_exec:
         namespace: "{{ rabbitmq_k8s_namespace }}"
-        pod: "{{ rabbitmq_pod_name }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl add_user {{ item.user }} {{ item.password }}"
-      register: rabbitmq_add_user
-      changed_when: rabbitmq_add_user.rc == 0
-      failed_when: rabbitmq_add_user.rc != 0 and 'already exists' not in rabbitmq_add_user.stderr
+      register: rabbitmq_k8s_add_user
+      changed_when: rabbitmq_k8s_add_user.rc == 0
+      failed_when: rabbitmq_k8s_add_user.rc != 0 and 'already exists' not in rabbitmq_k8s_add_user.stderr
       no_log: true
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
@@ -56,7 +56,7 @@
     - name: Set the vhost user passwords
       kubernetes.core.k8s_exec:
         namespace: "{{ rabbitmq_k8s_namespace }}"
-        pod: "{{ rabbitmq_pod_name }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl change_password {{ item.user }} {{ item.password }}"
       no_log: true
       loop: "{{ rabbitmq_k8s_vhosts }}"
@@ -66,7 +66,7 @@
     - name: Tag the vhost users as administrators
       kubernetes.core.k8s_exec:
         namespace: "{{ rabbitmq_k8s_namespace }}"
-        pod: "{{ rabbitmq_pod_name }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl set_user_tags {{ item.user }} administrator"
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
@@ -75,7 +75,7 @@
     - name: Grant the vhost users full permissions on their vhost
       kubernetes.core.k8s_exec:
         namespace: "{{ rabbitmq_k8s_namespace }}"
-        pod: "{{ rabbitmq_pod_name }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl set_permissions -p {{ item.vhost }} {{ item.user }} .* .* .*"
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
