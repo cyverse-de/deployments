@@ -4,7 +4,7 @@ title: portal-conductor
 description: Account-provisioning API used by the user portal, acting on LDAP, iRODS, terrain, Mailman, and formation, with an exim sidecar for outbound mail.
 resource: /ansible/roles/services/portal-conductor
 tags: [portal, provisioning, ldap, irods, accounts]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 An account-provisioning API consumed by [portal2](/services/portal2.md). Its
@@ -25,6 +25,15 @@ Configuration: the role renders `templates/portal-conductor.json.j2` into the
 mounted at `/etc/cyverse/portal-conductor/portal-conductor.json` and located
 via `PORTAL_CONDUCTOR_CONFIG`.
 
+The repo's `delete-user` tool ships in the same image but runs as a DE batch
+job rather than inside the service, so it reads its own config file instead of
+the mounted secret. The role's `delete_user_config` task file renders
+`templates/portal-delete-user.json.j2` to a local path; see
+[portal_delete_user_config.yml](/playbooks/misc-utility-playbooks.md). That
+file carries only the `ldap`, `irods`, `portal_db`, and `mailman` sections —
+`portal_db` is absent from the service config, which the service itself never
+needs.
+
 Runtime: a Deployment with `portal_conductor_replicas` (default 2) serving
 HTTP on 8000 and HTTPS on 8443, with the serving cert/key mounted file-by-file
 from the `portal-conductor-ssl` secret (so the system CA bundle is not
@@ -43,3 +52,4 @@ Build and deploy with
 [2] `ansible/roles/services/portal-conductor/templates/k8s/portal-conductor.yml.j2` — Deployment, exim sidecar, SSL mounts, Service.
 [3] `ansible/roles/services/portal-conductor/tasks/main.yml` — config secret rendering and deploy.
 [4] `ansible/roles/services/portal-conductor/files/portal-conductor.json` — pinned image.
+[5] `ansible/roles/services/portal-conductor/templates/portal-delete-user.json.j2`, `ansible/roles/services/portal-conductor/tasks/delete_user_config.yml` — delete-user config file.

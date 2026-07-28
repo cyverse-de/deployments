@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-07-28
+
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [portal-conductor](/services/portal-conductor.md) — documented the new `portal_delete_user_config.yml` playbook that renders `portal-delete-user.json` for the `delete-user` batch tool, and why that file carries `portal_db` but not the terrain/formation/auth/SMTP credentials the service config does.
+
 ## 2026-07-22
 
 * **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [openldap-docker](/services/openldap-docker.md) — documented the new `openldap_community_group.yml` playbook that backfills the `community` group on already-deployed OpenLDAP instances (the seed LDIF only loads on a fresh volume).

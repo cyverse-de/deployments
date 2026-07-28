@@ -1,0 +1,24 @@
+---
+# Generate portal-delete-user.json, the config file the portal-conductor delete-user tool reads
+# via --config. The DE app that wraps the tool (see scripts/appei/portal-delete-user.json) takes
+# it as a FileInput, so the generated file has to be staged into iRODS by hand -- this playbook
+# only writes it locally.
+#
+# Run: ansible-playbook -i <inventory> portal_delete_user_config.yml
+#      ansible-playbook -i <inventory> portal_delete_user_config.yml \
+#        -e portal_delete_user_config_dir=/some/other/dir
+#
+# Writes to the directory ansible-playbook was invoked from unless
+# portal_delete_user_config_dir is overridden. The file contains cleartext passwords and is
+# written mode 0600.
+
+- name: Write the delete-user config file
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Render portal-delete-user.json from the inventory
+      ansible.builtin.include_role:
+        name: services/portal-conductor
+        tasks_from: delete_user_config

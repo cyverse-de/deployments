@@ -559,6 +559,7 @@ portal_db_port: "5432"
 portal_db_name: portal
 portal_db_user: portal
 portal_db_password: replace_me
+portal_db_sslmode: disable
 portal_db_session_table: session
 portal_session_secret: "replace_me"
 portal_session_secure_cookie: "true"
@@ -622,6 +623,13 @@ portal_conductor_url: https://portal-conductor
 # Portal-conductor authentication
 portal_conductor_auth_username: "{{ basic_auth_username }}"
 portal_conductor_auth_password: "{{ basic_auth_password }}"
+
+# Directory portal_delete_user_config.yml writes portal-delete-user.json into. The filename is
+# fixed because the DE app descriptor in scripts/appei/portal-delete-user.json refers to it by
+# name. PWD is the invoking shell's cwd; playbook_dir is the fallback because a relative dest
+# resolves against the playbook directory, not the cwd, which would be a surprising place to
+# drop a file full of cleartext passwords.
+portal_delete_user_config_dir: "{{ lookup('env', 'PWD') | default(playbook_dir, true) }}"
 
 # Admin settings
 admin_groups: core-services,dev,staff

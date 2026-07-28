@@ -1,0 +1,28 @@
+{
+  "ldap": {
+    "url": "{{ portal_ldap_host }}",
+    "user": "{{ portal_ldap_admin }}",
+    "password": "{{ portal_ldap_password }}",
+    "base_dn": "{{ portal_ldap_base_dn }}"
+  },
+  "irods": {
+    "host": "{{ irods_host }}",
+    "port": "{{ irods_port }}",
+    "user": "{{ irods_user }}",
+    "password": "{{ irods_password }}",
+    "zone": "{{ irods_zone }}"
+  },
+  "portal_db": {
+    "host": "{{ portal_db_host }}",
+    "port": "{{ portal_db_port }}",
+    "name": "{{ portal_db_name }}",
+    "user": "{{ portal_db_user }}",
+    "password": "{{ portal_db_password }}",
+    "sslmode": "{{ portal_db_sslmode }}"
+  },
+  "mailman": {
+    "enabled": {{ 'true' if portal_mailman_enabled | bool else 'false' }},
+    "url": "{{ portal_mailman_url }}",
+    "password": "{{ portal_mailman_password }}"
+  }
+}

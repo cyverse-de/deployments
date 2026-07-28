@@ -1,0 +1,53 @@
+---
+# Writes portal-delete-user.json, the config the portal-conductor delete-user tool reads via
+# --config. Included by portal_delete_user_config.yml; not part of the deploy path.
+- name: Require the values delete-user validates
+  ansible.builtin.assert:
+    that:
+      - item.value | length > 0
+      - item.value != "replace_me"
+    fail_msg: >-
+      {{ item.name }} is unset or still the placeholder; set it in the inventory before
+      generating portal-delete-user.json.
+    quiet: true
+  loop:
+    - { name: portal_ldap_host, value: "{{ portal_ldap_host }}" }
+    - { name: portal_ldap_admin, value: "{{ portal_ldap_admin }}" }
+    - { name: portal_ldap_password, value: "{{ portal_ldap_password }}" }
+    - { name: portal_ldap_base_dn, value: "{{ portal_ldap_base_dn }}" }
+    - { name: irods_host, value: "{{ irods_host }}" }
+    - { name: irods_port, value: "{{ irods_port }}" }
+    - { name: irods_user, value: "{{ irods_user }}" }
+    - { name: irods_password, value: "{{ irods_password }}" }
+    - { name: irods_zone, value: "{{ irods_zone }}" }
+    - { name: portal_db_host, value: "{{ portal_db_host }}" }
+    - { name: portal_db_port, value: "{{ portal_db_port }}" }
+    - { name: portal_db_name, value: "{{ portal_db_name }}" }
+    - { name: portal_db_user, value: "{{ portal_db_user }}" }
+    - { name: portal_db_password, value: "{{ portal_db_password }}" }
+    - { name: portal_db_sslmode, value: "{{ portal_db_sslmode }}" }
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Require the mailman values when mailman is enabled
+  ansible.builtin.assert:
+    that:
+      - item.value | length > 0
+      - item.value != "replace_me"
+      - item.value != "https://replace_me"
+    fail_msg: >-
+      portal_mailman_enabled is true but {{ item.name }} is unset or still the placeholder.
+    quiet: true
+  loop:
+    - { name: portal_mailman_url, value: "{{ portal_mailman_url }}" }
+    - { name: portal_mailman_password, value: "{{ portal_mailman_password }}" }
+  loop_control:
+    label: "{{ item.name }}"
+  when: portal_mailman_enabled | bool
+
+- name: "Write portal-delete-user.json into {{ portal_delete_user_config_dir }}"
+  ansible.builtin.template:
+    src: portal-delete-user.json.j2
+    dest: "{{ portal_delete_user_config_dir }}/portal-delete-user.json"
+    # Holds the LDAP, iRODS, portal-database, and mailman passwords in cleartext.
+    mode: "0600"

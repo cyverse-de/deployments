@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-22T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -61,6 +61,21 @@ Runs the `service_configurations` role on its own, regenerating the shared
 equivalent of `--tags configure-services`. Run after changing inventory
 values that feed service configuration.
 
+## portal_delete_user_config.yml
+
+Renders `portal-delete-user.json`, the config file the
+[portal-conductor](/services/portal-conductor.md) `delete-user` tool reads via
+`--config`. Writes only the sections that tool validates — `ldap`, `irods`,
+`portal_db`, and `mailman` — from the inventory, deliberately omitting the
+terrain, formation, auth, and SMTP credentials the service config carries.
+Output goes to `portal_delete_user_config_dir` (default: the directory
+`ansible-playbook` was invoked from) at mode 0600, since the file holds four
+cleartext passwords. A preflight assert fails the run when a required value is
+empty or still `replace_me`. The DE app wrapping the tool takes the file as a
+FileInput (see [App Export and Import](/playbooks/app-export-import.md) and
+`scripts/appei/portal-delete-user.json`), so staging it into iRODS is a
+separate manual step.
+
 ## openldap_community_group.yml
 
 Backfills the `community` LDAP group on an already-deployed
@@ -96,6 +111,7 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [4] `ansible/print_host_distros.yml` — distro survey.
 [5] `ansible/big_dumper.yml`, `ansible/roles/db_copy_prod/tasks/` — production database copy.
 [6] `ansible/config_files.yml` — standalone service_configurations run.
-[7] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
-[8] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
-[9] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[7] `ansible/portal_delete_user_config.yml`, `ansible/roles/services/portal-conductor/tasks/delete_user_config.yml` — delete-user config generation and its preflight asserts.
+[8] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
+[9] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
+[10] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
