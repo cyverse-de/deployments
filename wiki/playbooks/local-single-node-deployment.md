@@ -1,7 +1,7 @@
 ---
 type: Runbook
 title: Local Single-Node Deployment
-description: How to stand up a full DE on one pre-existing single-node k0s cluster with local.yml, using a host PostgreSQL, an mkcert-backed CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
+description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using a host PostgreSQL, an mkcert-backed CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, mkcert]
 timestamp: 2026-07-28T00:00:00Z
@@ -16,17 +16,19 @@ them wires in `k0sctl` with no conditional.
 
 ## What it does and doesn't do
 
-`local.yml` assumes the cluster **already exists** and only talks to its API
-server. Relative to `kubernetes.yml` it drops:
+`local.yml` assumes a Kubernetes node **already exists** and only talks to its
+API server — but it assumes nothing is deployed on it. Point it at a freshly
+installed single node and it brings up storage, cert-manager, the gateway, the
+broker, and the whole DE. Relative to `kubernetes.yml` it drops:
 
 | Dropped | Why |
 | --- | --- |
-| `k8s_cluster` | The cluster is not managed by `k0sctl`. |
+| `k8s_cluster` | One node is installed directly with `k0s`, not through `k0sctl`. |
 | `k8s_nodes`, `k8s_firewalld` | They swap off, rewrite `fstab`, set SELinux permissive, and reboot. |
 | `postgresql`, `postgresql_access` | The workstation's PostgreSQL config is not ours to rewrite. |
 | `nvidia_drivers`, `nvidia_container_toolkit` | Host package management. |
 | `haproxy`, `ui_haproxy` | The edge proxy is a hand-managed systemd unit. |
-| `longhorn` | Storage is [OpenEBS](/infrastructure/openebs.md). |
+| `longhorn` | Storage is [OpenEBS](/infrastructure/openebs.md); one node has nothing to replicate to. |
 | `harbor` | Images pull from an external registry. |
 | `ingress_nginx` | Only [Harbor](/infrastructure/harbor.md) uses it. |
 | `kubernetes_node_feature_discovery` | Installs a device plugin that crashloops without the container toolkit. |
@@ -47,27 +49,50 @@ cluster in other environments:
 
 ## Prerequisites
 
-- A running single-node k0s cluster and a kubeconfig that reaches it.
+- A machine with `k0s` installed, PostgreSQL running on the host, and
+  `mkcert`.
 - `ansible`, `kubectl` >= 1.31 (or `kustomize` >= 5.2), `helm` >= 3.16,
   `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, `gpg` >= 2.1,
-  `openssl` >= 1.1.1, `slappasswd`, and `mkcert`.
-- PostgreSQL on the host.
+  `openssl` >= 1.1.1, and `slappasswd`.
 - A pull robot account on the image registry.
 - The private `local-deployment` inventory repo.
 
 ## Host preparation
 
-Done once, outside Ansible. Steps 2, 3, 5, and 6 write to root-owned files and
-need `sudo`; steps 1 and 4 do not.
+Done once, outside Ansible. Every step except 2 needs `sudo`. The default
+StorageClass is not among them: the `openebs` role sets it when
+`openebs_default_storage_class` is true, which the local inventory does.
 
-**1. Point the kubeconfig at the local API server** (no sudo). k0s writes the
-address it was installed with, which may no longer be the machine's address:
+**1. Bring up the k0s node** (sudo). `--single` gives a combined
+controller/worker with no taint, which is what a one-machine deployment wants
+— `--enable-worker` would add `node-role.kubernetes.io/master:NoSchedule`
+instead, and nothing would schedule until the `node-prep` tag stripped it:
 
 ```bash
-sed -i 's|server: https://.*:6443|server: https://127.0.0.1:6443|' ~/.kube/local-admin.conf
+sudo k0s install controller --single
+sudo k0s start
+sudo k0s status          # wait for "Kube-api probing successful: true"
 ```
 
-**2. Create the iRODS CSI driver's kubelet directories** (sudo), which are
+This is the plain `k0s` installer rather than `k0sctl`, which drives node
+installs over SSH and earns its keep on multi-node clusters. k0s defaults to a
+pod CIDR of `10.244.0.0/16` and a service CIDR of `10.96.0.0/12`; the inventory
+has to agree with whatever this node actually uses, because those values become
+local-exim's relay allowlist.
+
+**2. Write a kubeconfig** (no sudo, apart from reading k0s's admin config):
+
+```bash
+sudo k0s kubeconfig admin > ~/.kube/local-admin.conf
+chmod 600 ~/.kube/local-admin.conf
+export KUBECONFIG=~/.kube/local-admin.conf
+kubectl get nodes        # the node should reach Ready within a minute or two
+```
+
+If the node's address later changes, k0s keeps the one it was installed with,
+so fix the `server:` line rather than reinstalling.
+
+**3. Create the iRODS CSI driver's kubelet directories** (sudo), which are
 otherwise created by a play that needs root on each worker:
 
 ```bash
@@ -75,7 +100,7 @@ sudo mkdir -p /var/lib/k0s/kubelet/plugins/irods.csi.cyverse.org \
               /var/lib/k0s/kubelet/plugins_registry
 ```
 
-**3. Add the database name to `/etc/hosts`** (sudo). `groups['dbms'][0]` is used
+**4. Add the database name to `/etc/hosts`** (sudo). `groups['dbms'][0]` is used
 verbatim both by the Ansible PostgreSQL modules on this machine and by the DB
 URIs rendered into pod configs, so the one name has to resolve in both places:
 
@@ -88,13 +113,6 @@ URIs rendered into pod configs, so the one name has to resolve in both places:
 all `.localhost` names to the loopback address. Confirm with
 `getent hosts foo.vice.localhost`.
 
-**4. Annotate a default StorageClass** (no sudo). `openldap-docker`'s volume claim
-template omits `storageClassName`, so without a default its PVC pends forever:
-
-```bash
-kubectl annotate sc openebs-hostpath storageclass.kubernetes.io/is-default-class=true
-```
-
 **5. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
 the Service at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,
@@ -105,10 +123,10 @@ beyond the machine. In `postgresql.conf`:
 listen_addresses = '127.0.0.1,10.244.0.1'
 ```
 
-and in `pg_hba.conf`, matching the podCIDR:
+and in `pg_hba.conf`, matching the cluster's pod CIDR:
 
 ```
-host  all  all  10.244.0.0/24  scram-sha-256
+host  all  all  10.244.0.0/16  scram-sha-256
 ```
 
 Then restart PostgreSQL.
@@ -130,7 +148,7 @@ frontend https_in
 
 backend k8s_gateway
     mode tcp
-    server local 127.0.0.1:30443 check inter 5000
+    server local 127.0.0.1:31383 check inter 5000
 ```
 
 The backend port is `traefik_https_port`. Reload the proxy.
@@ -169,6 +187,7 @@ Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
 | Tags | Brings up |
 | --- | --- |
 | `node-prep` | Node labels; removes the taints that repel DE services |
+| `openebs` | The storage provider and the default StorageClass |
 | `cert-manager` | cert-manager and its CRDs |
 | `cert-issuers` | The mkcert CA Secret and `default-cluster-issuer` |
 | `traefik` | Gateway API CRDs, Traefik, its default certificate |

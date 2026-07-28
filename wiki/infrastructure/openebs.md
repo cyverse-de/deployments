@@ -25,18 +25,15 @@ Longhorn install.
 
 ## The default StorageClass
 
-The role's `openebs-hostpath` StorageClass is not annotated as the cluster
-default. Most DE PVCs name their class explicitly, but `openldap-docker`'s
-`volumeClaimTemplates` does not, so on a cluster with no default class its PVC
-pends forever. Either annotate one:
+The role's `openebs-hostpath` StorageClass is not the cluster default unless
+`openebs_default_storage_class` is set to `true`. Most DE PVCs name their class
+explicitly, but `openldap-docker`'s `volumeClaimTemplates` does not, so on a
+cluster whose only storage is OpenEBS its PVC pends forever without it.
 
-```bash
-kubectl annotate sc openebs-hostpath storageclass.kubernetes.io/is-default-class=true
-```
-
-or make sure something else in the cluster provides a default. [Longhorn](/infrastructure/longhorn.md)
-sets `persistence.defaultClass: true`, which is why this does not come up on
-clusters running it.
+The flag defaults to `false` so that adding OpenEBS alongside an existing
+provider cannot silently take the default away from it.
+[Longhorn](/infrastructure/longhorn.md) sets `persistence.defaultClass: true`
+itself, which is why this never comes up on clusters running it.
 
 # Citations
 

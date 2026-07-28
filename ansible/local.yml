@@ -15,13 +15,18 @@
 #   nvidia_drivers    host package management
 #   haproxy           the edge proxy is a hand-managed systemd unit
 #   ui_haproxy         "
-#   longhorn          storage is openebs-hostpath
+#   longhorn          storage is openebs-hostpath; one node has nothing to
+#                     replicate to
 #   harbor            images pull from an external registry
 #   ingress_nginx     only Harbor uses it
 #   kubernetes_node_feature_discovery  installs a device plugin that crashloops
 #                                      without the nvidia container toolkit
 #
 # and adds local_node_prep, local_db_endpoint and rabbitmq_k8s.
+#
+# Everything else a bare k0s node lacks is installed here, so this is a
+# from-scratch deployment: point it at a freshly installed single node and it
+# brings up storage, certificates, the gateway, the broker and the DE.
 
 - name: Initialize dbs
   hosts: dbms
@@ -43,6 +48,13 @@
     - role: local_node_prep
       tags:
         - node-prep
+        - de-reqs
+
+    # Storage comes first: OpenSearch, RabbitMQ and the VICE working
+    # directories all need a StorageClass to exist before they are created.
+    - role: openebs
+      tags:
+        - openebs
         - de-reqs
 
     - role: cert-manager

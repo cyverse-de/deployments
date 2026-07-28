@@ -411,6 +411,11 @@ longhorn_tolerations:
 
 # OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
 openebs_enabled: false
+# Whether openebs-hostpath becomes the cluster's default StorageClass. Needed
+# when OpenEBS is the only storage provider, because openldap-docker's volume
+# claim template does not name a class. Off by default so that adding OpenEBS
+# to a cluster cannot silently steal the default from an existing provider.
+openebs_default_storage_class: false
 
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd
