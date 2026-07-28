@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-24T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -60,6 +60,18 @@ Runs the `service_configurations` role on its own, regenerating the shared
 `configs` secret without a full `kubernetes.yml` run — the standalone
 equivalent of `--tags configure-services`. Run after changing inventory
 values that feed service configuration.
+
+## local-exim.yml
+
+Deploys the `local-exim` mail relay on its own — the standalone equivalent of
+the local-exim slice of `--tags de-reqs`, which otherwise also re-runs the
+namespace, cert-issuer, timezone, and Harbor pull-secret tasks. It imports the
+same task file the `k8s_de_reqs` role uses, so the two paths cannot drift.
+[de-mailer](/services/de-mailer.md) relays all outbound DE mail through this
+deployment. The play first asserts that `exim_smarthost` is set and does not
+point at loopback: the role default does, which makes exim smarthost to itself
+and silently drops every message. Note that the value is an exim host list, so
+a port needs a second colon (`host::port`).
 
 ## openldap_community_group.yml
 
@@ -146,7 +158,8 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [4] `ansible/print_host_distros.yml` — distro survey.
 [5] `ansible/big_dumper.yml`, `ansible/roles/db_copy_prod/tasks/` — production database copy.
 [6] `ansible/config_files.yml` — standalone service_configurations run.
-[7] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
-[8] `ansible/nats_cleanup.yml` — NATS Helm release, certificate, and secret teardown.
-[9] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
-[10] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[7] `ansible/local-exim.yml`, `ansible/roles/k8s_de_reqs/tasks/local_exim.yml` — standalone local-exim run and the shared task file it imports.
+[8] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
+[9] `ansible/nats_cleanup.yml` — NATS Helm release, certificate, and secret teardown.
+[10] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
+[11] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.

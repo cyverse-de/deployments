@@ -992,13 +992,19 @@
 # send outbound mail through. It reuses the `timezone` value documented
 # under Phase 4 for the container clock.
 
-# Upstream smarthost (host:port) exim forwards mail to.
-# Default: "127.0.0.1:25"
-# exim_smarthost: "127.0.0.1:25"
+# Upstream smarthost exim forwards mail to. This is an exim host list, so a
+# single colon separates hosts and a port needs a second one: "host::port".
+# Writing "host:25" silently adds a bogus second host named 25. The default
+# points exim at itself and drops all mail; local-exim.yml refuses to run
+# until this is set to a real relay.
+# Default: "127.0.0.1::25"
+# exim_smarthost: "mailgate.example.org::25"
 
-# Password exim authenticates to the smarthost with.
+# Password exim authenticates to the smarthost with, appended to
+# /etc/exim4/passwd.client ("host:login:password"). Leave empty when the
+# smarthost relays by IP allowlist rather than SMTP AUTH.
 # Default: "127.0.0.1"
-# exim_password: "127.0.0.1"
+# exim_password: ""
 
 # CIDR/host list allowed to relay mail through exim.
 # Default: "172.17.0.0/24:127.0.0.1"

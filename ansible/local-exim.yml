@@ -1,0 +1,45 @@
+---
+# Deploy just the local-exim mail relay, without the rest of k8s_de_reqs.
+#
+# de-mailer relays all outbound DE mail through local-exim, but the relay is normally
+# applied as one step of the de-reqs tag, which also re-runs the namespace, cert-issuer,
+# timezone, and Harbor pull-secret tasks. This playbook reuses the same task file so the
+# relay can be fixed or rolled out on its own.
+#
+# Run: ansible-playbook -i <inventory> local-exim.yml
+#
+# The exim_* role defaults in roles/common/defaults/main.yml are non-functional
+# placeholders, not sane fallbacks: exim_smarthost defaults to loopback, which makes exim
+# smarthost to itself and silently drops every message. Set exim_smarthost (and
+# exim_password, if the smarthost requires SMTP AUTH rather than an IP allowlist) in the
+# inventory before running this.
+#
+# exim_smarthost is an exim host list: a single colon separates hosts, so a port needs a
+# second one ("mailgate.example.org::25"). "host:25" parses as two hosts and appends a
+# bogus one named 25, which exim resolves to 0.0.0.25 and tries on failover.
+
+- name: Deploy the local-exim mail relay
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the exim_* and k8s_*_cidr defaults from common.
+    - common
+  tasks:
+    - name: Require a real upstream smarthost
+      ansible.builtin.assert:
+        that:
+          - exim_smarthost | length > 0
+          - not exim_smarthost.startswith('127.')
+          - not exim_smarthost.startswith('localhost')
+        fail_msg: >-
+          exim_smarthost is {{ exim_smarthost }}, which points exim at itself; mail would
+          be accepted and then fail to route. Set exim_smarthost to the real upstream
+          relay in the inventory, as an exim host list (prod uses
+          mailgate.cyverse.org::25 — the second colon is what makes 25 a port).
+
+    - name: Apply the local-exim deployment and service
+      ansible.builtin.import_role:
+        name: k8s_de_reqs
+        tasks_from: local_exim
