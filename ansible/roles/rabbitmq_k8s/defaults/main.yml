@@ -1,0 +1,26 @@
+---
+# In-cluster RabbitMQ for deployments that have no external broker. The
+# `rabbitmq` role installs a broker on a host in the amqp-brokers group; this
+# one runs a single-replica broker as a workload instead.
+rabbitmq_k8s_namespace: "{{ ns }}"
+rabbitmq_k8s_version: "4.1"
+rabbitmq_k8s_image: "rabbitmq:{{ rabbitmq_k8s_version }}-management"
+
+rabbitmq_k8s_persistent: true
+rabbitmq_k8s_storage_class: openebs-hostpath
+rabbitmq_k8s_storage_size: 4Gi
+
+rabbitmq_k8s_cpu_request: 100m
+rabbitmq_k8s_memory_request: 512Mi
+rabbitmq_k8s_cpu_limit: "1"
+rabbitmq_k8s_memory_limit: 1Gi
+
+# Vhosts and their owning users, provisioned after the broker comes up. The
+# defaults mirror what the DE's config templates expect.
+rabbitmq_k8s_vhosts:
+  - vhost: "{{ de_amqp_vhost }}"
+    user: "{{ de_amqp_user }}"
+    password: "{{ de_amqp_password }}"
+  - vhost: "{{ irods_amqp_vhost }}"
+    user: "{{ irods_amqp_user }}"
+    password: "{{ irods_amqp_password }}"

@@ -1,0 +1,16 @@
+---
+# Name of the Service that stands in for a PostgreSQL instance running on the
+# node but outside the cluster. groups['dbms'][0] should be its cluster DNS
+# name (<name>.<ns>.svc.cluster.local) so the same string resolves both in-pod
+# and — via /etc/hosts — on the Ansible control machine.
+local_db_service_name: db
+
+# Address the EndpointSlice points at. Empty means derive the CNI bridge
+# address from the node's podCIDR, which is where a host process listening for
+# the pod network can be reached. Prefer that over the node's InternalIP: the
+# InternalIP may belong to an overlay interface (Tailscale, for one), and
+# binding PostgreSQL to it would expose the database well beyond the node.
+local_db_endpoint_address: ""
+
+# Node whose podCIDR is used for the derivation. Empty means the first node.
+local_db_endpoint_node: ""

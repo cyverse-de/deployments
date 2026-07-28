@@ -1,0 +1,46 @@
+---
+- name: Reconcile node labels and taints
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: Look up the nodes to reconcile
+      kubernetes.core.k8s_info:
+        kind: Node
+        name: "{{ local_node_name | default(omit, true) }}"
+      register: local_node_info
+
+    - name: Fail if no nodes matched
+      ansible.builtin.fail:
+        msg: >-
+          No nodes matched local_node_name={{ local_node_name | default('<all>', true) }}.
+          Check that the kubeconfig points at the intended cluster.
+      when: local_node_info.resources | length == 0
+
+    - name: Apply the node labels
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ item.metadata.name }}"
+        definition:
+          metadata:
+            labels: "{{ local_node_labels }}"
+      loop: "{{ local_node_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+    # merge_type: merge (RFC 7386) replaces arrays wholesale, which is the only
+    # way to drop an entry from spec.taints — a strategic merge patch can add
+    # to the list but never remove from it.
+    - name: Remove the taints that would repel DE services
+      kubernetes.core.k8s:
+        state: patched
+        merge_type: merge
+        kind: Node
+        name: "{{ item.metadata.name }}"
+        definition:
+          spec:
+            taints: "{{ item.spec.taints | default([]) | rejectattr('key', 'in', local_node_remove_taint_keys) | list }}"
+      loop: "{{ local_node_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"

@@ -1,0 +1,144 @@
+---
+# Stands the DE up on a pre-existing single-node cluster, for local
+# development. See wiki/playbooks/local-single-node-deployment.md for the
+# manual host preparation this assumes and the order to run the tags in.
+#
+# This is deliberately not kubernetes.yml with things switched off. Everything
+# here runs against the API server from the control machine; nothing needs SSH
+# or sudo on the node. Relative to kubernetes.yml it drops:
+#
+#   k8s_cluster       the cluster already exists and is not managed by k0sctl
+#   k8s_nodes         reconfigures the host (swap, fstab, SELinux, reboots)
+#   k8s_firewalld     same
+#   postgresql        the host's PostgreSQL is not ours to reconfigure
+#   postgresql_access  "
+#   nvidia_drivers    host package management
+#   haproxy           the edge proxy is a hand-managed systemd unit
+#   ui_haproxy         "
+#   longhorn          storage is openebs-hostpath
+#   harbor            images pull from an external registry
+#   ingress_nginx     only Harbor uses it
+#   kubernetes_node_feature_discovery  installs a device plugin that crashloops
+#                                      without the nvidia container toolkit
+#
+# and adds local_node_prep, local_db_endpoint and rabbitmq_k8s.
+
+- name: Initialize dbs
+  hosts: dbms
+  become: false
+  connection: local
+  gather_facts: false
+  roles:
+    - role: postgresql_init
+  tags:
+    - setup-databases
+    - databases
+
+- name: Set up cluster-level prerequisites
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: local_node_prep
+      tags:
+        - node-prep
+        - de-reqs
+
+    - role: cert-manager
+      tags: cert-manager
+
+    - role: cluster_issuers
+      tags:
+        - cert-issuers
+        - de-reqs
+
+    - role: argo
+      tags:
+        - argo
+        - de-reqs
+
+    - role: traefik
+      tags:
+        - traefik
+        - de-reqs
+      when: gateway_provider == "traefik"
+
+- name: Add third-party software and DE prerequisites
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: k8s_de_reqs
+      tags: de-reqs
+
+    # Both stand in for infrastructure that lives outside the cluster in other
+    # environments: a database on the node, and a broker on its own host.
+    - role: local_db_endpoint
+      tags:
+        - local-db
+        - de-reqs
+
+    - role: rabbitmq_k8s
+      tags:
+        - rabbitmq
+        - de-reqs
+
+    - role: services/openldap-docker
+      tags: openldap-docker
+
+    - role: keycloak_install
+      tags: keycloak
+      when: "'keycloak' in ansible_run_tags"
+
+    - role: service_configurations
+      tags: configure-services
+
+    - role: secret_loader
+      tags:
+        - configure-services
+        - secrets
+
+    - role: kubernetes_ingress
+      tags: ingress
+
+    - role: kubernetes_networking
+      tags:
+        - networking
+        - nodeports
+
+    - role: opensearch
+      tags: opensearch
+
+    - role: grouper_init
+      tags: grouper
+
+    # Pre-pulls every image in vice_image_cache onto the node's disk, so it is
+    # opt-in rather than part of a full run.
+    - role: image_cache
+      tags: image-cache
+      when: "'image-cache' in ansible_run_tags"
+
+- name: Set up irods-csi-driver
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: kubernetes_irods_csi_driver
+  tags: irods-csi-driver
+
+# The service list lives in one place; deploy_it.yml already targets
+# k8s_controllers[0] over a local connection and tags each service by name.
+- ansible.builtin.import_playbook: deploy_it.yml
+  tags: deploy-all-services
+
+- name: Deploy additional services
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: cronjobs
+      tags: cronjobs
