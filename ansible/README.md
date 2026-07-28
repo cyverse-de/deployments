@@ -69,14 +69,12 @@ The `condor.yml` playbook will install and configure a dedicated HTCondor cluste
 
 ## Cert-Manager
 
-The DE uses cert-manager to generate and rotate self-signed TLS certs for use with NATS.
-
-## NATS
-
-The DE uses NATS in the backend to communicate between some services. By default, NATS is installed in clustered mode
-with 4 replicas. You should be able to connect to any node to communicate with other services using NATS. The `nats`
-role installs NATS via its Helm chart and runs in `kubernetes.yml` under the `nats` tag; see
-[docs/nats.md](docs/nats.md) for retrieving the client/server TLS files.
+The DE uses cert-manager to issue and renew the TLS certificates used inside the cluster — the Traefik default
+certificate, the DE UI, VICE wildcard, user portal, Keycloak, and Harbor certs. The `cert-manager` role installs the
+chart under the `cert-manager` tag in `kubernetes.yml`, and the `cluster_issuers` role follows it under the
+`cert-issuers` tag to create the self-signed `default-cluster-issuer` plus, when `cert_manager_provider` is
+`letsencrypt`, a Let's Encrypt ClusterIssuer using the ACME dns01 solver against Route53. See
+[the cert-manager wiki page](../wiki/infrastructure/cert-manager.md).
 
 **NOTE** Make sure the `KUBECONFIG` environment variable is set to the correct value in your local shell.
 
