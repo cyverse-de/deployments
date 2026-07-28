@@ -136,22 +136,34 @@ Then restart PostgreSQL.
 sees SNI and can route the per-analysis VICE hostnames:
 
 ```
+defaults
+    log     global
+    timeout connect 5s
+
 frontend http_in
+    mode http
+    option httplog
+    timeout client 30s
     bind 127.0.0.1:80
     redirect scheme https code 301
 
 frontend https_in
-    bind 127.0.0.1:443
     mode tcp
     option tcplog
+    timeout client 24h
+    bind 127.0.0.1:443
     default_backend k8s_gateway
 
 backend k8s_gateway
     mode tcp
+    timeout server 24h
     server local 127.0.0.1:31383 check inter 5000
 ```
 
-The backend port is `traefik_https_port`. Reload the proxy.
+The backend port is `traefik_https_port`. The 24h timeouts match the ones the
+Traefik role sets on its entrypoints and the ones the DE's HTTPRoutes set on
+their backends: VICE sessions idle for long stretches, and a shorter timeout
+here drops them with nothing in any log to explain it. Reload the proxy.
 
 ## TLS
 
