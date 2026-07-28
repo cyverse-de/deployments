@@ -156,6 +156,20 @@ cert_manager_le_issuer_email: "{{ email_dest }}"
 cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
 cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
 
+# How default-cluster-issuer signs: selfSigned | ca.
+#   selfSigned - cert-manager generates a throwaway root; browsers must be told
+#                to trust each per-endpoint CA individually.
+#   ca         - an existing CA keypair is loaded from disk and used as the
+#                root. Use this when the root is already in the clients' trust
+#                store (e.g. a mkcert root on a workstation), so the certs the
+#                'selfsigned' cert_manager_provider chain issues come out
+#                trusted with no other changes.
+cluster_issuer_default_type: selfSigned
+cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+# Paths on the Ansible control machine. Only read when the type is 'ca'.
+cluster_issuer_ca_cert_file: replace_me
+cluster_issuer_ca_key_file: replace_me
+
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
 dashboard_aggregator_website_url: https://cyverse.org
@@ -652,6 +666,8 @@ grouper_gsh_image: harbor.cyverse.org/de/grouper # actual useful value
 grouper_gsh_image_version: v3.0.0 # actual useful value
 grouper_ws_replicas: 2
 grouper_loader_replicas: 1
+grouper_ws_pod_anti_affinity: true
+grouper_loader_pod_anti_affinity: true
 grouper_tag: v3.0.0
 grouper_folder_name_prefix: "iplant:de:{{ env }}"
 

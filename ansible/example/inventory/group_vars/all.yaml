@@ -804,6 +804,22 @@
 # Default: selfsigned (or letsencrypt if cert_manager_use_letsencrypt is true)
 # cert_manager_provider: external
 #
+# Orthogonal to the above: cluster_issuer_default_type decides what the
+# `selfsigned` chain's root actually is. `selfSigned` (the default) has
+# cert-manager generate a throwaway root, so clients must be told to trust
+# each per-endpoint CA. `ca` instead loads an existing CA keypair from the
+# control machine, so the same chain produces certificates that are already
+# trusted wherever that root is installed — useful for local development
+# with a tool like mkcert, and for an internal PKI.
+#
+# The CA private key is stored in a Secret in the cert-manager namespace,
+# which means read access to secrets there is equivalent to holding the CA.
+# Default: selfSigned
+# cluster_issuer_default_type: ca
+# cluster_issuer_ca_cert_file: /path/to/rootCA.pem
+# cluster_issuer_ca_key_file: /path/to/rootCA-key.pem
+# cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+#
 # In `external` mode you must create these `kubernetes.io/tls` secrets
 # before HTTPS will serve — a Gateway listener whose secret is missing
 # simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
@@ -1051,6 +1067,14 @@
 # CIDR/host list allowed to relay mail through exim.
 # Default: "172.17.0.0/24:127.0.0.1"
 # exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
+
+# The cluster's pod and service CIDRs. exim's relay allowlist is built from
+# these plus exim_allowed_senders, so if they do not match what the cluster
+# actually uses, local-exim rejects mail from every DE pod and all outbound
+# DE mail fails silently from the services' point of view.
+# Defaults: 10.42.0.0/16 / 10.43.0.0/16
+# k8s_pods_cidr: "10.42.0.0/16"
+# k8s_services_cidr: "10.43.0.0/16"
 
 # Replica count for the relay Deployment, and whether its pods carry a
 # required anti-affinity rule (one pod per node). Set 1/false on small
@@ -1443,6 +1467,17 @@
 # Default: replace_me
 # es_index: data
 
+# StorageClass and size for the in-cluster StatefulSet's data volume, and the
+# JVM heap / memory limit. The storage class default names Longhorn, so it has
+# to be overridden on clusters using OpenEBS or anything else — otherwise the
+# PVC pends indefinitely with no other symptom. Keep the heap at roughly half
+# the memory limit.
+# Defaults: longhorn / 20Gi / 1g / 4Gi
+# opensearch_storage_class: openebs-hostpath
+# opensearch_storage_size: 20Gi
+# opensearch_heap_size: 1g
+# opensearch_mem_limit: 4Gi
+
 
 # =====================================================================
 # Grafana
@@ -1582,9 +1617,18 @@
 # irods_perms_filter:
 #   - rodsadmin
 
-# Endpoint of the iRODS CSI driver pool server.
+# Endpoint of the iRODS CSI driver pool server. A host:port names an external
+# pool server; the unix socket form below is the chart default, where each
+# node's driver pod runs its own irods-pool sidecar. Pointing a deployment
+# without an external pool server at a host:port breaks every mount.
 # Default: rodsfs.example.org:12020
 # irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
+# irods_csi_driver_pool_server_endpoint: unix:///csi/pool.sock
+
+# Kubelet root the driver registers its plugin socket under. The default is
+# k0s's; other distributions use /var/lib/kubelet.
+# Default: /var/lib/k0s/kubelet
+# irods_csi_driver_kubelet_dir: /var/lib/kubelet
 
 # Cache timeout settings for the iRODS CSI driver, as a JSON string.
 # Default: per-zone paths derived from irods_zone (see roles/common/defaults/main.yml)
