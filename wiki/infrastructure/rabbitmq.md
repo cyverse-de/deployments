@@ -1,10 +1,10 @@
 ---
 type: Service
 title: RabbitMQ
-description: How RabbitMQ is installed and configured for the DE services by the rabbitmq.yml and rabbitmq_configure.yml playbooks.
+description: How RabbitMQ is installed and configured for the DE services, either on a host by rabbitmq.yml and rabbitmq_configure.yml or in-cluster by the rabbitmq_k8s role.
 resource: /docs/rabbitmq.md
 tags: [rabbitmq, amqp, messaging]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 These playbooks can be used to install and/or configure RabbitMQ for usage by the DE services.
@@ -32,7 +32,26 @@ The `amqp-brokers` group should include the host to install and/or configure Rab
 
 Both playbooks depend on the `amqp.admin_user` and `amqp.admin_password` variables. The configuration tasks additionally depend on `amqp.de` and `amqp.irods`, which are definitions of vhosts.
 
+## In-cluster RabbitMQ
+
+Both playbooks act on a host: they install packages and drive `rabbitmqctl`
+over SSH under `become`, so neither can target a broker running as a pod. The
+`rabbitmq_k8s` role is the alternative for deployments with no broker host —
+it deploys a single-replica broker with the management plugin and provisions
+the same vhosts and users through `kubectl exec`. `rabbitmq_k8s_vhosts`
+defaults to the `de_amqp_*` and `irods_amqp_*` pairs, so the variables the DE's
+config templates read do not change; only `de_amqp_host` / `irods_amqp_host`
+move to the in-cluster Service. The role is not in `kubernetes.yml`; it runs
+from `local.yml` (see
+[Local Single-Node Deployment](/playbooks/local-single-node-deployment.md)).
+
+Pointing `irods_amqp_host` at a broker that no iRODS instance publishes to is a
+supported configuration but has a consequence worth stating: `dewey`,
+`info-typer`, and `infosquito2` will run and idle, and nothing will populate
+the [OpenSearch](/infrastructure/opensearch.md) index.
+
 # Citations
 
 [1] `docs/rabbitmq.md` — source document for this page.
 [2] `ansible/rabbitmq.yml`, `ansible/rabbitmq_configure.yml` — the playbooks described here.
+[3] `ansible/roles/rabbitmq_k8s/` — the in-cluster alternative.

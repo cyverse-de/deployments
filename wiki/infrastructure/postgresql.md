@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -80,6 +80,17 @@ The `dbms` group holds the PostgreSQL host for the Discovery Environment
 databases. The `keycloak_dbms` group holds the host for the Keycloak database —
 it may be the same server or a separate one. Both passes use the first host
 listed in each group.
+
+`groups['dbms'][0]` is not only an Ansible target: it is interpolated verbatim
+into every database URI the service config templates render, and it is what
+`postgresql_init` and `db_staging` pass as `login_host` from the control
+machine. The name therefore has to resolve, to the same server, both on the
+control machine and inside pods. With a dedicated database host that is
+automatic. When the database runs on a cluster node instead — as it does for a
+[local single-node deployment](/playbooks/local-single-node-deployment.md) —
+the way to satisfy both is to make the inventory hostname a cluster DNS name
+backed by a selector-less Service and EndpointSlice (the `local_db_endpoint`
+role), and add an `/etc/hosts` entry for it on the control machine.
 
 ## Group Variable Setup
 

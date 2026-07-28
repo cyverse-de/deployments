@@ -4,7 +4,7 @@ title: OpenSearch
 description: The single-node in-cluster OpenSearch StatefulSet backing the DE data-search pipeline, deployed by the opensearch role via kubernetes.yml or the standalone opensearch.yml playbook.
 resource: /ansible/roles/opensearch
 tags: [opensearch, search, statefulset, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 OpenSearch is the search index behind the DE data-search pipeline — consumed by
@@ -42,7 +42,10 @@ Both render `k8s/opensearch.yml.j2` into a StatefulSet plus a `opensearch` Servi
   off-heap Lucene structures.
 - Data lives on a `volumeClaimTemplates` PVC: `opensearch_storage_size` (20Gi) on
   `opensearch_storage_class` (default `longhorn` — see
-  [Longhorn](/infrastructure/longhorn.md)).
+  [Longhorn](/infrastructure/longhorn.md)). On a cluster running
+  [OpenEBS](/infrastructure/openebs.md) instead, `opensearch_storage_class` has to be
+  overridden in group_vars; the default names a StorageClass that does not exist there
+  and the PVC pends indefinitely with no other symptom.
 - Readiness waits for cluster health `yellow` (normal for a single node); a startup probe
   allows up to 30 failures before liveness kicks in.
 

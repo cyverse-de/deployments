@@ -26,8 +26,15 @@ The `cluster_issuers` role runs immediately after cert-manager in `kubernetes.ym
 `cert-issuers` and `de-reqs`) so that certificates requested later in the run — Harbor's and
 Traefik's — can be issued right away. It creates:
 
-- `default-cluster-issuer` — a self-signed ClusterIssuer, created unconditionally. Traefik and the
-  per-namespace CA certificates chain off this issuer (see [Ingress](/infrastructure/ingress.md)).
+- `default-cluster-issuer` — a ClusterIssuer that Traefik and the per-namespace CA certificates
+  chain off (see [Ingress](/infrastructure/ingress.md)). `cluster_issuer_default_type` decides how
+  it signs: `selfSigned` (the default) generates a throwaway root, and `ca` loads an existing CA
+  keypair from `cluster_issuer_ca_cert_file` / `cluster_issuer_ca_key_file` on the control machine
+  into a Secret in the `cert-manager` namespace and issues from that instead. The `ca` variant is
+  what makes locally-issued certificates come out browser-trusted when the root is already in the
+  trust store — see [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md).
+  It also means whoever can read secrets in the `cert-manager` namespace holds the CA, so it
+  belongs on a workstation rather than a shared cluster.
 - A Let's Encrypt ClusterIssuer (name from `cert_manager_le_issuer_name`, default `letsencrypt`),
   created only when `cert_manager_provider` is `letsencrypt`. It uses the ACME `dns01` solver
   against AWS Route53, so the role also creates a Secret in the `cert-manager` namespace holding
@@ -43,6 +50,11 @@ All defaults live in `ansible/roles/common/defaults/main.yml` (every role depend
 
 - `cert_manager_provider` — `selfsigned` (default) or `letsencrypt`; derived from the legacy
   `cert_manager_use_letsencrypt` boolean for backward compatibility.
+- `cluster_issuer_default_type` — `selfSigned` (default) or `ca`. Orthogonal to
+  `cert_manager_provider`: it changes what the `selfsigned` chain's root *is*, not which issuer the
+  endpoint certificates reference.
+- `cluster_issuer_ca_cert_file`, `cluster_issuer_ca_key_file`, `cluster_issuer_ca_secret_name` —
+  read only when the type is `ca`.
 - `cert_manager_le_aws_region`, `cert_manager_le_aws_access_key_id`,
   `cert_manager_le_aws_secret_access_key` — Route53 credentials for the dns01 solver; the key ID
   and secret default to `replace_me` and must be set in group_vars for Let's Encrypt.

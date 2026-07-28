@@ -18,4 +18,4 @@
 * [OpenEBS](/infrastructure/openebs.md) - How OpenEBS cluster storage is deployed by the opt-in openebs role in kubernetes.yml, and the kustomize/kubectl versions it requires.
 * [OpenSearch](/infrastructure/opensearch.md) - The single-node in-cluster OpenSearch StatefulSet backing the DE data-search pipeline, deployed by the opensearch role via kubernetes.yml or the standalone opensearch.yml playbook.
 * [PostgreSQL](/infrastructure/postgresql.md) - How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
-* [RabbitMQ](/infrastructure/rabbitmq.md) - How RabbitMQ is installed and configured for the DE services by the rabbitmq.yml and rabbitmq_configure.yml playbooks.
+* [RabbitMQ](/infrastructure/rabbitmq.md) - How RabbitMQ is installed and configured for the DE services, either on a host by rabbitmq.yml and rabbitmq_configure.yml or in-cluster by the rabbitmq_k8s role.

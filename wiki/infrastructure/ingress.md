@@ -4,7 +4,7 @@ title: Ingress and Gateway Routing
 description: Traefik (Gateway API) is the primary edge for DE traffic, with ingress-nginx available for Ingress-based exposure; the kubernetes_ingress role defines the DE, portal, and VICE gateways and routes.
 resource: /ansible/roles/kubernetes_ingress
 tags: [ingress, traefik, gateway-api, ingress-nginx, routing, vice, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 The deployment's primary in-cluster edge is Traefik acting as a Kubernetes Gateway API provider:
@@ -28,7 +28,10 @@ so it can be fronted by either mechanism:
   Issuer, and default TLS certificate via cert-manager in the `traefik` namespace, then installs
   the `traefik/traefik` Helm chart with the `kubernetesGateway` provider enabled. It listens on
   NodePorts `traefik_http_port` (31380) and `traefik_https_port` (31383), with 24h read/write
-  timeouts and `allowEncodedSlash: true` (required for the VICE loading page).
+  timeouts and `allowEncodedSlash: true` (required for the VICE loading page). Both NodePorts are
+  overridable, which is what lets the role adopt a Traefik release that is already installed on
+  different ports: the Helm release name and namespace match, so it upgrades in place rather than
+  installing a second copy.
 
 There is no `traefik.yml` standalone playbook; both roles run only via `kubernetes.yml`.
 

@@ -4,7 +4,7 @@ title: Deploying a Full DE Environment
 description: How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
 resource: /ansible/kubernetes.yml
 tags: [deploy, kubernetes, ansible, k0s, environment]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 `kubernetes.yml` is the top-level playbook for standing up and maintaining a
@@ -48,6 +48,13 @@ role under `roles/services/`. Deploys read each service's build descriptor
 `de-releases/builds` checkout). To build images first, or to deploy a subset
 afterwards with `deploy_it.yml`, see
 [Building and Deploying Services](/playbooks/build-and-deploy.md).
+
+`kubernetes.yml` assumes it owns the cluster and the nodes: it runs `k0sctl`,
+reconfigures each node over SSH, and installs PostgreSQL on a database host. To
+deploy onto a cluster that already exists — a single node on a workstation, for
+instance — use `local.yml` instead, which does everything in-cluster and adds
+the roles that stand in for the out-of-cluster pieces. See
+[Local Single-Node Deployment](/playbooks/local-single-node-deployment.md).
 
 ## Major tags
 
