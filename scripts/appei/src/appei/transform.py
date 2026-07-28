@@ -74,6 +74,13 @@ APP_TOOL_CONTAINER_KEEP_KEYS = frozenset(
     }
 )
 
+# Container fields only POST /admin/tools accepts. The private tool route
+# rejects them outright, which is deliberate: they grant a tool access to host
+# devices and data.
+ADMIN_ONLY_CONTAINER_KEYS = frozenset(
+    {"container_devices", "container_volumes", "container_volumes_from"}
+)
+
 # Top-level fields the publish request wants copied from the exported app.
 # The app ID is filled in by the importer once the target assigns one; the
 # source instance's id/version_id are meaningless on the target.
@@ -108,6 +115,30 @@ def clean_tool_for_import(tool: dict) -> dict:
     ):
         for entry in container.get(key) or []:
             entry.pop("id", None)
+    return cleaned
+
+
+def blocking_admin_only_keys(tool: dict) -> list[str]:
+    """Admin-only container fields the tool actually populates.
+
+    Empty ones are droppable, so only fields carrying data block a private
+    import.
+    """
+    container = tool.get("container") or {}
+    return sorted(key for key in ADMIN_ONLY_CONTAINER_KEYS if container.get(key))
+
+
+def clean_tool_for_private_import(tool: dict) -> dict:
+    """Return a copy of a tool shaped for POST /tools.
+
+    The private route sets additionalProperties to false, so the admin-only
+    container fields are dropped rather than sent empty. Callers are expected
+    to have rejected tools where blocking_admin_only_keys is non-empty.
+    """
+    cleaned = clean_tool_for_import(tool)
+    container = cleaned.get("container", {})
+    for key in ADMIN_ONLY_CONTAINER_KEYS:
+        container.pop(key, None)
     return cleaned
 
 
@@ -203,8 +234,15 @@ def is_in_listing(item: dict, listing: list[dict]) -> bool:
 
 
 def id_from_listing(item: dict, listing: list[dict]) -> str | None:
-    """Find the listed ID of the entry matching item's name and version."""
+    """Find the listed ID of the entry matching item's name and version.
+
+    Soft-deleted entries never match: the admin listings still include them,
+    but a deleted app or tool can't be reused, so matching one would turn an
+    import into a no-op instead of recreating the resource.
+    """
     for listed in listing:
+        if listed.get("deleted"):
+            continue
         if listed["name"] == item["name"] and listed.get("version") == item.get(
             "version"
         ):

@@ -2,6 +2,7 @@
 
 ## 2026-07-28
 
+* **Update**: [Copying Apps Between DE Instances](/playbooks/app-export-import.md) — documented the new `appei shred-app` and `delete-tool` commands, the switch to the private tool route (`POST /terrain/tools`) with the `--public-tool` escape hatch, why import now skips soft-deleted entries when matching, and that tool publishing is one-way (no unpublish route; a soft-deleted app still blocks tool deletion).
 * **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [portal-conductor](/services/portal-conductor.md) — documented the new `portal_delete_user_config.yml` playbook that renders `portal-delete-user.json` for the `delete-user` batch tool, and why that file carries `portal_db` but not the terrain/formation/auth/SMTP credentials the service config does.
 
 ## 2026-07-22

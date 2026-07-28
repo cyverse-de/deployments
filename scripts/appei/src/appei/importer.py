@@ -18,12 +18,15 @@ def import_bundle(
     log: Log = print,
     publish: bool = False,
     feature: bool = False,
+    public_tools: bool = False,
 ) -> str:
     """Import the bundle's tools and app, privately unless told otherwise.
 
-    With publish=True the app is made public (which also publishes its tools)
-    and its beta AVU dropped; feature=True additionally blesses it as a
-    featured app and implies publish.
+    With publish=True the app is made public and its beta AVU dropped;
+    feature=True additionally blesses it as a featured app and implies
+    publish. public_tools=True creates the tools through the admin route,
+    which makes them public DE-wide; it is required for tools using the
+    admin-only container fields.
 
     Tools and the app are matched by name+version against the target's
     listings, so re-running an import is safe: existing resources are reused
@@ -51,12 +54,14 @@ def import_bundle(
             )
             tool["id"] = existing_id
             continue
-        log(f"Importing tool {tool['name']} {tool['version']}...")
-        result = client.import_tools([transform.clean_tool_for_import(tool)])
-        tool["id"] = result["tool_ids"][0]
+        tool["id"] = _create_tool(client, tool, public_tools, log)
         log(f"Imported tool {tool['name']} {tool['version']} as {tool['id']}")
 
-    public_id = transform.id_from_listing(data, app_listing)
+    # The admin listing covers private apps too, so a match there says nothing
+    # about visibility; check the flag, or an existing private app is reported
+    # as public and --publish silently skips publishing it.
+    public_listing = [app for app in app_listing if app.get("is_public")]
+    public_id = transform.id_from_listing(data, public_listing)
     if public_id is not None:
         log(f"App {app_name} {app_version} is already public as {public_id}")
         _remove_beta_avu(client, public_id, log)
@@ -91,6 +96,30 @@ def import_bundle(
     _remove_beta_avu(client, app_id, log)
     log(f"Done importing app {app_name} {app_version}")
     return app_id
+
+
+def _create_tool(
+    client: TerrainClient, tool: dict, public_tools: bool, log: Log
+) -> str:
+    """Create one tool, private by default, and return its new ID."""
+    name, version = tool["name"], tool["version"]
+    blocking = transform.blocking_admin_only_keys(tool)
+    if not public_tools:
+        if blocking:
+            raise ValueError(
+                f"tool {name} {version} uses {', '.join(blocking)}, which the "
+                "private tool route rejects; re-run with --public-tool to "
+                "import it as a public tool"
+            )
+        log(f"Importing tool {name} {version}...")
+        return client.create_private_tool(
+            transform.clean_tool_for_private_import(tool)
+        )["id"]
+
+    reason = f" (it uses {', '.join(blocking)})" if blocking else ""
+    log(f"Warning: importing tool {name} {version} as a PUBLIC tool{reason}")
+    result = client.import_tools([transform.clean_tool_for_import(tool)])
+    return result["tool_ids"][0]
 
 
 def _remove_beta_avu(client: TerrainClient, app_id: str, log: Log) -> None:

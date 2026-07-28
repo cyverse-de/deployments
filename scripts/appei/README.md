@@ -35,9 +35,18 @@ permission on the app itself (admin group membership isn't enough), so on a
 sharing endpoint, retries, and removes the share again afterward.
 
 Importing is idempotent: tools and apps already present on the target
-(matched by name and version) are reused instead of recreated. A fresh import
-creates the tools first, rewrites the app's tool references to the new tool
-IDs, and creates the app. The imported app and tools stay private to the
+(matched by name and version) are reused instead of recreated. Soft-deleted
+apps and tools don't count as present — the admin listings still return them,
+but they can't be reused, so matching one would make the import a silent
+no-op. A fresh import creates the tools first, rewrites the app's tool
+references to the new tool IDs, and creates the app. Tools go through the
+private tool route, so they belong to the importing admin; that route forces
+`restricted`, `network_mode` and the resource limits to the target's
+configured defaults, and rejects the `container_devices`, `container_volumes`
+and `container_volumes_from` settings. A tool that populates any of those
+fails the import with a message naming them — pass `--public-tool` to create the
+tools through the admin route instead, which makes them public DE-wide and is
+logged as a warning. The imported app and tools stay private to the
 importing admin by default; pass `--publish` to make the app public, or
 `--feature` to publish it and mark it as featured. Publishing also removes
 the app's beta AVU, and apps exported without documentation are published
@@ -46,6 +55,19 @@ none.
 
 The Docker images referenced by the tools are not copied; they must be
 pullable from the target cluster.
+
+`uv run appei shred-app --server <server> --id <app-uuid>` permanently deletes
+an app, optionally qualified by `--system-id` (default `de`). Deleting an app
+in the UI only sets its `deleted` flag; the row and its tool reference
+survive, which keeps the tool from being deleted. Shredding removes the row
+outright. It cannot be undone — the exported bundle is the only remaining
+copy.
+
+`uv run appei delete-tool --server <server> --id <tool-uuid>` deletes a tool.
+Terrain refuses while any app still uses it, and a soft-deleted app counts, so
+shred the app first. There is no way to make a public tool private again — the
+API has a publish route and no inverse — so delete and re-import is the only
+path back.
 
 `uv run appei logout --server <server>` deletes a cached token.
 

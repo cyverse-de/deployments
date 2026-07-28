@@ -1,4 +1,4 @@
-"""Command-line interface: appei login/logout/list/export/import."""
+"""appei CLI: login/logout/list/export/import/shred-app/delete-tool."""
 
 import argparse
 import getpass
@@ -75,7 +75,34 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="publish the imported app and mark it as featured (implies --publish)",
     )
+    imp.add_argument(
+        "--public-tool",
+        action="store_true",
+        help="create the tools as public; required for tools using container "
+        "devices or volumes (default: keep them private)",
+    )
     imp.set_defaults(func=_run_import)
+
+    shred = subparsers.add_parser(
+        "shred-app",
+        help="permanently delete an app from the server (irreversible)",
+    )
+    shred.add_argument("--server", required=True, help="FQDN of the DE server")
+    shred.add_argument("-i", "--id", required=True, help="ID of the app to shred")
+    shred.add_argument(
+        "-s", "--system-id", default="de", help="execution system ID (default: de)"
+    )
+    shred.set_defaults(func=_run_shred_app)
+
+    delete_tool = subparsers.add_parser(
+        "delete-tool",
+        help="delete a tool that is no longer used by any app",
+    )
+    delete_tool.add_argument("--server", required=True, help="FQDN of the DE server")
+    delete_tool.add_argument(
+        "-i", "--id", required=True, help="ID of the tool to delete"
+    )
+    delete_tool.set_defaults(func=_run_delete_tool)
 
     return parser
 
@@ -133,7 +160,23 @@ def _run_export(args: argparse.Namespace) -> int:
 def _run_import(args: argparse.Namespace) -> int:
     bundle = json.loads(Path(args.input).read_text(encoding="utf-8"))
     app_id = importer.import_bundle(
-        _client(args.server), bundle, publish=args.publish, feature=args.feature
+        _client(args.server),
+        bundle,
+        publish=args.publish,
+        feature=args.feature,
+        public_tools=args.public_tool,
     )
     print(f"Imported app is available as {app_id}")
+    return 0
+
+
+def _run_shred_app(args: argparse.Namespace) -> int:
+    _client(args.server).shred_apps([{"system_id": args.system_id, "app_id": args.id}])
+    print(f"Permanently deleted app {args.id}")
+    return 0
+
+
+def _run_delete_tool(args: argparse.Namespace) -> int:
+    _client(args.server).delete_tool(args.id)
+    print(f"Deleted tool {args.id}")
     return 0

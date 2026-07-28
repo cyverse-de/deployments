@@ -73,8 +73,39 @@ class TerrainClient:
             "POST", "admin/apps/unsharing", json={"unsharing": unsharing}
         ).json()
 
+    def shred_apps(self, app_ids: list[dict]) -> None:
+        """Permanently remove apps from the database.
+
+        Uses the admin shredder, which deletes the rows outright; the
+        non-admin `apps/shredder` route only sets the deleted flag.
+        root_deletion_request is required to shred a public app and is
+        ignored for private ones.
+        """
+        self._request(
+            "POST",
+            "admin/apps/shredder",
+            json={"app_ids": app_ids, "root_deletion_request": True},
+        )
+
     def import_tools(self, tools: list[dict]) -> dict:
+        """Add tools DE-wide, which makes them public. See create_private_tool."""
         return self._request("POST", "admin/tools", json={"tools": tools}).json()
+
+    def create_private_tool(self, tool: dict) -> dict:
+        """Add a single tool owned by, and private to, the requesting user.
+
+        Terrain forces restricted, network_mode and the resource limits to
+        configured defaults here, and rejects the admin-only container fields.
+        """
+        return self._request("POST", "tools", json=tool).json()
+
+    def delete_tool(self, tool_id: str) -> None:
+        """Delete a tool, which Terrain refuses while any app still uses it.
+
+        A soft-deleted app still counts as a user of its tool, so the app has
+        to be shredded before its tool can go.
+        """
+        self._request("DELETE", f"admin/tools/{tool_id}")
 
     def create_app(self, system_id: str, app: dict) -> dict:
         return self._request("POST", f"apps/{system_id}", json=app).json()

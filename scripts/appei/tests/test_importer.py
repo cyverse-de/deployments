@@ -52,6 +52,10 @@ class FakeClient:
         self.calls.append(("import_tools", copy.deepcopy(tools)))
         return {"tool_ids": ["new-tool-uuid"]}
 
+    def create_private_tool(self, tool):
+        self.calls.append(("create_private_tool", copy.deepcopy(tool)))
+        return {"id": "new-tool-uuid"}
+
     def create_app(self, system_id, app):
         self.calls.append(("create_app", system_id, copy.deepcopy(app)))
         return {"id": "new-app-uuid", "name": app["name"]}
@@ -82,9 +86,9 @@ class TestFreshImport:
         app_id = import_bundle(client, BUNDLE, log=quiet)
         assert app_id == "new-app-uuid"
 
-        (_, imported_tools) = client.named_calls("import_tools")[0]
-        assert imported_tools[0]["name"] == "cat"
-        assert "permission" not in imported_tools[0]
+        (_, imported_tool) = client.named_calls("create_private_tool")[0]
+        assert imported_tool["name"] == "cat"
+        assert "permission" not in imported_tool
 
         (_, system_id, created) = client.named_calls("create_app")[0]
         assert system_id == "de"
@@ -141,13 +145,42 @@ class TestExistingResources:
 
     def test_public_app_skips_create_publish_and_bless(self):
         client = FakeClient(
-            app_listing=[{"id": "pub-app-uuid", "name": "cat app", "version": "1.0"}]
+            app_listing=[
+                {
+                    "id": "pub-app-uuid",
+                    "name": "cat app",
+                    "version": "1.0",
+                    "is_public": True,
+                }
+            ]
         )
         app_id = import_bundle(client, BUNDLE, log=quiet)
         assert app_id == "pub-app-uuid"
         assert client.named_calls("create_app") == []
         assert client.named_calls("publish_app") == []
         assert client.named_calls("bless_app") == []
+
+    def test_private_app_in_admin_listing_is_still_published(self):
+        # The admin listing returns private apps as well; treating any match
+        # there as "already public" meant --publish did nothing.
+        client = FakeClient(
+            app_listing=[
+                {
+                    "id": "priv-app-uuid",
+                    "name": "cat app",
+                    "version": "1.0",
+                    "is_public": False,
+                }
+            ],
+            private_listing=[
+                {"id": "priv-app-uuid", "name": "cat app", "version": "1.0"}
+            ],
+        )
+        app_id = import_bundle(client, BUNDLE, log=quiet, publish=True)
+        assert app_id == "priv-app-uuid"
+        assert client.named_calls("create_app") == []
+        (_, _, submission) = client.named_calls("publish_app")[0]
+        assert submission["id"] == "priv-app-uuid"
 
     def test_private_app_is_published_without_recreating(self):
         client = FakeClient(
@@ -161,6 +194,41 @@ class TestExistingResources:
         (_, _, submission) = client.named_calls("publish_app")[0]
         assert submission["id"] == "priv-app-uuid"
 
+    def test_deleted_app_is_recreated_not_matched(self):
+        # A soft-deleted app still shows up in the admin listing; matching it
+        # made import a no-op that could never restore the app.
+        client = FakeClient(
+            app_listing=[
+                {
+                    "id": "dead-app-uuid",
+                    "name": "cat app",
+                    "version": "1.0",
+                    "is_public": True,
+                    "deleted": True,
+                }
+            ]
+        )
+        app_id = import_bundle(client, BUNDLE, log=quiet)
+        assert app_id == "new-app-uuid"
+        assert len(client.named_calls("create_app")) == 1
+        assert client.named_calls("publish_app") == []
+
+    def test_deleted_tool_is_reimported_not_reused(self):
+        client = FakeClient(
+            tool_listing=[
+                {
+                    "id": "dead-tool-uuid",
+                    "name": "cat",
+                    "version": "1.0",
+                    "deleted": True,
+                }
+            ]
+        )
+        import_bundle(client, BUNDLE, log=quiet)
+        assert len(client.named_calls("create_private_tool")) == 1
+        (_, _, created) = client.named_calls("create_app")[0]
+        assert created["tools"][0]["id"] == "new-tool-uuid"
+
     def test_existing_private_app_stays_private_by_default(self):
         client = FakeClient(
             private_listing=[
@@ -171,6 +239,53 @@ class TestExistingResources:
         assert app_id == "priv-app-uuid"
         assert client.named_calls("create_app") == []
         assert client.named_calls("publish_app") == []
+
+
+class TestToolVisibility:
+    def volume_bundle(self):
+        bundle = copy.deepcopy(BUNDLE)
+        bundle["tools"][0]["container"]["container_volumes"] = [{"host_path": "/tmp"}]
+        return bundle
+
+    def test_tools_are_private_by_default(self):
+        client = FakeClient()
+        import_bundle(client, BUNDLE, log=quiet)
+        assert len(client.named_calls("create_private_tool")) == 1
+        assert client.named_calls("import_tools") == []
+
+    def test_public_flag_uses_admin_route_and_warns(self):
+        client = FakeClient()
+        messages = []
+        import_bundle(client, BUNDLE, log=messages.append, public_tools=True)
+        assert len(client.named_calls("import_tools")) == 1
+        assert client.named_calls("create_private_tool") == []
+        assert any("PUBLIC" in message for message in messages)
+
+    def test_admin_only_container_field_is_rejected_by_default(self):
+        client = FakeClient()
+        with pytest.raises(ValueError, match="container_volumes"):
+            import_bundle(client, self.volume_bundle(), log=quiet)
+        assert client.named_calls("create_private_tool") == []
+        assert client.named_calls("import_tools") == []
+
+    def test_admin_only_container_field_allowed_with_public_flag(self):
+        client = FakeClient()
+        messages = []
+        import_bundle(
+            client, self.volume_bundle(), log=messages.append, public_tools=True
+        )
+        (_, imported) = client.named_calls("import_tools")[0]
+        assert imported[0]["container"]["container_volumes"] == [{"host_path": "/tmp"}]
+        assert any("container_volumes" in message for message in messages)
+
+    def test_empty_admin_only_field_does_not_block_private_import(self):
+        # An export can carry these as empty lists; only populated ones matter.
+        bundle = copy.deepcopy(BUNDLE)
+        bundle["tools"][0]["container"]["container_volumes"] = []
+        client = FakeClient()
+        import_bundle(client, bundle, log=quiet)
+        (_, imported) = client.named_calls("create_private_tool")[0]
+        assert "container_volumes" not in imported["container"]
 
 
 class TestBetaAvu:

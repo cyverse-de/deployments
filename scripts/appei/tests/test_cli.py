@@ -22,6 +22,10 @@ class FakeClient:
         self.login_attempts = []
         self.published = []
         self.blessed = []
+        self.shredded = []
+        self.deleted_tools = []
+        self.private_tools = []
+        self.imported_tools = []
         FakeClient.instances.append(self)
 
     def get_token(self, username, password):
@@ -53,10 +57,15 @@ class FakeClient:
         return []
 
     def import_tools(self, tools):
+        self.imported_tools.append(tools)
         return {"tool_ids": ["new-tool-uuid"]}
 
     def create_app(self, system_id, app):
         return {"id": "new-app-uuid"}
+
+    def create_private_tool(self, tool):
+        self.private_tools.append(tool)
+        return {"id": "new-tool-uuid"}
 
     def publish_app(self, system_id, submission):
         self.published.append((system_id, submission["id"]))
@@ -69,6 +78,12 @@ class FakeClient:
 
     def set_app_metadata(self, app_id, avus):
         pass
+
+    def shred_apps(self, app_ids):
+        self.shredded.append(app_ids)
+
+    def delete_tool(self, tool_id):
+        self.deleted_tools.append(tool_id)
 
 
 @pytest.fixture(autouse=True)
@@ -154,17 +169,52 @@ class TestExport:
 
 
 class TestImport:
-    def write_bundle(self, tmp_path):
+    def write_bundle(self, tmp_path, tools=None):
         tokens.save_token("de.example.org", {"access_token": "tok"})
         bundle = {
             "name": "cat app",
             "version": "1.0",
             "system_id": "de",
-            "tools": [],
+            "tools": tools if tools is not None else [],
         }
         in_file = tmp_path / "bundle.json"
         in_file.write_text(json.dumps(bundle))
         return str(in_file)
+
+    def write_bundle_with_tool(self, tmp_path):
+        return self.write_bundle(
+            tmp_path,
+            tools=[
+                {
+                    "name": "cat",
+                    "version": "1.0",
+                    "container": {"image": {"name": "quay.io/cat"}},
+                }
+            ],
+        )
+
+    def test_tools_are_created_private_by_default(self, tmp_path):
+        in_file = self.write_bundle_with_tool(tmp_path)
+        cli.main(["import", "--server", "de.example.org", "--input", in_file])
+        client = FakeClient.instances[-1]
+        assert len(client.private_tools) == 1
+        assert client.imported_tools == []
+
+    def test_public_tool_flag_switches_to_admin_route(self, tmp_path):
+        in_file = self.write_bundle_with_tool(tmp_path)
+        cli.main(
+            [
+                "import",
+                "--server",
+                "de.example.org",
+                "--input",
+                in_file,
+                "--public-tool",
+            ]
+        )
+        client = FakeClient.instances[-1]
+        assert len(client.imported_tools) == 1
+        assert client.private_tools == []
 
     def test_imports_bundle_from_file(self, tmp_path, capsys):
         in_file = self.write_bundle(tmp_path)
@@ -196,6 +246,65 @@ class TestImport:
         client = FakeClient.instances[-1]
         assert client.published == [("de", "new-app-uuid")]
         assert client.blessed == [("de", "new-app-uuid")]
+
+
+class TestShredApp:
+    def test_shreds_app_with_default_system_id(self, capsys):
+        tokens.save_token("de.example.org", {"access_token": "tok"})
+        rc = cli.main(["shred-app", "--server", "de.example.org", "--id", "app-uuid"])
+        assert rc == 0
+        client = FakeClient.instances[-1]
+        assert client.shredded == [[{"system_id": "de", "app_id": "app-uuid"}]]
+        assert "app-uuid" in capsys.readouterr().out
+
+    def test_system_id_flag_is_passed_through(self):
+        tokens.save_token("de.example.org", {"access_token": "tok"})
+        rc = cli.main(
+            [
+                "shred-app",
+                "--server",
+                "de.example.org",
+                "--id",
+                "app-uuid",
+                "--system-id",
+                "agave",
+            ]
+        )
+        assert rc == 0
+        client = FakeClient.instances[-1]
+        assert client.shredded == [[{"system_id": "agave", "app_id": "app-uuid"}]]
+
+    def test_requires_login(self, capsys):
+        assert cli.main(["shred-app", "--server", "de.example.org", "--id", "x"]) == 1
+        assert "appei login" in capsys.readouterr().err
+
+
+class TestDeleteTool:
+    def test_deletes_tool_by_id(self, capsys):
+        tokens.save_token("de.example.org", {"access_token": "tok"})
+        rc = cli.main(
+            ["delete-tool", "--server", "de.example.org", "--id", "tool-uuid"]
+        )
+        assert rc == 0
+        assert FakeClient.instances[-1].deleted_tools == ["tool-uuid"]
+        assert "tool-uuid" in capsys.readouterr().out
+
+    def test_requires_login(self, capsys):
+        assert cli.main(["delete-tool", "--server", "de.example.org", "--id", "x"]) == 1
+        assert "appei login" in capsys.readouterr().err
+
+    def test_in_use_error_is_reported_on_stderr(self, monkeypatch, capsys):
+        # Terrain refuses while any app still uses the tool, including a
+        # soft-deleted one; the operator needs to see why.
+        tokens.save_token("de.example.org", {"access_token": "tok"})
+
+        def boom(self, tool_id):
+            raise TerrainError("DELETE", "https://x", 400, "Tool is in use by apps")
+
+        monkeypatch.setattr(FakeClient, "delete_tool", boom)
+        rc = cli.main(["delete-tool", "--server", "de.example.org", "--id", "t"])
+        assert rc == 1
+        assert "in use by apps" in capsys.readouterr().err
 
 
 class TestErrorHandling:

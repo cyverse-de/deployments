@@ -88,6 +88,44 @@ class TestCleanToolForImport:
         assert cleaned == {"name": "bare", "version": "1"}
 
 
+class TestPrivateToolImport:
+    @pytest.mark.parametrize("key", sorted(transform.ADMIN_ONLY_CONTAINER_KEYS))
+    def test_populated_admin_only_field_blocks(self, key):
+        tool = {"name": "cat", "container": {key: [{"host_path": "/tmp"}]}}
+        assert transform.blocking_admin_only_keys(tool) == [key]
+
+    def test_every_populated_admin_only_field_is_reported(self):
+        assert transform.blocking_admin_only_keys(make_tool()) == sorted(
+            transform.ADMIN_ONLY_CONTAINER_KEYS
+        )
+
+    @pytest.mark.parametrize("value", [[], None])
+    def test_empty_admin_only_field_does_not_block(self, value):
+        tool = {"name": "cat", "container": {"container_volumes": value}}
+        assert transform.blocking_admin_only_keys(tool) == []
+
+    def test_no_container_does_not_block(self):
+        assert transform.blocking_admin_only_keys({"name": "bare"}) == []
+
+    def test_clean_drops_admin_only_fields(self):
+        cleaned = transform.clean_tool_for_private_import(make_tool())
+        for key in transform.ADMIN_ONLY_CONTAINER_KEYS:
+            assert key not in cleaned["container"]
+
+    def test_clean_keeps_everything_the_private_route_accepts(self):
+        cleaned = transform.clean_tool_for_private_import(make_tool())
+        assert cleaned["name"] == "cat"
+        assert cleaned["container"]["image"] == {"name": "quay.io/cat", "tag": "latest"}
+        assert cleaned["container"]["container_ports"] == [{"container_port": 80}]
+        assert "permission" not in cleaned
+        assert "is_public" not in cleaned
+
+    def test_does_not_mutate_input(self):
+        tool = make_tool()
+        transform.clean_tool_for_private_import(tool)
+        assert tool == make_tool()
+
+
 class TestCleanAppForImport:
     @pytest.mark.parametrize("key", sorted(transform.APP_IMPORT_DROP_KEYS))
     def test_drops_top_level_key(self, key):
@@ -265,6 +303,35 @@ class TestListingHelpers:
     def test_listing_entry_without_version_does_not_match_versioned_item(self):
         item = {"name": "cat app", "version": "1.0"}
         assert transform.id_from_listing(item, [{"id": "x", "name": "cat app"}]) is None
+
+    @pytest.mark.parametrize(
+        ("listing", "expected"),
+        [
+            ([{"id": "x", "name": "cat app", "version": "1.0", "deleted": True}], None),
+            ([{"id": "x", "name": "cat app", "version": "1.0", "deleted": False}], "x"),
+            ([{"id": "x", "name": "cat app", "version": "1.0"}], "x"),
+            (
+                [
+                    {
+                        "id": "gone",
+                        "name": "cat app",
+                        "version": "1.0",
+                        "deleted": True,
+                    },
+                    {"id": "live", "name": "cat app", "version": "1.0"},
+                ],
+                "live",
+            ),
+        ],
+    )
+    def test_deleted_entries_never_match(self, listing, expected):
+        item = {"name": "cat app", "version": "1.0"}
+        assert transform.id_from_listing(item, listing) == expected
+
+    def test_is_in_listing_ignores_deleted_entries(self):
+        item = {"name": "cat app", "version": "1.0"}
+        listing = [{"id": "x", "name": "cat app", "version": "1.0", "deleted": True}]
+        assert transform.is_in_listing(item, listing) is False
 
 
 class TestMergeApp:

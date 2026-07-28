@@ -94,6 +94,39 @@ class TestRequestShape:
         assert kwargs["json"] == {"unsharing": unsharing}
         assert result == {"unsharing": []}
 
+    def test_shred_apps_posts_qualified_ids_to_admin_route(self):
+        # The non-admin apps/shredder route only sets the deleted flag.
+        client, session = make_client()
+        client.shred_apps([{"system_id": "de", "app_id": "app-uuid"}])
+        method, url, kwargs = session.requests[0]
+        assert method == "POST"
+        assert url == "https://de.example.org/terrain/admin/apps/shredder"
+        assert kwargs["json"] == {
+            "app_ids": [{"system_id": "de", "app_id": "app-uuid"}],
+            "root_deletion_request": True,
+        }
+
+    def test_create_private_tool_posts_bare_tool_to_non_admin_route(self):
+        # POST admin/tools adds tools DE-wide as public; this route is the
+        # only way to get a tool private to the caller.
+        client, session = make_client(
+            responses=[FakeResponse(payload={"id": "new-uuid"})]
+        )
+        result = client.create_private_tool({"name": "cat", "version": "1.0"})
+        method, url, kwargs = session.requests[0]
+        assert method == "POST"
+        assert url == "https://de.example.org/terrain/tools"
+        assert kwargs["json"] == {"name": "cat", "version": "1.0"}
+        assert result == {"id": "new-uuid"}
+
+    def test_delete_tool_uses_admin_route(self):
+        client, session = make_client()
+        client.delete_tool("tool-uuid")
+        method, url, kwargs = session.requests[0]
+        assert method == "DELETE"
+        assert url == "https://de.example.org/terrain/admin/tools/tool-uuid"
+        assert "json" not in kwargs
+
     def test_publish_app_uses_admin_route(self):
         # The non-admin publish route rejects apps whose tools the caller
         # doesn't own (e.g. seeded tools with no permission rows).
