@@ -57,24 +57,25 @@ cluster in other environments:
 
 ## Host preparation
 
-These need `sudo` or sit outside Ansible's remit, and are done once.
+Done once, outside Ansible. Steps 2, 3, 5, and 6 write to root-owned files and
+need `sudo`; steps 1 and 4 do not.
 
-**1. Point the kubeconfig at the local API server.** k0s writes the address it
-was installed with, which may no longer be the machine's address:
+**1. Point the kubeconfig at the local API server** (no sudo). k0s writes the
+address it was installed with, which may no longer be the machine's address:
 
 ```bash
 sed -i 's|server: https://.*:6443|server: https://127.0.0.1:6443|' ~/.kube/local-admin.conf
 ```
 
-**2. Create the iRODS CSI driver's kubelet directories**, which are otherwise
-created by a play that needs root on each worker:
+**2. Create the iRODS CSI driver's kubelet directories** (sudo), which are
+otherwise created by a play that needs root on each worker:
 
 ```bash
 sudo mkdir -p /var/lib/k0s/kubelet/plugins/irods.csi.cyverse.org \
               /var/lib/k0s/kubelet/plugins_registry
 ```
 
-**3. Add the database name to `/etc/hosts`.** `groups['dbms'][0]` is used
+**3. Add the database name to `/etc/hosts`** (sudo). `groups['dbms'][0]` is used
 verbatim both by the Ansible PostgreSQL modules on this machine and by the DB
 URIs rendered into pod configs, so the one name has to resolve in both places:
 
@@ -87,14 +88,14 @@ URIs rendered into pod configs, so the one name has to resolve in both places:
 all `.localhost` names to the loopback address. Confirm with
 `getent hosts foo.vice.localhost`.
 
-**4. Annotate a default StorageClass.** `openldap-docker`'s volume claim
+**4. Annotate a default StorageClass** (no sudo). `openldap-docker`'s volume claim
 template omits `storageClassName`, so without a default its PVC pends forever:
 
 ```bash
 kubectl annotate sc openebs-hostpath storageclass.kubernetes.io/is-default-class=true
 ```
 
-**5. Let PostgreSQL accept connections from pods.** `local_db_endpoint` points
+**5. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
 the Service at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,
 which may belong to an overlay interface and would expose the database well
@@ -112,7 +113,7 @@ host  all  all  10.244.0.0/24  scram-sha-256
 
 Then restart PostgreSQL.
 
-**6. Put the edge proxy in TCP passthrough.** TLS has to terminate at
+**6. Put the edge proxy in TCP passthrough** (sudo). TLS has to terminate at
 [Traefik](/infrastructure/ingress.md) rather than at the proxy, so that Traefik
 sees SNI and can route the per-analysis VICE hostnames:
 
