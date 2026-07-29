@@ -351,6 +351,17 @@ vhost would take change events away from the other deployment's consumers.
 `dewey`, `info-typer`, and `infosquito2` run and idle, and nothing populates the
 index.
 
+**`*.localhost` does not resolve inside the cluster.** systemd-resolved
+synthesizes those names on the host, but CoreDNS has no equivalent rule, so a
+pod looking up `de.localhost` or `keycloak.localhost` gets NXDOMAIN. Most
+services never do — they reach each other by Service name and only ever emit
+the public hostnames in URLs — but anything that *resolves* a public hostname
+from inside the cluster fails. vice-operator does, when it turns
+`keycloak_hostname` into a VICE egress exception, and dies with
+`lookup keycloak.localhost on 10.96.0.10:53: no such host`. Fixing it needs
+either a CoreDNS rewrite/hosts entry for the DE hostnames or a domain that
+resolves in both places.
+
 **Analyses write into a shared zone.** `irods_user` is a rodsadmin proxy
 account, so this deployment has write access to every user's home collection in
 the reused zone, and both deployments push ACLs and AVUs onto the same
