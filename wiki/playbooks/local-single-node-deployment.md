@@ -127,6 +127,20 @@ psql -h db.de.svc.cluster.local -U postgres \
   -Atc "select datname from pg_database where datname not like 'template%'"
 ```
 
+Check the **roles** too, which outlive the databases they own:
+
+```bash
+psql -h db.de.svc.cluster.local -U postgres \
+  -Atc "select rolname, rolcanlogin from pg_authid where rolname in
+        ('de','keycloak','portal','GrouperSystem')"
+```
+
+A role that already exists without `LOGIN` is the nastier version of this:
+`postgresql_init` reconciles only the attributes it names, so it sets the
+password correctly and the service still cannot connect. Keycloak surfaces it
+as a crashloop on `password authentication failed for user "keycloak"`, which
+points nowhere near the cause. `alter role <name> login` fixes it.
+
 **5. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
 the Service at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,

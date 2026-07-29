@@ -11,6 +11,12 @@
         login_db: "{{ pg_db }}"
         name: "{{ keycloak_db_username }}"
         password: "{{ keycloak_db_password }}"
+        # Stated explicitly because the module only reconciles the attributes
+        # it is given. A role left over from earlier work can already exist
+        # without LOGIN, in which case the password below is set correctly and
+        # Keycloak still cannot connect — it crashloops on "password
+        # authentication failed", which points nowhere near the real cause.
+        role_attr_flags: LOGIN
       when: create_user is defined and create_user
       tags:
         - update-databases
