@@ -38,8 +38,11 @@ spec:
         app: vice-operator
     spec:
       serviceAccountName: vice-operator
-{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+{% set want_repos = image_cache_mode and image_cache_mode == 'manual-mirror' %}
+{% set want_ca = vice_operator_ca_bundle_configmap | default('', true) | length > 0 %}
+{% if want_repos or want_ca %}
       volumes:
+{% if want_repos %}
         - name: image-repos
           configMap:
             name: vice-operator-repos
@@ -47,17 +50,34 @@ spec:
               - key: repos
                 path: repos.json
 {% endif %}
+{% if want_ca %}
+        - name: local-ca
+          configMap:
+            name: {{ vice_operator_ca_bundle_configmap }}
+{% endif %}
+{% endif %}
       containers:
         - name: vice-operator
           image: "{{ build_json.builds[0].tag }}"
           imagePullPolicy: Always
           command: ["/vice-operator"]
-{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+{% if want_repos or want_ca %}
           volumeMounts:
+{% if want_repos %}
             - name: image-repos
               mountPath: /etc/cyverse/de
 {% endif %}
+{% if want_ca %}
+            - name: local-ca
+              mountPath: /etc/de-ca
+              readOnly: true
+{% endif %}
+{% endif %}
           env:
+{% if want_ca %}
+          - name: SSL_CERT_FILE
+            value: /etc/de-ca/ca.crt
+{% endif %}
           - name: REGISTRY_PASSWORD
             valueFrom:
               secretKeyRef:

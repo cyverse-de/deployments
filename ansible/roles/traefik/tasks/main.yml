@@ -128,6 +128,12 @@
               enabled: true
           service:
             type: NodePort
+            # A fixed ClusterIP lets hostnames be derived from it — a
+            # magic-DNS domain such as sslip.io encodes the address in the
+            # name, so the address has to stop moving. Empty leaves the
+            # cluster to assign one. ClusterIP is immutable, so changing this
+            # on an existing release needs the Service deleted first.
+            spec: "{{ {'clusterIP': traefik_cluster_ip} if traefik_cluster_ip | default('', true) | length > 0 else {} }}"
           tlsStore:
             default:
               defaultCertificate:

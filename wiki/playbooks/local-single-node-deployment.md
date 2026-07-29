@@ -1,9 +1,9 @@
 ---
 type: Runbook
 title: Local Single-Node Deployment
-description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using a host PostgreSQL, an mkcert-backed CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
+description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using a host PostgreSQL, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
 resource: /ansible/local.yml
-tags: [local, development, k0s, single-node, ansible, mkcert]
+tags: [local, development, k0s, single-node, ansible, sslip.io, dns]
 timestamp: 2026-07-29T00:00:00Z
 ---
 
@@ -49,8 +49,8 @@ cluster in other environments:
 
 ## Prerequisites
 
-- A machine with `k0s` installed, PostgreSQL running on the host, and
-  `mkcert`.
+- A machine with `k0s` installed and PostgreSQL running on the host.
+- Outbound DNS, since the hostnames resolve through `sslip.io`.
 - `ansible`, `kubectl` >= 1.31 (or `kustomize` >= 5.2), `helm` >= 3.16,
   `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, `gpg` >= 2.1,
   `openssl` >= 1.1.1, and `slappasswd`.
@@ -59,7 +59,7 @@ cluster in other environments:
 
 ## Host preparation
 
-Done once, outside Ansible. Every step except 2 needs `sudo`. The default
+Done once, outside Ansible. Steps 2 and 5 need no `sudo`; the rest do. The default
 StorageClass is not among them: the `openebs` role sets it when
 `openebs_default_storage_class` is true, which the local inventory does.
 
@@ -108,12 +108,9 @@ URIs rendered into pod configs, so the one name has to resolve in both places:
 127.0.0.1  db.de.svc.cluster.local
 ```
 
-`de.localhost`, `user.localhost`, `keycloak.localhost` and every
-`*.vice.localhost` VICE hostname need no entry — systemd-resolved synthesizes
-all `.localhost` names to the loopback address. Confirm with
-`getent hosts foo.vice.localhost`.
+The DE hostnames need no entry — see Hostnames and DNS below.
 
-**5a. Check the host PostgreSQL has no leftover DE databases** (no sudo).
+**5. Check the host PostgreSQL has no leftover DE databases** (no sudo).
 `postgresql_init` creates the databases with `locale_provider: icu`, and a
 database's ICU locale cannot be changed after creation — so if `de`,
 `notifications`, `metadata`, `grouper`, `qms`, `portal` or `keycloak` already
@@ -141,7 +138,7 @@ password correctly and the service still cannot connect. Keycloak surfaces it
 as a crashloop on `password authentication failed for user "keycloak"`, which
 points nowhere near the cause. `alter role <name> login` fixes it.
 
-**5. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
+**6. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
 the Service at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,
 which may belong to an overlay interface and would expose the database well
@@ -159,39 +156,43 @@ host  all  all  10.244.0.0/16  scram-sha-256
 
 Then restart PostgreSQL.
 
-**6. Put the edge proxy in TCP passthrough** (sudo). TLS has to terminate at
-[Traefik](/infrastructure/ingress.md) rather than at the proxy, so that Traefik
-sees SNI and can route the per-analysis VICE hostnames:
+## Hostnames and DNS
 
-```
-defaults
-    log     global
-    timeout connect 5s
+Every DE hostname derives from one address in the inventory:
 
-frontend http_in
-    mode http
-    option httplog
-    timeout client 30s
-    bind 127.0.0.1:80
-    redirect scheme https code 301
-
-frontend https_in
-    mode tcp
-    option tcplog
-    timeout client 24h
-    bind 127.0.0.1:443
-    default_backend k8s_gateway
-
-backend k8s_gateway
-    mode tcp
-    timeout server 24h
-    server local 127.0.0.1:31383 check inter 5000
+```yaml
+local_gateway_ip: 10.96.0.100
+local_gateway_dns: "{{ local_gateway_ip | replace('.', '-') }}.sslip.io"
+de_hostname: "de.{{ local_gateway_dns }}"
 ```
 
-The backend port is `traefik_https_port`. The 24h timeouts match the ones the
-Traefik role sets on its entrypoints and the ones the DE's HTTPRoutes set on
-their backends: VICE sessions idle for long stretches, and a shorter timeout
-here drops them with nothing in any log to explain it. Reload the proxy.
+`sslip.io` answers any name ending in a dashed IP with that address, including
+multi-label prefixes — which is what the per-analysis VICE hostnames need and
+what `/etc/hosts` fundamentally cannot provide. Nothing has to be configured on
+the host or in the cluster.
+
+The address is **Traefik's ClusterIP, pinned** via `traefik_cluster_ip`. That
+matters for two reasons. It is reachable both from pods and from the host, so
+one DNS answer serves the browser and the cluster and no split-horizon DNS or
+edge proxy is needed — and it answers on 443, so no NodePort appears in any
+URL. Pinning it keeps the address stable, since the hostnames encode it.
+ClusterIP is immutable, so changing it means deleting the Traefik Service and
+re-running the role.
+
+**Why not `*.localhost`.** It cannot work, for a reason no amount of DNS
+configuration fixes: musl libc implements RFC 6761 by resolving `*.localhost`
+to `127.0.0.1` **without consulting DNS at all**, so those names are unusable
+from any Alpine-based pod. And services genuinely do resolve DE hostnames
+in-cluster — vice-operator looks up `keycloak_hostname` both to build a VICE
+egress exception and to run OIDC discovery, and dies if it cannot. A CoreDNS
+`hosts` entry fixes Go services and still leaves musl ones broken. It is also
+a resource k0s owns (`k0s.k0sproject.io/stack: coredns`), so it is re-applied
+on restart or upgrade.
+
+Changing the address later is a one-line inventory edit, followed by re-running
+`traefik` (after deleting the Service), `ingress`, `configure-services`,
+`keycloak` and `deploy-all-services` — the hostnames appear in certificates,
+Keycloak redirect URIs and every service's config.
 
 ## TLS
 
@@ -271,7 +272,7 @@ Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
 | `node-prep` | Node labels; removes the taints that repel DE services |
 | `openebs` | The storage provider and the default StorageClass |
 | `cert-manager` | cert-manager and its CRDs |
-| `cert-issuers` | The mkcert CA Secret and `default-cluster-issuer` |
+| `cert-issuers` | The local CA Secret and `default-cluster-issuer` |
 | `traefik` | Gateway API CRDs, Traefik, its default certificate |
 | `argo` | Argo Workflows and argo-events |
 | `setup-databases` | The DE, notifications, metadata, grouper, qms, and portal databases, and their migrations |
@@ -351,16 +352,19 @@ vhost would take change events away from the other deployment's consumers.
 `dewey`, `info-typer`, and `infosquito2` run and idle, and nothing populates the
 index.
 
-**`*.localhost` does not resolve inside the cluster.** systemd-resolved
-synthesizes those names on the host, but CoreDNS has no equivalent rule, so a
-pod looking up `de.localhost` or `keycloak.localhost` gets NXDOMAIN. Most
-services never do — they reach each other by Service name and only ever emit
-the public hostnames in URLs — but anything that *resolves* a public hostname
-from inside the cluster fails. vice-operator does, when it turns
-`keycloak_hostname` into a VICE egress exception, and dies with
-`lookup keycloak.localhost on 10.96.0.10:53: no such host`. Fixing it needs
-either a CoreDNS rewrite/hosts entry for the DE hostnames or a domain that
-resolves in both places.
+**Hostname resolution depends on a third party.** `sslip.io` is a public DNS
+service, so with no outbound DNS the DE is unreachable — including from the
+browser. The fixed names can be papered over with `/etc/hosts` pointing at
+`local_gateway_ip`, but the VICE wildcard cannot, so analyses stop working
+offline. If that matters, run a local wildcard resolver (dnsmasq) instead;
+sslip.io is also self-hostable, which is why it is preferred over the
+alternatives.
+
+**Pods need the private CA for any server-side TLS to a DE hostname.**
+vice-operator is the case that surfaced it, via
+`vice_operator_ca_bundle_configmap`. A service added later that calls a DE
+endpoint over HTTPS from inside the cluster will need the same treatment, and
+will fail with `certificate signed by unknown authority` until it gets it.
 
 **Analyses write into a shared zone.** `irods_user` is a rodsadmin proxy
 account, so this deployment has write access to every user's home collection in
@@ -382,8 +386,9 @@ proceed without it.
 | 3 | Kubelet plugin directories for the iRODS CSI driver | sudo | yes | `kubernetes.yml` does this in a `become: true` play over the worker group. A local variant would need one privileged play, which is the only thing forcing sudo into the Ansible run — worth weighing against keeping `local.yml` sudo-free. |
 | 4 | `/etc/hosts` entry for the database name | sudo | yes | Avoidable: give the `dbms` inventory host an `ansible_host` of `127.0.0.1` and the pods a Service name, instead of one name that has to resolve in both places. Would remove a sudo step and a class of confusion. **Best automation candidate.** |
 | 5 | PostgreSQL `listen_addresses` + `pg_hba.conf` | sudo | yes | Deliberately manual: the workstation's PostgreSQL is not the deployment's to own. Could be offered as an opt-in play guarded by a variable, defaulting off. |
-| 6 | Edge proxy TCP passthrough | sudo | no (only external access) | A `local_proxy` role could template this, but it manages a host service outside the cluster. Templating the config file and leaving the reload manual is the cheap middle ground. |
+| — | ~~Edge proxy TCP passthrough~~ | — | — | **Eliminated.** The pinned Traefik ClusterIP answers on 443 from the host, so no proxy sits in front of the cluster and no NodePort appears in a URL. |
 | 7 | Generate and trust the local root CA | sudo (trust only) | yes | Generation is scriptable today (see the TLS section); only `trust anchor` needs sudo. Fold the openssl half into `scripts/generate-secrets.sh` or a sibling script. **Good automation candidate.** |
+| — | ~~Cluster DNS for the DE hostnames~~ | — | — | **Never needed.** sslip.io resolves from both the host and the cluster, so there is no CoreDNS edit to maintain — which also avoids fighting a resource k0s owns. |
 | 8 | Check for leftover DE databases and roles | no | yes, if dirty | Could become a pre-flight assertion in `postgresql_init` that fails with a clear message instead of `Changing ICU_LOCALE is not supported`. **Good automation candidate.** |
 | 9 | ~~Keycloak realm, clients, LDAP federation, group mapper~~ | — | — | **Automated** by the `keycloak_config` role (tag `keycloak-config`). Realm, 5 realm roles, required actions, LDAP federation with the standard plus DE-specific mappers, the `profile` scope claim mappers, all 8 clients, and the `vice-api` service-account role. |
 | 10 | Seed the portal `account_*` reference tables | no | yes, for registration | Pure data seeding; belongs in `postgresql_init/tasks/portal.yml` next to the GRID import that already runs there. **Good automation candidate.** |

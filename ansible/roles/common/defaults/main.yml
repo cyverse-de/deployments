@@ -161,9 +161,11 @@ cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
 #                to trust each per-endpoint CA individually.
 #   ca         - an existing CA keypair is loaded from disk and used as the
 #                root. Use this when the root is already in the clients' trust
-#                store (e.g. a mkcert root on a workstation), so the certs the
-#                'selfsigned' cert_manager_provider chain issues come out
-#                trusted with no other changes.
+#                store, so the certs the 'selfsigned' cert_manager_provider
+#                chain issues come out trusted with no other changes. The root
+#                must permit an intermediate (pathlen >= 1), because that chain
+#                inserts a per-endpoint CA beneath it — notably ruling out a
+#                mkcert root, which is issued with pathlen:0.
 cluster_issuer_default_type: selfSigned
 cluster_issuer_ca_secret_name: default-cluster-issuer-ca
 # Paths on the Ansible control machine. Only read when the type is 'ca'.
@@ -767,6 +769,9 @@ traefik_cert_name: "traefik-tls"
 traefik_cert_duration: "2160h"
 traefik_cert_renew_before: "240h"
 
+# Pin Traefik's ClusterIP. Empty means the cluster assigns one, which is what
+# every environment with real DNS wants.
+traefik_cluster_ip: ""
 traefik_http_port: 31380
 traefik_https_port: 31383
 
@@ -875,6 +880,12 @@ vice_operator_ingress_pod_exceptions:
 vice_operator_egress_host_exceptions:
   - "{{ irods_host }}"
   - "{{ registry_hostname }}"
+# Mount a private CA into the vice-operator so it can complete OIDC discovery
+# against a Keycloak whose certificate is not signed by a public CA. Empty
+# means the pod uses its image's trust store, which is what an environment with
+# publicly-trusted certificates wants.
+vice_operator_ca_bundle_configmap: ""
+vice_operator_ca_bundle_file: "{{ cluster_issuer_ca_cert_file }}"
 vice_operator_admin_entitlements: replace_me
 vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
 vice_api_keycloak_base_url: "{{ keycloak_server_uri }}"
