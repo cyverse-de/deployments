@@ -113,6 +113,20 @@ URIs rendered into pod configs, so the one name has to resolve in both places:
 all `.localhost` names to the loopback address. Confirm with
 `getent hosts foo.vice.localhost`.
 
+**5a. Check the host PostgreSQL has no leftover DE databases** (no sudo).
+`postgresql_init` creates the databases with `locale_provider: icu`, and a
+database's ICU locale cannot be changed after creation — so if `de`,
+`notifications`, `metadata`, `grouper`, `qms`, `portal` or `keycloak` already
+exist from earlier work and were created without ICU, `setup-databases` fails
+with `Changing ICU_LOCALE is not supported`. It is easy to misread as a
+permissions problem. Check, and drop what is stale (dump first if unsure —
+these are on a workstation, not managed by the deployment):
+
+```bash
+psql -h db.de.svc.cluster.local -U postgres \
+  -Atc "select datname from pg_database where datname not like 'template%'"
+```
+
 **5. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
 the Service at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,
