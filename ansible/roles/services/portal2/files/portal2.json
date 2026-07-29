@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/portal2","tag":"harbor.cyverse.org/de/portal2:fix-email-case-insensitive-lookup@sha256:f5de97c1115b71ecbe2b8c61de0667e44ac9875507e1c72227ff11f8c2b5a19e"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/portal2","tag":"harbor.cyverse.org/de/portal2:fix-vice-service-page-404@sha256:e0256526af9a2425af7c0fbc50417b919143e3beee4e35578854f4f3d332cda8"}]}
