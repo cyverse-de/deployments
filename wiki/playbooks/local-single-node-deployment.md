@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using a host PostgreSQL, an mkcert-backed CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, mkcert]
-timestamp: 2026-07-28T00:00:00Z
+timestamp: 2026-07-29T00:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -277,7 +277,8 @@ Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
 | `setup-databases` | The DE, notifications, metadata, grouper, qms, and portal databases, and their migrations |
 | `de-reqs` | Namespaces, the timezone ConfigMap, local-exim, the image-pull secret, the database Service, RabbitMQ |
 | `openldap-docker` | In-cluster [OpenLDAP](/infrastructure/ldap.md) |
-| `keycloak` | Keycloak and its Gateway |
+| `keycloak` | Keycloak and its Gateway, then the realm, clients and LDAP federation |
+| `keycloak-config` | The realm configuration on its own, against a Keycloak that is already up |
 | `configure-services,secrets` | The shared `configs` Secret and the GPG/signing/accepted-key Secrets |
 | `ingress` | Endpoint certificates, Gateways, and HTTPRoutes |
 | `networking` | The kifshare, terrain, and job-status-listener NodePorts |
@@ -304,16 +305,28 @@ after forty services are running.
 `service_configurations` is its only producer and every service `envFrom`s it;
 deploy earlier and the pods sit in `CreateContainerConfigError`.
 
-**Keycloak's realm and clients are created by hand.** `keycloak_install`
-creates the admin user and nothing else — no realm, no clients, no user
-federation. Before terrain or sonora can authenticate anyone, the realm named
-by `keycloak_realm_name` needs each client from the inventory
-(`keycloak_client_id`, `keycloak_vice_client_id`, `keycloak_admin_client_id`,
-`formation_keycloak_client_id`, `portal_keycloak_client`, and the three
-vice-operator clients) with matching secrets, an LDAP user federation provider
-pointing at `ldap_uri`, and a group mapper producing the `entitlement` claim
-that `admin_attribute` and `admin_groups` expect. Skip this and terrain starts
-but every authenticated call returns 401.
+**Keycloak's realm has to be configured before anything can authenticate.**
+`keycloak_install` creates the admin user and nothing else — no realm, no
+clients, no user federation. The `keycloak_config` role fills that gap and runs
+under the same `keycloak` tag, so a normal bring-up covers it. Running only
+`--tags keycloak-config` reconfigures an existing Keycloak.
+
+The claim that matters is `entitlement`: `admin_attribute` and `admin_groups`
+are checked against it, and it takes *two* mappers to produce — a
+`group-ldap-mapper` on the federation provider to bring group membership into
+Keycloak, and a `Group Membership` mapper on the `profile` client scope to put
+it in the token. With only the first, users authenticate and nobody is an
+admin. Verify with a token rather than by reading the UI:
+
+```bash
+curl -s -d client_id=<de client> -d client_secret=<secret> \
+     -d username=<user> -d password=<pw> -d grant_type=password \
+     -d 'scope=openid profile' \
+     https://keycloak.<domain>/auth/realms/<realm>/protocol/openid-connect/token
+```
+
+and decode the `access_token` payload — `entitlement` should list the user's
+groups.
 
 **LDAP has to be seeded before Grouper and the portal.** Grouper binds as
 `ldap_cn` + `ldap_base_dn` and portal-conductor binds as the rootdn. The seed
@@ -361,7 +374,7 @@ proceed without it.
 | 6 | Edge proxy TCP passthrough | sudo | no (only external access) | A `local_proxy` role could template this, but it manages a host service outside the cluster. Templating the config file and leaving the reload manual is the cheap middle ground. |
 | 7 | Generate and trust the local root CA | sudo (trust only) | yes | Generation is scriptable today (see the TLS section); only `trust anchor` needs sudo. Fold the openssl half into `scripts/generate-secrets.sh` or a sibling script. **Good automation candidate.** |
 | 8 | Check for leftover DE databases and roles | no | yes, if dirty | Could become a pre-flight assertion in `postgresql_init` that fails with a clear message instead of `Changing ICU_LOCALE is not supported`. **Good automation candidate.** |
-| 9 | Keycloak realm, clients, LDAP federation, group mapper | no | yes | The largest remaining gap. A committed realm export applied by `kcadm` would make it reproducible; secrets would still come from the inventory. **Highest-value automation candidate.** |
+| 9 | ~~Keycloak realm, clients, LDAP federation, group mapper~~ | — | — | **Automated** by the `keycloak_config` role (tag `keycloak-config`). Realm, 5 realm roles, required actions, LDAP federation with the standard plus DE-specific mappers, the `profile` scope claim mappers, all 8 clients, and the `vice-api` service-account role. |
 | 10 | Seed the portal `account_*` reference tables | no | yes, for registration | Pure data seeding; belongs in `postgresql_init/tasks/portal.yml` next to the GRID import that already runs there. **Good automation candidate.** |
 
 # Citations

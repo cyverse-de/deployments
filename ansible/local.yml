@@ -104,6 +104,16 @@
       tags: keycloak
       when: "'keycloak' in ansible_run_tags"
 
+    # Configures the realm keycloak_install leaves empty. Opt-in like the
+    # install above, since it needs Keycloak already serving.
+    - role: keycloak_config
+      tags:
+        - keycloak
+        - keycloak-config
+      when: >-
+        'keycloak' in ansible_run_tags or
+        'keycloak-config' in ansible_run_tags
+
     - role: service_configurations
       tags: configure-services
 
