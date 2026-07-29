@@ -547,6 +547,9 @@ portal_exim_allowed_senders: replace_me
 portal_namespace: cyverse-portal
 portal_secret: user-portal-config
 portal_ui_base_url: "https://{{ portal_hostname }}"
+# The public DE this portal fronts. Not derivable from portal_terrain_url, which
+# is terrain's internal address; the portal links staff to the DE admin UI.
+portal_de_base_url: "{{ de_base_uri }}"
 portal_api_base_url: "https://{{ portal_hostname }}/api"
 portal_ws_base_url: "wss://{{ portal_hostname }}/"
 portal_uid_number_offset: replace_me

@@ -25,7 +25,10 @@ Configuration: the role renders `templates/portal2.json.j2` into the
 `/etc/cyverse/portal2/portal2.json` and located via `CONFIG_PATH`. Notable
 group_vars: `portal_db_*`, `portal_session_*`, `portal_keycloak_*`,
 `portal_conductor_url` and `portal_conductor_auth_*`, `portal_terrain_*`,
-`portal_ui_base_url`, `portal_smtp_*`, and `portal_uid_number_offset`. The
+`portal_ui_base_url`, `portal_de_base_url`, `portal_smtp_*`, and
+`portal_uid_number_offset`. `portal_de_base_url` (default `de_base_uri`) feeds
+`external.deBaseUrl` and is the public DE the portal links staff to — it cannot
+be derived from `portal_terrain_url`, which is terrain's internal address. The
 `portal_disable_require_new_user_email_confirmation` flag (default `false`)
 maps to `features.disableRequireNewUserEmailConfirmation` and, when `true`,
 lets new accounts skip the email-confirmation step during self-registration.
