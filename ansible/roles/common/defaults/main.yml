@@ -667,6 +667,13 @@ grouper_db_name: grouper # actual useful value
 grouper_morph_string: n0tr34l
 grouper_connection_user: GrouperSystem
 grouper_connection_pass: Ch@ng3m3
+# grouper_init refers to these rather than the connection_* pair above, and
+# they name the same account. Without defaults the role fails on an undefined
+# variable, which only stays hidden while every inventory happens to set them.
+grouper_db_user: "{{ grouper_connection_user }}"
+grouper_db_pass: "{{ grouper_connection_pass }}"
+# Rendered into grouper.properties; grouper_env above already defaults this way.
+grouper_environment: "{{ env }}"
 grouper_gsh_image: harbor.cyverse.org/de/grouper # actual useful value
 grouper_gsh_image_version: v3.0.0 # actual useful value
 grouper_ws_replicas: 2

@@ -345,6 +345,25 @@ collections. `de_default_output_folder` is set to a distinct name to keep
 outputs out of the folders the other environments use, but that is containment,
 not isolation.
 
+## Manual steps, and which are worth automating
+
+Everything below is done by hand today. The table records why, so the list can
+be worked down rather than rediscovered. "Blocker" means the deployment cannot
+proceed without it.
+
+| # | Step | Needs | Blocker | Automation notes |
+| --- | --- | --- | --- | --- |
+| 1 | `k0s install controller --single` | sudo | yes | Reasonable to leave manual — it is the one step that defines the machine. A `k0sctl.yaml` against localhost would work but adds SSH-to-self. |
+| 2 | Write the kubeconfig | sudo (read) | yes | Could fold into step 1 as a documented one-liner. Low value alone. |
+| 3 | Kubelet plugin directories for the iRODS CSI driver | sudo | yes | `kubernetes.yml` does this in a `become: true` play over the worker group. A local variant would need one privileged play, which is the only thing forcing sudo into the Ansible run — worth weighing against keeping `local.yml` sudo-free. |
+| 4 | `/etc/hosts` entry for the database name | sudo | yes | Avoidable: give the `dbms` inventory host an `ansible_host` of `127.0.0.1` and the pods a Service name, instead of one name that has to resolve in both places. Would remove a sudo step and a class of confusion. **Best automation candidate.** |
+| 5 | PostgreSQL `listen_addresses` + `pg_hba.conf` | sudo | yes | Deliberately manual: the workstation's PostgreSQL is not the deployment's to own. Could be offered as an opt-in play guarded by a variable, defaulting off. |
+| 6 | Edge proxy TCP passthrough | sudo | no (only external access) | A `local_proxy` role could template this, but it manages a host service outside the cluster. Templating the config file and leaving the reload manual is the cheap middle ground. |
+| 7 | Generate and trust the local root CA | sudo (trust only) | yes | Generation is scriptable today (see the TLS section); only `trust anchor` needs sudo. Fold the openssl half into `scripts/generate-secrets.sh` or a sibling script. **Good automation candidate.** |
+| 8 | Check for leftover DE databases and roles | no | yes, if dirty | Could become a pre-flight assertion in `postgresql_init` that fails with a clear message instead of `Changing ICU_LOCALE is not supported`. **Good automation candidate.** |
+| 9 | Keycloak realm, clients, LDAP federation, group mapper | no | yes | The largest remaining gap. A committed realm export applied by `kcadm` would make it reproducible; secrets would still come from the inventory. **Highest-value automation candidate.** |
+| 10 | Seed the portal `account_*` reference tables | no | yes, for registration | Pure data seeding; belongs in `postgresql_init/tasks/portal.yml` next to the GRID import that already runs there. **Good automation candidate.** |
+
 # Citations
 
 * `ansible/local.yml`
