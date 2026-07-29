@@ -4,7 +4,7 @@ title: cert-manager
 description: How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed and Let's Encrypt certificates.
 resource: /ansible/roles/cert-manager
 tags: [cert-manager, tls, certificates, letsencrypt, issuers, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-29T00:00:00Z
 ---
 
 cert-manager issues and renews the TLS certificates used inside the cluster — the Traefik default
@@ -30,7 +30,11 @@ Traefik's — can be issued right away. It creates:
   chain off (see [Ingress](/infrastructure/ingress.md)). `cluster_issuer_default_type` decides how
   it signs: `selfSigned` (the default) generates a throwaway root, and `ca` loads an existing CA
   keypair from `cluster_issuer_ca_cert_file` / `cluster_issuer_ca_key_file` on the control machine
-  into a Secret in the `cert-manager` namespace and issues from that instead. The `ca` variant is
+  into a Secret in the `cert-manager` namespace and issues from that instead. That root must
+  permit at least one intermediate (`pathlen` >= 1), because the `selfsigned` provider inserts a
+  per-endpoint CA between the root and each leaf: a `pathlen:0` root — which is what **mkcert**
+  generates — yields certificates cert-manager reports as `Ready` while every client rejects the
+  chain with `path length constraint exceeded`. The `ca` variant is
   what makes locally-issued certificates come out browser-trusted when the root is already in the
   trust store — see [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md).
   It also means whoever can read secrets in the `cert-manager` namespace holds the CA, so it

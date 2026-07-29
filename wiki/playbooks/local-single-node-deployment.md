@@ -195,16 +195,58 @@ here drops them with nothing in any log to explain it. Reload the proxy.
 
 ## TLS
 
-Let's Encrypt cannot validate `.localhost` names, so the deployment reuses the
-workstation's mkcert root instead. Setting `cluster_issuer_default_type: ca`
-makes [cert-manager](/infrastructure/cert-manager.md)'s
-`default-cluster-issuer` a CA issuer backed by that keypair, and the ordinary
+Let's Encrypt cannot validate `.localhost` names, so the deployment issues from
+a locally trusted root instead. Setting `cluster_issuer_default_type: ca` makes
+[cert-manager](/infrastructure/cert-manager.md)'s `default-cluster-issuer` a CA
+issuer backed by a keypair on disk, and the ordinary
 `cert_manager_provider: selfsigned` chain then issues DE, portal, VICE, and
-[Keycloak](/infrastructure/keycloak.md) certificates that chain to a root the
-browser already trusts. No other role changes.
+[Keycloak](/infrastructure/keycloak.md) certificates beneath it. No other role
+changes.
 
-Run `mkcert -install` once if the root is not already in the trust store. Note
-that the CA private key ends up in a Secret in the `cert-manager` namespace, so
+**The root must permit an intermediate.** The `selfsigned` chain is
+root → per-endpoint CA (`de-selfsigned-ca`, `kc-selfsigned-ca`, …) → leaf, so
+the root needs `pathlen` of at least 1. This rules out a **mkcert** root, which
+is issued with `CA:TRUE, pathlen:0` and cannot sign an intermediate. Using one
+anyway produces certificates that look correct — every individual certificate
+is valid and cert-manager reports `Ready` — but every client rejects the chain
+with `path length constraint exceeded`. A smoke test that issues a leaf
+directly from `default-cluster-issuer` passes, because it has no intermediate;
+it does not exercise the shape the endpoints actually use.
+
+Generate a root that permits one:
+
+```bash
+mkdir -p ~/.local/share/de-local-ca && cd ~/.local/share/de-local-ca
+cat > ca.cnf <<'EOF'
+[req]
+distinguished_name = dn
+x509_extensions = v3_ca
+prompt = no
+[dn]
+O = CyVerse DE local development
+CN = CyVerse DE local development CA
+[v3_ca]
+basicConstraints = critical, CA:TRUE, pathlen:1
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+EOF
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+  -keyout rootCA-key.pem -out rootCA.pem -config ca.cnf
+chmod 600 rootCA-key.pem
+```
+
+Then trust it (sudo), which covers both the system store and the NSS store
+Firefox and Chrome read through p11-kit:
+
+```bash
+sudo trust anchor --store ~/.local/share/de-local-ca/rootCA.pem
+```
+
+Verify with `curl https://de.localhost/` — no `-k`. A `path length constraint
+exceeded` means the root has the wrong constraint; `unable to get local issuer
+certificate` means it is not trusted yet.
+
+The CA private key ends up in a Secret in the `cert-manager` namespace, so
 anything able to read secrets there can mint certificates this machine trusts —
 fine for a workstation, not a pattern to copy onto a shared cluster.
 

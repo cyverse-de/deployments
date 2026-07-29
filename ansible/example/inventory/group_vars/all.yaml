@@ -815,6 +815,11 @@
 # The CA private key is stored in a Secret in the cert-manager namespace,
 # which means read access to secrets there is equivalent to holding the CA.
 # Default: selfSigned
+# The root must permit at least one intermediate (pathlen >= 1). The
+# 'selfsigned' provider puts a per-endpoint CA between the root and each leaf,
+# so a pathlen:0 root -- which is what mkcert generates -- produces certs that
+# cert-manager reports as Ready but clients reject with 'path length
+# constraint exceeded'.
 # cluster_issuer_default_type: ca
 # cluster_issuer_ca_cert_file: /path/to/rootCA.pem
 # cluster_issuer_ca_key_file: /path/to/rootCA-key.pem
