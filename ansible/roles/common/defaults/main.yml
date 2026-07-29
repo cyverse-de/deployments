@@ -561,6 +561,17 @@ portal_db_user: portal
 portal_db_password: replace_me
 portal_db_sslmode: disable
 portal_db_session_table: session
+# The portal's service tiles come from api_service rows, which portal2 migration
+# 00004 seeds with the canonical cyverse.org URLs using ON CONFLICT DO NOTHING --
+# so re-running the migration can't repoint them on a deployed database. The
+# portal_service_urls.yml playbook applies this list instead. Entries are matched
+# on approval_key; an entry that omits service_url or is_public leaves that column
+# untouched.
+portal_service_catalog:
+  - approval_key: DISCOVERY_ENVIRONMENT
+    service_url: "{{ de_base_uri }}"
+  - approval_key: VICE
+    service_url: "{{ de_base_uri }}/de/"
 portal_session_secret: "replace_me"
 portal_session_secure_cookie: "true"
 portal_keycloak_realm: "{{ keycloak_realm_name }}"

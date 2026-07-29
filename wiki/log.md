@@ -1,5 +1,11 @@
 # Wiki Update Log
 
+## 2026-07-29
+
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [portal2](/services/portal2.md) — documented the new `portal_service_urls.yml` playbook and the `portal_service_catalog` var that repoint the portal's service tiles at the local deployment, and why this is a data fix: the URLs are `api_service` rows seeded by a portal2 migration with `ON CONFLICT DO NOTHING`, so re-running the migration cannot correct a deployed database and portal2 has no config key for them.
+* **Update**: [sonora](/services/sonora.md) — named `user_portal_url` / `user_portal_base_uri` explicitly and noted that the Sign up and Register links are built from it, so leaving `portal_hostname` at its default sends new users to the public portal.
+* **Update**: [Keycloak](/infrastructure/keycloak.md) — added a troubleshooting section for duplicated user names: Keycloak's stock non-AD `first name` LDAP mapper reads `cn` rather than `givenName`, which makes the OIDC `name` claim repeat the surname; includes the fix, why the full user re-sync is required, and that the federation is configured out of band.
+
 ## 2026-07-28
 
 * **Update**: [Copying Apps Between DE Instances](/playbooks/app-export-import.md) — documented the new `appei shred-app` and `delete-tool` commands, the switch to the private tool route (`POST /terrain/tools`) with the `--public-tool` escape hatch, why import now skips soft-deleted entries when matching, and that tool publishing is one-way (no unpublish route; a soft-deleted app still blocks tool deletion).

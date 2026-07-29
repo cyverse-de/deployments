@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-28T00:00:00Z
+timestamp: 2026-07-29T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -87,6 +87,29 @@ localhost over a `kubectl port-forward` to the `openldap` service and asserts
 `ldap_in_cluster`/`ldap_root_pw`; requires python-ldap on the control host.
 Idempotent — safe to re-run.
 
+## portal_service_urls.yml
+
+Repoints the [portal2](/services/portal2.md) service catalog at the local
+deployment. The portal's service tiles (Discovery Environment, DE - VICE, Data
+Commons, ...) are rows in the portal database's `api_service` table, seeded by
+portal2 migration `00004_service_catalog.up.sql` with the canonical
+cyverse.org URLs. Every insert there is `ON CONFLICT DO NOTHING`, so re-running
+the migration cannot correct an already-seeded database, and portal2 has no
+config key for these URLs — `service_url` is rendered verbatim from the column.
+Without this, a non-cyverse.org deployment sends users to `de.cyverse.org`.
+
+Applies `portal_service_catalog`, matching rows on `approval_key` (the key
+portal2's provisioning workflow dispatches on) rather than the seeded row ids.
+Each entry may set `service_url`, `is_public`, or both; an omitted key leaves
+that column untouched. Setting `is_public: false` drops the service from the
+portal's "Available" section, which is how a service the deployment does not
+run gets hidden — sw-cacti uses that for Data Commons. The role default repoints
+`DISCOVERY_ENVIRONMENT` and `VICE` at `de_base_uri`.
+
+Runs against `dbms` and asserts the `portal_db_*` credentials are set. Both
+updates carry an `IS DISTINCT FROM` guard, so a converged run reports `ok`
+rather than `changed`. Idempotent — safe to re-run.
+
 ## vice-operator-eks.yml
 
 Brings up VICE on an AWS EKS cluster: the `vice-operator-eks` role
@@ -113,5 +136,6 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [6] `ansible/config_files.yml` — standalone service_configurations run.
 [7] `ansible/portal_delete_user_config.yml`, `ansible/roles/services/portal-conductor/tasks/delete_user_config.yml` — delete-user config generation and its preflight asserts.
 [8] `ansible/openldap_community_group.yml` — community group backfill for existing OpenLDAP deployments.
-[9] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
-[10] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[9] `ansible/portal_service_urls.yml` — portal service catalog repointing; `portal_service_catalog` default in `ansible/roles/common/defaults/main.yml`.
+[10] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
+[11] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.

@@ -1,0 +1,76 @@
+---
+# Repoint the portal's service catalog at this deployment.
+#
+# The portal's service tiles (Discovery Environment, DE - VICE, Data Commons, ...)
+# are rows in the portal database's api_service table, seeded by portal2 migration
+# 00004 with the canonical cyverse.org URLs. Every insert there is ON CONFLICT DO
+# NOTHING, so re-running the migration cannot correct an already-seeded database,
+# and portal2 has no config key for these URLs -- they are rendered verbatim from
+# the column. This playbook applies portal_service_catalog to those rows so a
+# non-cyverse.org deployment links to its own services.
+#
+# Setting is_public to false drops a service from the portal's "Available"
+# section, which is how a service this deployment does not run gets hidden.
+#
+# Run: ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> portal_service_urls.yml
+
+- name: Repoint the portal service catalog at this deployment
+  hosts: dbms
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in pg_listen_port/portal_db_*/portal_service_catalog.
+    - common
+  tasks:
+    - name: Require the portal database variables
+      ansible.builtin.assert:
+        that:
+          - portal_db_name | length > 0
+          - portal_db_user | length > 0
+          - portal_db_password | length > 0
+          - portal_db_password != 'replace_me'
+        fail_msg: >-
+          portal_db_name, portal_db_user and portal_db_password must be set in the
+          inventory to update the portal service catalog.
+
+    - name: Point each service at this deployment
+      # IS DISTINCT FROM keeps an already-converged run from reporting changed.
+      community.postgresql.postgresql_query:
+        login_host: "{{ groups['dbms'][0] }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ portal_db_user }}"
+        login_password: "{{ portal_db_password }}"
+        login_db: "{{ portal_db_name }}"
+        query: >-
+          UPDATE api_service
+          SET service_url = %(url)s, updated_at = NOW()
+          WHERE approval_key = %(key)s
+            AND service_url IS DISTINCT FROM %(url)s
+        named_args:
+          key: "{{ item.approval_key }}"
+          url: "{{ item.service_url }}"
+      loop: "{{ portal_service_catalog }}"
+      loop_control:
+        label: "{{ item.approval_key }} -> {{ item.service_url | default('(unchanged)') }}"
+      when: item.service_url is defined
+
+    - name: Show or hide each service
+      community.postgresql.postgresql_query:
+        login_host: "{{ groups['dbms'][0] }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ portal_db_user }}"
+        login_password: "{{ portal_db_password }}"
+        login_db: "{{ portal_db_name }}"
+        query: >-
+          UPDATE api_service
+          SET is_public = %(public)s, updated_at = NOW()
+          WHERE approval_key = %(key)s
+            AND is_public IS DISTINCT FROM %(public)s
+        named_args:
+          key: "{{ item.approval_key }}"
+          public: "{{ item.is_public | bool }}"
+      loop: "{{ portal_service_catalog }}"
+      loop_control:
+        label: "{{ item.approval_key }} is_public={{ item.is_public | default('(unchanged)') }}"
+      when: item.is_public is defined

@@ -4,7 +4,7 @@ title: sonora
 description: The Discovery Environment web user interface, a Node.js app that fronts terrain and Keycloak.
 resource: /ansible/roles/services/sonora
 tags: [sonora, ui, frontend, nodejs, keycloak, terrain]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-29T00:00:00Z
 ---
 
 Sonora is the DE's web UI. It is a Node.js application (the manifest sets
@@ -18,6 +18,12 @@ vars). It also carries [iRODS](/infrastructure/irods.md) zone paths, Intercom
 and analytics settings, admin group names, tool resource limits, the
 [subscriptions](/services/subscriptions.md) checkout URL, and the user portal
 base URI.
+
+That last one is `user_portal_url`, rendered from `user_portal_base_uri`
+(`https://{{ portal_hostname }}`). Sonora's "Sign up" and "Register" links are
+built from it, so an inventory that leaves `portal_hostname` at the
+`user.cyverse.org` default sends new users to the public portal rather than the
+deployment's own [portal2](/services/portal2.md).
 
 - **Source repo:** [cyverse-de/sonora](https://github.com/cyverse-de/sonora)
 - **Image:** `harbor.cyverse.org/de/sonora` (pinned by digest in the build descriptor)

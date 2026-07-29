@@ -4,7 +4,7 @@ title: Keycloak
 description: Keycloak administration for the DE — deployment, health checks, client secret rotation, admin users, impersonation, and diagnosing authentication failures.
 resource: /docs/keycloak.md
 tags: [keycloak, authentication, oidc, ldap, secrets, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-29T00:00:00Z
 ---
 
 Keycloak handles all DE authentication. This page covers common administration tasks:
@@ -265,6 +265,49 @@ curl -s -X POST \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   "$KEYCLOAK_URL/auth/admin/realms/$REALM/user-storage/<provider-id>/sync?action=triggerFullSync"
 ```
+
+### Users' names appear duplicated ("Jack Ringer Ringer")
+
+For non-Active-Directory vendors, Keycloak's stock **first name** LDAP mapper
+reads `cn`, not `givenName` — `cn` is mandatory in `inetOrgPerson` and
+`givenName` is optional, so that is the safe default for an arbitrary
+directory. The DE's directory entries are not arbitrary:
+[portal-conductor](/services/portal-conductor.md) writes `givenName`=first,
+`sn`=last, and `cn`="first last". With the stock mapper Keycloak therefore
+stores `firstName`="Jack Ringer" and `lastName`="Ringer", and the `profile`
+client scope's full-name mapper composes the OIDC `name` claim as
+`firstName + " " + lastName` → "Jack Ringer Ringer". Anything rendering that
+claim verbatim, [sonora](/services/sonora.md)'s user menu included, shows the
+surname twice.
+
+Fix it on the mapper, not in the consuming UI — `given_name` is wrong too, so
+a UI-side workaround cannot recover the real first name. In the admin console:
+**User federation → <provider> → Mappers → first name**, set the LDAP attribute
+to `givenName`, then **Synchronize all users** on the provider. The re-sync is
+required: with `importEnabled` the wrong values are cached in Keycloak's own
+database and will not refresh on their own.
+
+To check the current mapping and the resulting values:
+
+```bash
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$KEYCLOAK_URL/auth/admin/realms/$REALM/components?parent=<provider-id>&type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper" \
+  | jq -r '.[] | select(.name=="first name") | .config["ldap.attribute"][0]'
+
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$KEYCLOAK_URL/auth/admin/realms/$REALM/users?max=200" \
+  | jq -r '.[] | select(.firstName != null and .lastName != null)
+           | select(.firstName | endswith(" " + .lastName))
+           | .username'
+```
+
+The second command lists users still carrying a duplicated name; it should
+return nothing once the re-sync has completed.
+
+> Note the LDAP federation itself — the provider and its mappers — is
+> configured out of band through the admin console. Nothing in the Ansible tree
+> defines it, so this change does not survive being rebuilt from inventory and
+> has to be reapplied by hand on a new realm.
 
 ## 6. Force-refresh a user's session
 
