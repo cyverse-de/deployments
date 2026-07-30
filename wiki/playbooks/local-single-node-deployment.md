@@ -227,12 +227,35 @@ It writes `rootCA.pem` and `rootCA-key.pem` to `~/.local/share/de-local-ca`
 inventory settings to point at them. Re-running needs `-f`, since replacing the
 root invalidates every certificate already issued beneath it.
 
-Then trust it (sudo), which covers both the system store and the NSS store
-Firefox and Chrome read through p11-kit:
+Then trust it (sudo), which covers the system store — `curl`, and anything
+else using the platform defaults:
 
 ```bash
 sudo trust anchor --store ~/.local/share/de-local-ca/rootCA.pem
 ```
+
+**Browsers usually need a second step.** Firefox and Chrome derivatives keep
+their own NSS trust store rather than reading the system one. A
+distro-packaged build on Fedora is linked against p11-kit and does pick up
+system anchors, so it needs nothing further — but a Flatpak or Snap build is
+sandboxed away from `/etc` entirely and cannot see them however they are
+installed. Import the root into that browser's profile instead:
+
+```bash
+certutil -A -d sql:"<profile directory>" \
+  -n "CyVerse DE local development CA" -t "CT,," \
+  -i ~/.local/share/de-local-ca/rootCA.pem
+```
+
+`-t "CT,,"` trusts it for TLS server and client certificates and nothing else.
+Close the browser first, since NSS holds the database open, and re-open it
+afterwards. The profile directory is the one containing `cert9.db`: under
+`~/.mozilla/firefox/<profile>` for a native install, or
+`~/.var/app/<app-id>/.mozilla/firefox/<profile>` — or the browser's own
+equivalent, such as `~/.var/app/app.zen_browser.zen/.zen/<profile>` — for a
+Flatpak. `certutil` comes from `nss-tools`.
+
+A browser warning while `curl` is happy is this and not a deployment problem.
 
 Once the endpoints are up, verify with no `-k` and read the TLS result rather
 than the HTTP status, which will be a redirect or a 500 until the backends
@@ -442,7 +465,7 @@ proceed without it.
 | # | Step | Needs | Blocker | Automation notes |
 | --- | --- | --- | --- | --- |
 | 1 | `scripts/bootstrap-local-k0s.sh` | sudo | yes | Absorbs what were three separate steps: the k0s install, the kubeconfig, and the kubelet plugin directories. What remains manual is inherent — installing the cluster is the step that defines the machine, and it needs root. |
-| 2 | `trust anchor` for the local root CA | sudo | yes | Generation is now `scripts/generate-local-ca.sh`; only the trust step needs root, and it is one command. |
+| 2 | Trust the local root CA — `trust anchor`, plus `certutil` per browser profile | sudo for the first | yes | Generation is now `scripts/generate-local-ca.sh`. The system-store half is one command; the browser half cannot be automated centrally, because each profile has its own NSS database and a sandboxed browser cannot read the host's trust configuration at all. |
 | — | ~~PostgreSQL `listen_addresses`, `pg_hba.conf`, and `ip_nonlocal_bind`~~ | — | — | **Eliminated** under `local_db_provider: cnpg`, which runs the database in the cluster. Still required under `host`, and still the step whose omission fails silently after a reboot. |
 | — | ~~Edge proxy TCP passthrough~~ | — | — | **Eliminated.** The pinned Traefik ClusterIP answers on 443 from the host, so no proxy sits in front of the cluster and no NodePort appears in a URL. |
 | — | ~~Cluster DNS for the DE hostnames~~ | — | — | **Never needed.** sslip.io resolves from both the host and the cluster, so there is no CoreDNS edit to maintain — which also avoids fighting a resource k0s owns. |

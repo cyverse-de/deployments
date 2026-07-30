@@ -99,10 +99,16 @@ chmod 644 "${cert}"
 echo
 echo "Wrote ${cert} and ${key}."
 echo
-echo "Trust it (needs root; covers the system store and the NSS store Firefox"
-echo "and Chrome read through p11-kit):"
+echo "Trust it in the system store (needs root):"
 echo
 echo "  sudo trust anchor --store ${cert}"
+echo
+echo "Browsers usually need a second step: Firefox and Chrome derivatives keep"
+echo "their own NSS store, and a Flatpak or Snap build cannot read the host's"
+echo "trust configuration at all. Per browser profile (the directory holding"
+echo "cert9.db), with the browser closed:"
+echo
+echo "  certutil -A -d sql:<profile dir> -n \"${org} CA\" -t \"CT,,\" -i ${cert}"
 echo
 echo "Then set in the inventory:"
 echo
