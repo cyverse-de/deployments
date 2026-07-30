@@ -4,7 +4,7 @@ title: Building and Deploying Services
 description: How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 resource: /ansible/BUILD_DEPLOY.md
 tags: [build, deploy, release, skaffold, ansible]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-30T00:00:00Z
 ---
 
 This repo is the source of truth for build and deploy configuration: each
@@ -61,6 +61,35 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
   and a rebuilt/skipped/failed summary is printed at the end.
 * Deploys assume the cluster subsystems are already installed — see
   [PostgreSQL](/infrastructure/postgresql.md).
+
+## Every deploy restarts every service
+
+Skaffold stamps a `skaffold.dev/run-id` label — a fresh UUID per invocation —
+onto the **pod template**. A pod-template change is a spec change, so each
+`skaffold deploy` rolls its service whether or not the image or manifest
+differs, and `deploy_it.yml` therefore restarts the whole DE every time it
+runs. It is easy to miss because it looks like an ordinary rollout.
+
+`deploy_run_id` overrides that label. Setting it to `{{ project_name }}` gives
+a value that is stable across runs but distinct per service, which makes an
+unchanged re-run leave the service alone — measured on a local cluster as no
+generation change across a full repeat deploy, with `--status-check` returning
+in about a second instead of waiting a minute for a rollout that should not
+have happened.
+
+It defaults to empty, keeping skaffold's behaviour, because the restart is
+long-standing and something may depend on it: services read their configuration
+from the `configs` Secret through `envFrom`, and changing that Secret does not
+restart anything by itself, so re-deploying to pick up a config change is a
+plausible habit. Keep the value per-service if you set it — skaffold scopes
+`--status-check` by this label, so one value shared across services would make
+each deploy wait on all of them.
+
+A deploy that changes nothing still reports `changed` for around a third of
+services. That is a `kubectl` client-side apply artifact: it computes a
+non-empty merge patch, sends it, and reports `configured` even though the
+resulting object is identical and the generation does not move. Harmless, and
+distinct from the rollout above.
 
 # Citations
 

@@ -44,15 +44,26 @@
           | rejectattr('metadata.deletionTimestamp', 'defined')
           | list)[0].metadata.name }}"
 
+    # add_vhost is idempotent from RabbitMQ 4 onwards: it exits 0 with the same
+    # output whether or not the vhost was there, so nothing in its result can
+    # distinguish a create from a no-op. Ask the broker instead, and only add
+    # what is missing — otherwise every run reports a change it did not make.
+    - name: List the existing vhosts
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: rabbitmqctl -q list_vhosts --no-table-headers
+      register: rabbitmq_k8s_existing_vhosts
+      changed_when: false
+
     - name: Create the vhosts
       kubernetes.core.k8s_exec:
         namespace: "{{ rabbitmq_k8s_namespace }}"
         pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl add_vhost {{ item.vhost }}"
-      register: rabbitmq_k8s_add_vhost
-      changed_when: rabbitmq_k8s_add_vhost.rc == 0
-      failed_when: rabbitmq_k8s_add_vhost.rc != 0 and 'already exists' not in rabbitmq_k8s_add_vhost.stderr
-      loop: "{{ rabbitmq_k8s_vhosts }}"
+      loop: "{{ rabbitmq_k8s_vhosts
+                | rejectattr('vhost', 'in', rabbitmq_k8s_existing_vhosts.stdout_lines)
+                | list }}"
       loop_control:
         label: "{{ item.vhost }}"
 
@@ -76,6 +87,10 @@
         namespace: "{{ rabbitmq_k8s_namespace }}"
         pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl change_password {{ item.user }} {{ item.password }}"
+      # Convergent, and a password cannot be read back to compare, so this has
+      # to run every time and can never report meaningfully. Reporting it as
+      # changed on every run is what makes a deploy's changed count useless.
+      changed_when: false
       no_log: true
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
@@ -86,6 +101,7 @@
         namespace: "{{ rabbitmq_k8s_namespace }}"
         pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl set_user_tags {{ item.user }} administrator"
+      changed_when: false
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
         label: "{{ item.user }}"
@@ -95,6 +111,7 @@
         namespace: "{{ rabbitmq_k8s_namespace }}"
         pod: "{{ rabbitmq_k8s_pod_name }}"
         command: "rabbitmqctl set_permissions -p {{ item.vhost }} {{ item.user }} .* .* .*"
+      changed_when: false
       loop: "{{ rabbitmq_k8s_vhosts }}"
       loop_control:
         label: "{{ item.user }}@{{ item.vhost }}"

@@ -12,3 +12,17 @@ deploy_wait: true
 # in the list undeployed — which reads as a partial success. Setting this
 # collects failures instead and lets the caller report them together.
 deploy_continue_on_error: false
+
+# Value for the skaffold.dev/run-id label. Skaffold generates a fresh UUID per
+# invocation and stamps it on the *pod template*, so every deploy changes the
+# template and rolls the service whether or not anything about it differs —
+# a full-set deploy restarts the entire DE every time. A value that is stable
+# per service makes an unchanged re-run a genuine no-op while still rolling
+# when the image or manifest actually changes; keep it per-service, since
+# skaffold scopes --status-check by this label and a value shared across
+# services would make each deploy wait on all of them.
+#
+# Empty keeps skaffold's own behaviour, and is the default because that
+# restart-on-every-deploy is long-standing and something a workflow may lean
+# on. Set it to "{{ project_name }}" to opt in.
+deploy_run_id: ""
