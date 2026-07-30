@@ -25,6 +25,11 @@ grafana_admin_password: Ch@ng3M3
 # Self-service signup stays off; accounts are created by an administrator.
 grafana_allow_sign_up: false
 
+# PostgreSQL feature level Grafana targets for the DE datasource. This is a
+# floor, not the server's actual version -- Grafana uses it to decide which SQL
+# features to emit, so a value at or below the server version is safe.
+grafana_de_postgres_version: 1400
+
 grafana_replicas: 1
 
 grafana_cpu_request: "100m"

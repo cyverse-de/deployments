@@ -4,7 +4,7 @@ title: Grafana
 description: Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and a provisioned logins dashboard, installed only when the grafana tag is named explicitly.
 resource: /ansible/roles/grafana
 tags: [grafana, metrics, dashboards, observability, postgresql, kubernetes.yml]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-07-29T00:00:00Z
 ---
 
 Grafana provides metrics dashboards for the DE. Like [Jaeger](/infrastructure/jaeger.md), it
@@ -64,6 +64,39 @@ Log in as `grafana_admin_user` / `grafana_admin_password` (both come from the `g
 Secret via the chart's `admin.existingSecret`). That account is a bootstrap credential, not a
 shared login: use it once to create real administrator accounts, then leave it alone.
 Self-service signup is off (`grafana_allow_sign_up: false`) and anonymous access is disabled.
+
+## Where the datasource is (there is no picker)
+
+The DE datasource is provisioned from the role, and the dashboards pin it per
+panel. A datasource picker only appears in a dashboard's top bar when the
+dashboard declares a `datasource`-type template variable, and DE Logins declares
+only `bucket` — so the top bar shows Bucket and the time range, and nothing else.
+That is deliberate: the dashboard's SQL is specific to the DE schema, so a picker
+whose only valid value is DE would be worse than none.
+
+To see or change which datasource a panel uses:
+
+- **Per panel** — hover the panel title and press `e`, or use the panel menu →
+  Edit. The Query tab shows the datasource, reading "DE".
+- **Whole dashboard** — Dashboard settings (gear) → JSON Model.
+- **The datasource itself** — Connections → Data sources → DE. It is marked
+  "Provisioned" and the fields are read-only, because it comes from the role's
+  config rather than the UI. Do not create a second PostgreSQL datasource by hand;
+  edit the role instead.
+
+One trap worth knowing, because it cost a debugging session: in the provisioning
+file the database name must go under `jsonData` (`jsonData.database`), **not** at
+the top level of the datasource entry. A top-level `database:` populates only the
+deprecated `data_source.database` column. Grafana's backend falls back to that
+column, so `/api/ds/query` and the datasource health check both pass — but the UI
+reads `jsonData.database`, so the datasource appears to have no database and can't
+be used from a dashboard. A green health check does not prove the datasource is
+usable; assert on `jsonData` instead:
+
+```bash
+curl -s -u admin:<password> http://localhost:3000/api/datasources/uid/de-postgres \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["jsonData"])'
+```
 
 ## How the secrets stay out of ConfigMaps
 

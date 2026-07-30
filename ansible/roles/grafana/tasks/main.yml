@@ -137,13 +137,18 @@
                   type: postgres
                   isDefault: true
                   url: "{{ groups['dbms'][0] }}:{{ pg_listen_port }}"
-                  database: "{{ de_db_name }}"
                   user: "{{ grafana_ro_db_user }}"
                   secureJsonData:
                     password: "$__env{DE_DB_PASSWORD}"
+                  # database belongs under jsonData. A top-level `database:` only
+                  # populates the deprecated data_source.database column: the
+                  # backend falls back to it so queries still work, but the UI
+                  # reads jsonData.database, so the datasource shows up with no
+                  # database configured and can't be used from a dashboard.
                   jsonData:
+                    database: "{{ de_db_name }}"
                     sslmode: disable
-                    postgresVersion: 1400
+                    postgresVersion: "{{ grafana_de_postgres_version }}"
 
           dashboardProviders:
             dashboardproviders.yaml:

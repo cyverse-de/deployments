@@ -138,6 +138,11 @@ kubectl -n grafana port-forward svc/grafana 3000:80
 Dashboards live in `roles/grafana/files/dashboards/` and are provisioned from a ConfigMap. To change one, edit it in the
 browser, export the JSON through Share → Export, and write it back over the file.
 
+The datasource is provisioned from the role and pinned per panel, so there is **no datasource picker** in a dashboard's
+top bar. To see which datasource a panel uses, hover the panel title and press `e`; the whole dashboard's wiring is under
+Dashboard settings → JSON Model, and the datasource itself is at Connections → Data sources → DE, where it shows as
+"Provisioned" and read-only. Change it by editing the role, not the UI.
+
 ## Services
 
 Each Discovery Environment service has a self-contained role under `roles/services/<service>/` that carries everything needed to configure, build, and deploy it:
