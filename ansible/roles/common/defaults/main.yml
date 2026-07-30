@@ -29,6 +29,11 @@ db_host: replace_me
 db_login_host: "{{ groups['dbms'][0] }}"
 keycloak_db_login_host: "{{ groups['keycloak_dbms'][0] }}"
 
+# Where PostgreSQL runs for a local single-node deployment: "host" for one
+# already running on the node, published as a Service by local_db_endpoint, or
+# "cnpg" to run it in the cluster under CloudNativePG. Only local.yml reads it.
+local_db_provider: host
+
 env: "{{ ns }}"
 
 # Common Variables

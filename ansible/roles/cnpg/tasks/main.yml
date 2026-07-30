@@ -1,0 +1,114 @@
+---
+- name: Run PostgreSQL in the cluster with CloudNativePG
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    # Server-side apply because the manifest carries CRDs whose ownership the
+    # operator takes over on upgrade; a client-side apply conflicts with it.
+    - name: Install the CloudNativePG operator
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        server_side_apply:
+          field_manager: deployments-cnpg-role
+          force_conflicts: true
+        src: "{{ cnpg_operator_manifest }}"
+
+    - name: Wait for the operator to become available
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ cnpg_operator_namespace }}"
+        name: cnpg-controller-manager
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+
+    - name: Create the superuser secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ cnpg_superuser_secret }}"
+            namespace: "{{ cnpg_namespace }}"
+          type: kubernetes.io/basic-auth
+          stringData:
+            username: "{{ pg_login_user }}"
+            password: "{{ pg_login_password }}"
+      no_log: true
+
+    # The cluster's own locale is deliberately left at the operator's default.
+    # postgresql_init creates every DE database from template0 with an explicit
+    # ICU locale, which is independent of what initdb chose.
+    - name: Create the PostgreSQL cluster
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: postgresql.cnpg.io/v1
+          kind: Cluster
+          metadata:
+            name: "{{ cnpg_cluster_name }}"
+            namespace: "{{ cnpg_namespace }}"
+          spec: "{{ cnpg_cluster_spec }}"
+      vars:
+        cnpg_cluster_spec: >-
+          {{
+            {
+              'instances': cnpg_instances | int,
+              'enableSuperuserAccess': true,
+              'superuserSecret': {'name': cnpg_superuser_secret},
+              'storage': {'size': cnpg_storage_size}
+                | combine({'storageClass': cnpg_storage_class} if cnpg_storage_class | length > 0 else {}),
+              'postgresql': {
+                'parameters': {'max_connections': cnpg_max_connections | string}
+                  | combine(cnpg_parameters),
+              },
+            }
+            | combine({'imageName': cnpg_image_name} if cnpg_image_name | length > 0 else {})
+            | combine({'resources': cnpg_resources} if cnpg_resources else {})
+          }}
+
+    - name: Wait for the PostgreSQL cluster to have a ready instance
+      kubernetes.core.k8s_info:
+        api_version: postgresql.cnpg.io/v1
+        kind: Cluster
+        namespace: "{{ cnpg_namespace }}"
+        name: "{{ cnpg_cluster_name }}"
+      register: cnpg_cluster_info
+      until: cnpg_cluster_info.resources[0].status.readyInstances | default(0) | int >= 1
+      retries: "{{ cnpg_ready_retries | int }}"
+      delay: "{{ cnpg_ready_delay | int }}"
+
+    # Selects the primary directly, so a failover would follow the label rather
+    # than needing this Service rewritten.
+    - name: Publish the database under a stable name and address
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: "{{ cnpg_service_name }}"
+            namespace: "{{ cnpg_namespace }}"
+          spec: "{{ cnpg_service_spec }}"
+      vars:
+        cnpg_service_spec: >-
+          {{
+            {
+              'selector': {
+                'cnpg.io/cluster': cnpg_cluster_name,
+                'cnpg.io/instanceRole': 'primary',
+              },
+              'ports': [{
+                'name': 'postgres',
+                'protocol': 'TCP',
+                'port': pg_listen_port | int,
+                'targetPort': 5432,
+              }],
+            }
+            | combine({'clusterIP': cnpg_service_cluster_ip} if cnpg_service_cluster_ip | length > 0 else {})
+          }}

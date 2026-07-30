@@ -1,8 +1,8 @@
 ---
 # Name of the Service that stands in for a PostgreSQL instance running on the
 # node but outside the cluster. groups['dbms'][0] should be its cluster DNS
-# name (<name>.<ns>.svc.cluster.local) so the same string resolves both in-pod
-# and — via /etc/hosts — on the Ansible control machine.
+# name (<name>.<ns>.svc.cluster.local), which is what pods resolve; the control
+# machine reaches the same server through db_login_host instead.
 local_db_endpoint_service_name: db
 
 # Address the EndpointSlice points at. Empty means derive the CNI bridge

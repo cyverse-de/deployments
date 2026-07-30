@@ -22,22 +22,12 @@
 #   kubernetes_node_feature_discovery  installs a device plugin that crashloops
 #                                      without the nvidia container toolkit
 #
-# and adds local_node_prep, local_db_endpoint and rabbitmq_k8s.
+# and adds local_node_prep, rabbitmq_k8s, and — depending on
+# local_db_provider — either local_db_endpoint or cnpg.
 #
 # Everything else a bare k0s node lacks is installed here, so this is a
 # from-scratch deployment: point it at a freshly installed single node and it
 # brings up storage, certificates, the gateway, the broker and the DE.
-
-- name: Initialize dbs
-  hosts: dbms
-  become: false
-  connection: local
-  gather_facts: false
-  roles:
-    - role: postgresql_init
-  tags:
-    - setup-databases
-    - databases
 
 - name: Set up cluster-level prerequisites
   hosts: k8s_controllers[0]
@@ -76,7 +66,9 @@
         - de-reqs
       when: gateway_provider == "traefik"
 
-- name: Add third-party software and DE prerequisites
+# Everything the database needs before it can be created or initialized: the
+# namespace to live in, and whichever of the two providers is in use.
+- name: Set up the database
   hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
@@ -85,13 +77,44 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
-    # Both stand in for infrastructure that lives outside the cluster in other
-    # environments: a database on the node, and a broker on its own host.
+    # local_db_provider picks where PostgreSQL runs. "host" publishes one
+    # already running on the node as a Service, standing in for the dedicated
+    # database server other environments have. "cnpg" runs it in the cluster
+    # instead, which costs an operator but takes the host's PostgreSQL
+    # configuration — and the ways it can silently drift — out of the picture.
     - role: local_db_endpoint
       tags:
         - local-db
         - de-reqs
+      when: local_db_provider == "host"
 
+    - role: cnpg
+      tags:
+        - cnpg
+        - local-db
+        - de-reqs
+      when: local_db_provider == "cnpg"
+
+# Split from the play above so the database server exists before this runs, and
+# from the one below so the databases exist before Keycloak and Grouper start.
+- name: Initialize dbs
+  hosts: dbms
+  become: false
+  connection: local
+  gather_facts: false
+  roles:
+    - role: postgresql_init
+  tags:
+    - setup-databases
+    - databases
+
+- name: Add third-party software and DE prerequisites
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Stands in for a broker on its own host, as the rabbitmq role expects.
     - role: rabbitmq_k8s
       tags:
         - rabbitmq
