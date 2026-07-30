@@ -68,29 +68,10 @@
           --force
           --kubeconfig "{{ kubeconfig }}"
           --status-check={{ deploy_wait | bool | lower }}
-          {% if deploy_run_id | default('', true) | length > 0 -%}
-          --label skaffold.dev/run-id={{ deploy_run_id }}
-          {% endif -%}
           {% if deploy_profile is defined -%}
           --profile {{ deploy_profile }}
           {%- endif -%}
       register: deploy_service_result
-      # A bare command always reports changed, which makes a deploy's changed
-      # count say nothing. Skaffold ends each resource line with the verb
-      # kubectl applied — "unchanged", "configured", "created" — so the no-op
-      # case is detectable. Match on those verbs rather than on the leading
-      # bullet: the "Tags used in deployment" section is bulleted too, and its
-      # lines never end in a verb. Recognising no resource lines at all counts
-      # as changed, so an output format we stop understanding errs towards
-      # reporting a change rather than hiding one.
-      changed_when: >-
-        deploy_service_result.rc == 0 and
-        ((deploy_service_result.stdout_lines | default([])
-          | select('search', '(unchanged|configured|created|deleted)$')
-          | list | length) == 0
-         or (deploy_service_result.stdout_lines | default([])
-             | select('search', '(configured|created|deleted)$')
-             | list | length) > 0)
       # With deploy_continue_on_error the run records the failure and carries
       # on, so one broken service does not truncate the rest of the list. The
       # caller reports every failure at the end and exits non-zero.

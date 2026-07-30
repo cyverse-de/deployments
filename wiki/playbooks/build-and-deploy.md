@@ -62,34 +62,24 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
 * Deploys assume the cluster subsystems are already installed — see
   [PostgreSQL](/infrastructure/postgresql.md).
 
-## Every deploy restarts every service
+## A deploy always restarts the service, even with nothing to change
 
 Skaffold stamps a `skaffold.dev/run-id` label — a fresh UUID per invocation —
-onto the **pod template**. A pod-template change is a spec change, so each
-`skaffold deploy` rolls its service whether or not the image or manifest
-differs, and `deploy_it.yml` therefore restarts the whole DE every time it
-runs. It is easy to miss because it looks like an ordinary rollout.
+onto the **pod template**. A pod-template change is a spec change, so
+`skaffold deploy` rolls its service every time, whether or not the image or
+manifest differs. Deploying without a tag therefore restarts the whole DE.
 
-`deploy_run_id` overrides that label. Setting it to `{{ project_name }}` gives
-a value that is stable across runs but distinct per service, which makes an
-unchanged re-run leave the service alone — measured on a local cluster as no
-generation change across a full repeat deploy, with `--status-check` returning
-in about a second instead of waiting a minute for a rollout that should not
-have happened.
+This is worth knowing rather than working around. Redeploying to restart a
+service is a reasonable thing to want — services read their configuration from
+the `configs` Secret through `envFrom`, and changing that Secret does not
+restart anything on its own — so the behaviour is useful more often than not.
+It matters mainly if you expected a no-op re-run to be free.
 
-It defaults to empty, keeping skaffold's behaviour, because the restart is
-long-standing and something may depend on it: services read their configuration
-from the `configs` Secret through `envFrom`, and changing that Secret does not
-restart anything by itself, so re-deploying to pick up a config change is a
-plausible habit. Keep the value per-service if you set it — skaffold scopes
-`--status-check` by this label, so one value shared across services would make
-each deploy wait on all of them.
-
-A deploy that changes nothing still reports `changed` for around a third of
-services. That is a `kubectl` client-side apply artifact: it computes a
-non-empty merge patch, sends it, and reports `configured` even though the
-resulting object is identical and the generation does not move. Harmless, and
-distinct from the rollout above.
+It can be suppressed by overriding the label
+(`skaffold deploy --label skaffold.dev/run-id=<stable value>`), which makes an
+unchanged service genuinely untouched. Keep any such value distinct per
+service: skaffold scopes `--status-check` by this label, so one value shared
+across services makes each deploy wait on all of them.
 
 # Citations
 
