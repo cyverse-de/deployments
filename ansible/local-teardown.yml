@@ -1,0 +1,221 @@
+---
+# Remove the DE from a local single-node cluster, keeping the cluster itself.
+#
+# This is the counterpart to local.yml, and exists because the alternative —
+# k0s reset — also discards the node's image cache, which is around 11 GiB for
+# a full DE and has to be pulled again. Use this when iterating on the
+# deployment; use `scripts/bootstrap-local-k0s.sh --reset` when the point is to
+# prove a bring-up works from nothing.
+#
+# Namespaces are deleted before the storage provider so that PersistentVolumes
+# are released while something is still around to reclaim them. Tearing the
+# whole node down at once instead leaves their directories behind under
+# /var/openebs/local, which is why the reset script removes that tree itself.
+#
+# Tags:
+#   de     the DE, Keycloak, OpenLDAP and VICE namespaces — and, under
+#          local_db_provider: cnpg, the database along with them
+#   infra  everything else local.yml installs: the gateway, cert-manager,
+#          Argo, the CSI driver, the CloudNativePG operator and storage,
+#          plus the cluster-scoped resources they own
+#
+# Running it with no tags does both. It is idempotent: deleting what is already
+# gone succeeds.
+#
+# Run: ansible-playbook -i <inventory> local-teardown.yml -e local_teardown_confirm=yes
+
+- name: Tear the DE down from the local cluster
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; supplies ns, vice_ns, kubeconfig and the rest.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    local_teardown_confirm: "no"
+
+    local_teardown_de_namespaces:
+      - "{{ ns }}"
+      - "{{ vice_ns }}"
+      - keycloak
+      - openldap
+
+    # Ordered so that the storage provider goes last, after everything holding
+    # a PersistentVolumeClaim has released it.
+    local_teardown_infra_namespaces:
+      - traefik
+      - argo
+      - argo-events
+      - irods-csi-driver
+      - cnpg-system
+      - cert-manager
+      - openebs
+
+    # An orphaned webhook is worse than an orphaned ClusterRole: it points at a
+    # Service that no longer exists, and the API server then refuses every
+    # create it intercepts, which can block a reinstall outright.
+    local_teardown_webhook_names:
+      - cert-manager-webhook
+      - cnpg-mutating-webhook-configuration
+      - cnpg-validating-webhook-configuration
+
+    # CRDs are removed by API group rather than by name: the sets are large and
+    # change between versions, and an explicit group list stays auditable.
+    local_teardown_crd_groups:
+      - cert-manager.io
+      - acme.cert-manager.io
+      - postgresql.cnpg.io
+      - traefik.io
+      - gateway.networking.k8s.io
+      - argoproj.io
+      - openebs.io
+      - csi.cyverse.org
+
+    # Deliberately opt-in. Under local_db_provider: cnpg the databases live on
+    # a PersistentVolume and go with the namespace, so this does nothing; under
+    # "host" it destroys data on the workstation, which should be a choice.
+    local_teardown_drop_databases: false
+
+  tasks:
+    - name: Refuse to run without an explicit confirmation
+      ansible.builtin.assert:
+        that:
+          - local_teardown_confirm | string | lower in ['yes', 'true']
+        fail_msg: >-
+          This deletes the DE and its data from the cluster {{ kubeconfig }}
+          points at. Re-run with -e local_teardown_confirm=yes once you have
+          checked that is the cluster you mean.
+        quiet: true
+      tags: always
+
+    - name: Look up the nodes about to be emptied
+      kubernetes.core.k8s_info:
+        kind: Node
+      register: local_teardown_nodes
+      tags: always
+
+    # Shown rather than asserted on: a single-node cluster is what this is for,
+    # but the operator is better placed than a rule to judge a given cluster.
+    - name: Show which cluster is being torn down
+      ansible.builtin.debug:
+        msg: >-
+          Tearing down {{ local_teardown_nodes.resources | length }} node(s):
+          {{ local_teardown_nodes.resources | map(attribute='metadata.name') | join(', ') }}
+      tags: always
+
+    - name: Delete the DE namespaces
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Namespace
+        name: "{{ item }}"
+        wait: true
+        wait_timeout: 600
+      loop: "{{ local_teardown_de_namespaces | unique }}"
+      tags: de
+
+    # Read from postgresql_init rather than restated here, so the list of
+    # databases torn down cannot drift from the list created.
+    - name: Load the managed-database list from postgresql_init
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/roles/postgresql_init/defaults/main.yml"
+      when:
+        - local_db_provider == 'host'
+        - local_teardown_drop_databases | bool
+      tags: de
+
+    - name: Drop the DE databases from the host PostgreSQL
+      community.postgresql.postgresql_db:
+        login_host: "{{ db_login_host }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        name: "{{ item }}"
+        state: absent
+        force: true
+      loop: "{{ postgresql_init_managed_databases }}"
+      when:
+        - local_db_provider == 'host'
+        - local_teardown_drop_databases | bool
+      tags: de
+
+    # Roles outlive the databases they own, and postgresql_init reconciles only
+    # the attributes it names — so one left behind can come back without LOGIN
+    # and take a service down in a way that points nowhere near the cause.
+    - name: Drop the DE roles from the host PostgreSQL
+      community.postgresql.postgresql_user:
+        login_host: "{{ db_login_host }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ pg_db }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ dbms_connection_user }}"
+        - "{{ portal_db_user }}"
+        - "{{ keycloak_db_username }}"
+        - "{{ grouper_connection_user }}"
+      when:
+        - local_db_provider == 'host'
+        - local_teardown_drop_databases | bool
+      tags: de
+
+    - name: Delete the webhook configurations
+      kubernetes.core.k8s:
+        state: absent
+        api_version: admissionregistration.k8s.io/v1
+        kind: "{{ item.0 }}"
+        name: "{{ item.1 }}"
+      loop: "{{ ['ValidatingWebhookConfiguration', 'MutatingWebhookConfiguration']
+                | product(local_teardown_webhook_names) | list }}"
+      loop_control:
+        label: "{{ item.0 }}/{{ item.1 }}"
+      tags: infra
+
+    - name: Delete the infrastructure namespaces
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Namespace
+        name: "{{ item }}"
+        wait: true
+        wait_timeout: 600
+      loop: "{{ local_teardown_infra_namespaces }}"
+      tags: infra
+
+    - name: Look up the custom resource definitions
+      kubernetes.core.k8s_info:
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+      register: local_teardown_crds
+      tags: infra
+
+    - name: Delete the custom resource definitions this deployment installs
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        name: "{{ item }}"
+      loop: "{{ local_teardown_crds.resources
+                | selectattr('spec.group', 'in', local_teardown_crd_groups)
+                | map(attribute='metadata.name') | list }}"
+      tags: infra
+
+    - name: Look up what is left
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+      register: local_teardown_remaining
+      tags: always
+
+    - name: Report the remaining namespaces
+      ansible.builtin.debug:
+        msg: >-
+          Remaining namespaces:
+          {{ local_teardown_remaining.resources
+             | map(attribute='metadata.name') | sort | join(', ') }}
+      tags: always

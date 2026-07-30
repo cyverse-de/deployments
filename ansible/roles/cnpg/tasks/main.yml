@@ -112,3 +112,24 @@
             }
             | combine({'clusterIP': cnpg_service_cluster_ip} if cnpg_service_cluster_ip | length > 0 else {})
           }}
+
+    # The Cluster reporting a ready instance is not the same as this Service
+    # being able to reach it: the primary label and the EndpointSlice behind it
+    # settle a moment later. postgresql_init connects immediately after this
+    # role returns, and got "connection refused" in that window.
+    - name: Wait for the database Service to have a ready endpoint
+      kubernetes.core.k8s_info:
+        api_version: discovery.k8s.io/v1
+        kind: EndpointSlice
+        namespace: "{{ cnpg_namespace }}"
+        label_selectors:
+          - "kubernetes.io/service-name={{ cnpg_service_name }}"
+      register: cnpg_endpoint_info
+      until: >-
+        (cnpg_endpoint_info.resources | default([])
+         | map(attribute='endpoints', default=[]) | flatten
+         | selectattr('conditions.ready', 'defined')
+         | selectattr('conditions.ready')
+         | list | length) > 0
+      retries: "{{ cnpg_ready_retries | int }}"
+      delay: "{{ cnpg_ready_delay | int }}"

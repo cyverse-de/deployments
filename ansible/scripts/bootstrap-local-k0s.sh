@@ -4,14 +4,18 @@
 # the pieces of host state Ansible cannot: the kubelet plugin directories for
 # the iRODS CSI driver, and an admin kubeconfig owned by the invoking user.
 #
-# This is the whole of the cluster-side host preparation. What it deliberately
-# leaves alone is the workstation's PostgreSQL, which is not the deployment's
-# to reconfigure — see the runbook for the two settings it needs.
+# This is the whole of the cluster-side host preparation. The workstation's
+# PostgreSQL is deliberately left alone; it is only involved at all under
+# local_db_provider: host, and then it is not the deployment's to reconfigure.
 #
 # Run with sudo. Idempotent enough to re-run after a failed install; pass
 # --reset to tear an existing cluster down first.
 
 set -euo pipefail
+
+# Where the OpenEBS hostpath provisioner keeps its volumes. Outside
+# /var/lib/k0s, so k0s reset leaves it behind.
+openebs_dir=/var/openebs/local
 
 usage() {
     cat <<EOF
@@ -22,9 +26,13 @@ iRODS CSI driver's kubelet directories, and writes an admin kubeconfig to
 ~/.kube/local-admin.conf for the user invoking sudo.
 
   --reset   Stop and reset any existing k0s installation first. This destroys
-            the cluster and everything running on it. A reboot afterwards is
-            recommended before reinstalling, to clear netfilter rules the CNI
-            leaves behind.
+            the cluster, everything running on it, and the hostpath volumes
+            under ${openebs_dir} — including the database, if it runs in the
+            cluster. A reboot afterwards is recommended before reinstalling,
+            to clear netfilter rules the CNI leaves behind.
+
+            To keep the cluster and its ~11 GiB image cache, use
+            local-teardown.yml instead.
   -h        Show this help
 EOF
 }
@@ -55,6 +63,18 @@ if [[ "${reset}" == true ]]; then
     echo "== stopping and resetting the existing k0s installation"
     k0s stop || true
     k0s reset || true
+
+    # k0s reset does not know about this: the hostpath provisioner stores
+    # volumes outside /var/lib/k0s, and destroying the cluster removes the
+    # PersistentVolume objects without giving anything the chance to reclaim
+    # the directories behind them. Left alone they accumulate one orphaned
+    # tree per rebuild — a few megabytes for a config volume, gigabytes once
+    # the database runs in the cluster.
+    if [[ -d "${openebs_dir}" ]]; then
+        echo "== removing orphaned hostpath volumes from ${openebs_dir}"
+        du -sh "${openebs_dir}" 2>/dev/null || true
+        rm -rf "${openebs_dir:?}"/*
+    fi
     echo
     echo "Reset done. Reboot before reinstalling: k0s reset removes its own"
     echo "directories and interfaces but leaves netfilter rules behind, and a"
