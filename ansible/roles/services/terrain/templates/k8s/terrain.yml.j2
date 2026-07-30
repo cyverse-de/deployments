@@ -33,6 +33,13 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca
+          configMap:
+            name: {{ de_ca_bundle_configmap }}
+        - name: de-ca-jvm
+          emptyDir: {}
+{% endif %}
         - name: signing-keys
           secret:
             secretName: signing-keys
@@ -45,6 +52,32 @@ spec:
             items:
               - key: terrain.properties
                 path: terrain.properties
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+      # A JVM will not read a PEM bundle, so the image's own cacerts is copied
+      # and the CA imported into the copy. Run from the service image so the
+      # trust store matches the JDK that will read it, and so no second image
+      # has to be kept in step.
+      initContainers:
+        - name: trust-store
+          image: "{{ build_json.builds[0].tag }}"
+          command:
+            - sh
+            - -c
+            - >-
+              cp "$(dirname $(dirname $(readlink -f $(command -v java))))/lib/security/cacerts"
+              {{ de_ca_truststore_dir }}/cacerts &&
+              chmod u+w {{ de_ca_truststore_dir }}/cacerts &&
+              keytool -importcert -noprompt -alias de-local-ca
+              -keystore {{ de_ca_truststore_dir }}/cacerts
+              -storepass {{ de_ca_truststore_password }}
+              -file {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+          volumeMounts:
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+            - name: de-ca-jvm
+              mountPath: {{ de_ca_truststore_dir }}
+{% endif %}
       containers:
         - name: terrain
           image: harbor.cyverse.org/de/terrain
@@ -61,6 +94,14 @@ spec:
             - --config
             - /etc/iplant/de/terrain.properties
           volumeMounts:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+            - name: de-ca-jvm
+              mountPath: {{ de_ca_truststore_dir }}
+              readOnly: true
+{% endif %}
             - name: signing-keys
               mountPath: /etc/iplant/crypto/signing_key
               readOnly: true
@@ -71,6 +112,10 @@ spec:
               mountPath: /etc/iplant/de
               readOnly: true
           env:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: SSL_CERT_FILE
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+{% endif %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

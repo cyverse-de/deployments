@@ -27,6 +27,11 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca
+          configMap:
+            name: {{ de_ca_bundle_configmap }}
+{% endif %}
         - name: qms-configs
           secret:
             secretName: qms-configs
@@ -37,6 +42,10 @@ spec:
         - name: qms
           image: harbor.cyverse.org/de/qms
           env:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: SSL_CERT_FILE
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+{% endif %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -82,6 +91,11 @@ spec:
               memory: "256Mi"
               ephemeral-storage: "100Mi"
           volumeMounts:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+{% endif %}
             - name: qms-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true

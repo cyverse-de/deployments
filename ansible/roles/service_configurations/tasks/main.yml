@@ -105,11 +105,21 @@
           metadata:
             name: java-tool-options
             namespace: "{{ ns }}"
+          # A JVM cannot be pointed at a PEM bundle, so where a CA bundle is in
+          # use the services get a prepared trust store instead — built by an
+          # init container from their own image's cacerts. Appending the flags
+          # here rather than per service keeps it to one place, and the JVMs
+          # that never make such a call simply carry two unused properties.
           data:
-            low: "{{ jvm_opts_low }}"
-            medium: "{{ jvm_opts_medium }}"
-            high: "{{ jvm_opts_high }}"
-            grouper: "{{ jvm_opts_grouper }}"
+            low: "{{ jvm_opts_low }}{{ jvm_truststore_opts }}"
+            medium: "{{ jvm_opts_medium }}{{ jvm_truststore_opts }}"
+            high: "{{ jvm_opts_high }}{{ jvm_truststore_opts }}"
+            grouper: "{{ jvm_opts_grouper }}{{ jvm_truststore_opts }}"
+      vars:
+        jvm_truststore_opts: >-
+          {{ (' -Djavax.net.ssl.trustStore=' ~ de_ca_truststore_dir ~ '/cacerts'
+              ~ ' -Djavax.net.ssl.trustStorePassword=' ~ de_ca_truststore_password)
+             if de_ca_bundle_configmap | default('', true) | length > 0 else '' }}
       when: load_configs is undefined or (load_configs | bool)
 
     # The shared service-configs secret was replaced by per-service

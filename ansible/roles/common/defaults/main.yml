@@ -194,6 +194,29 @@ cluster_issuer_ca_secret_name: default-cluster-issuer-ca
 cluster_issuer_ca_cert_file: replace_me
 cluster_issuer_ca_key_file: replace_me
 
+# A ConfigMap holding a CA certificate that services must trust to make
+# server-side HTTPS calls to DE endpoints — Keycloak above all. A container's
+# trust store comes from its image, so an endpoint served by a locally issued
+# root is rejected however well the host and browser trust it: Go services fail
+# with "x509: certificate signed by unknown authority" and JVM services with
+# SunCertPathBuilderException, both surfacing as a 500 rather than anything
+# naming a certificate.
+#
+# Empty means the images' own trust store suffices, which is the case wherever
+# the DE is served by a publicly trusted certificate — so this changes nothing
+# unless it is set.
+de_ca_bundle_configmap: ""
+# Path on the Ansible control machine to read the certificate from.
+de_ca_bundle_file: "{{ cluster_issuer_ca_cert_file }}"
+de_ca_bundle_key: ca.crt
+de_ca_bundle_mount_path: /etc/de-ca
+
+# A JVM cannot read a PEM bundle, so JVM services get a copy of their image's
+# cacerts with this certificate imported, built by an init container. The
+# password is the JDK default, and this trust store is public information.
+de_ca_truststore_dir: /etc/de-ca-jvm
+de_ca_truststore_password: changeit
+
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
 dashboard_aggregator_website_url: https://cyverse.org
@@ -917,8 +940,10 @@ vice_operator_egress_host_exceptions:
 # against a Keycloak whose certificate is not signed by a public CA. Empty
 # means the pod uses its image's trust store, which is what an environment with
 # publicly-trusted certificates wants.
-vice_operator_ca_bundle_configmap: ""
-vice_operator_ca_bundle_file: "{{ cluster_issuer_ca_cert_file }}"
+# Defaults to the shared bundle so one setting covers every service; still
+# overridable on its own for an environment that needs vice-operator to differ.
+vice_operator_ca_bundle_configmap: "{{ de_ca_bundle_configmap }}"
+vice_operator_ca_bundle_file: "{{ de_ca_bundle_file }}"
 vice_operator_admin_entitlements: replace_me
 vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
 vice_api_keycloak_base_url: "{{ keycloak_server_uri }}"

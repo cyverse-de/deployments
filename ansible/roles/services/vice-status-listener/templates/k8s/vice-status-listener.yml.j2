@@ -28,6 +28,11 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca
+          configMap:
+            name: {{ de_ca_bundle_configmap }}
+{% endif %}
         - name: vice-status-listener-configs
           secret:
             secretName: vice-status-listener-configs
@@ -52,6 +57,10 @@ spec:
             - --log-level
             - debug
           env:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: SSL_CERT_FILE
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+{% endif %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -64,6 +73,11 @@ spec:
             - name: CLUSTER
               value: "1"
           volumeMounts:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+{% endif %}
             - name: vice-status-listener-configs
               mountPath: /etc/iplant/de
               readOnly: true

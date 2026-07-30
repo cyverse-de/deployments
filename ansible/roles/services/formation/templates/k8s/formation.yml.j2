@@ -27,6 +27,11 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca
+          configMap:
+            name: {{ de_ca_bundle_configmap }}
+{% endif %}
         - name: config-volume
           secret:
             secretName: formation-configs
@@ -38,10 +43,19 @@ spec:
           image: harbor.cyverse.org/de/formation
           imagePullPolicy: Always
           volumeMounts:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+{% endif %}
             - name: config-volume
               mountPath: /etc/cyverse/formation
               readOnly: true
           env:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: SSL_CERT_FILE
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+{% endif %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

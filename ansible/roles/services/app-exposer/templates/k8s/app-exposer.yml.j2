@@ -28,6 +28,11 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca
+          configMap:
+            name: {{ de_ca_bundle_configmap }}
+{% endif %}
         - name: app-exposer-configs
           secret:
             secretName: app-exposer-configs
@@ -56,6 +61,10 @@ spec:
             - --cluster-config-secret
             - "$(CLUSTER_CONFIG_SECRET)"
           env:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: SSL_CERT_FILE
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+{% endif %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -91,6 +100,11 @@ spec:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+{% endif %}
             - name: app-exposer-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true
