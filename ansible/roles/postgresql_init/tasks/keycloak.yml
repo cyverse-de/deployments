@@ -4,7 +4,7 @@
   block:
     - name: Create the keycloak user
       community.postgresql.postgresql_user:
-        login_host: "{{ groups['keycloak_dbms'][0] }}"
+        login_host: "{{ keycloak_db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -23,7 +23,7 @@
 
     - name: Create the keycloak database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['keycloak_dbms'][0] }}"
+        login_host: "{{ keycloak_db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"

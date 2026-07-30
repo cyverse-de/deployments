@@ -1,5 +1,10 @@
 # Wiki Update Log
 
+## 2026-07-30
+
+* **Update**: [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) — rewritten host preparation after rebuilding the cluster from bare metal to test the runbook end to end. The k0s install, kubeconfig, and kubelet plugin directories collapse into `scripts/bootstrap-local-k0s.sh`; the root CA into `scripts/generate-local-ca.sh`; the `/etc/hosts` entry disappears with `db_login_host`; and the stale-database check becomes a pre-flight assertion. Records the one genuine failure the rebuild exposed: PostgreSQL cannot bind the CNI bridge address at boot because the interface does not exist yet, warns rather than failing, and silently serves loopback only — so `net.ipv4.ip_nonlocal_bind` is now a documented requirement. The portal `account_*` seeding step is gone: `portal2` migration `00003_reference_data` covers it.
+* **Update**: [PostgreSQL](/infrastructure/postgresql.md) — documented `db_login_host`/`keycloak_db_login_host`, which separate the name the control machine connects to from the one rendered into pod database URIs (both default to the `groups[...][0]` value), and the new `postgresql_init` pre-flight that fails naming any database whose locale provider it cannot reconcile instead of aborting on `Changing ICU_LOCALE is not supported`. Every role the pass creates is now declared `role_attr_flags: LOGIN`.
+
 ## 2026-07-29
 
 * **Update**: [Grafana](/infrastructure/grafana.md) — fixed the provisioned DE datasource, which had `database` at the top level of the datasource entry instead of under `jsonData`. That populates only the deprecated `data_source.database` column, and while Grafana's backend falls back to it (so queries and the health check both passed), the UI reads `jsonData.database` — so the datasource showed up with no database configured and couldn't be used from a dashboard. Added a "Where the datasource is" section covering that trap, the assertion that actually catches it, and the fact that a provisioned dashboard has no datasource picker in its top bar because the datasource is pinned per panel. Same note added to the Grafana section of `ansible/README.md`.

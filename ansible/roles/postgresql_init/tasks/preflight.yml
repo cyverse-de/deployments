@@ -1,0 +1,35 @@
+---
+# A database's locale provider is fixed at creation time, so postgresql_db
+# cannot reconcile one that predates this role — it aborts with "Changing
+# ICU_LOCALE is not supported", which reads like a permissions or version
+# problem rather than "this database is stale". Say so before any work starts.
+- name: Check the locale provider on any pre-existing DE databases
+  delegate_to: localhost
+  when: create_dbs is defined and create_dbs
+  tags:
+    - update-databases
+  block:
+    - name: Look up the locale provider of every database on the server
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ pg_db }}"
+        query: SELECT datname, datlocprovider FROM pg_database WHERE NOT datistemplate
+      register: postgresql_init_existing_dbs
+
+    - name: Fail if a pre-existing database was not created with the ICU provider
+      ansible.builtin.fail:
+        msg: >-
+          {{ mismatched | join(', ') }} already exist(s) without the ICU locale
+          provider. A database's locale provider cannot be changed after
+          creation, so this role cannot reconcile it — drop the database (dump
+          it first if it holds anything worth keeping) and re-run.
+      vars:
+        mismatched: >-
+          {{ postgresql_init_existing_dbs.query_result
+             | selectattr('datname', 'in', postgresql_init_managed_databases)
+             | rejectattr('datlocprovider', 'eq', 'i')
+             | map(attribute='datname') | list }}
+      when: mismatched | length > 0

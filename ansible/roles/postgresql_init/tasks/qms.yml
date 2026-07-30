@@ -4,7 +4,7 @@
   block:
     - name: Create qms database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -19,7 +19,7 @@
     - name: Install extensions for the qms database
       when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -47,7 +47,7 @@
     - name: Run qms repo for its migrations
       ansible.builtin.command: >
         {{ migrate_installed.stdout }}
-        -database "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/qms?sslmode=disable"
+        -database "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ db_login_host }}:{{ pg_listen_port }}/qms?sslmode=disable"
         -path "{{ dbs_dir.path }}/qms/migrations"
         up
       when: migrate is defined and migrate

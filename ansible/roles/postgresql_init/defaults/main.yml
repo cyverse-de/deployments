@@ -1,0 +1,8 @@
+---
+# The databases this role creates, for the pre-flight locale check. Harbor's
+# are deliberately absent: harbor.yml creates them under names of its own.
+postgresql_init_managed_databases: "{{ [de_db_name, notifications_db_name, metadata_db_name]
+  + ([grouper_db_name] if grouper else [])
+  + ([qms_db_name] if qms else [])
+  + ([keycloak_db_name] if keycloak else [])
+  + ([portal_db_name] if portal else []) }}"

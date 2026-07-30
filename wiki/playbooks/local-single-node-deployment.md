@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using a host PostgreSQL, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, sslip.io, dns]
-timestamp: 2026-07-29T00:00:00Z
+timestamp: 2026-07-30T00:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -49,7 +49,8 @@ cluster in other environments:
 
 ## Prerequisites
 
-- A machine with `k0s` installed and PostgreSQL running on the host.
+- A machine with the `k0s` binary on `PATH` and PostgreSQL running on the host.
+  The cluster itself is installed by the bootstrap script below.
 - Outbound DNS, since the hostnames resolve through `sslip.io`.
 - `ansible`, `kubectl` >= 1.31 (or `kustomize` >= 5.2), `helm` >= 3.16,
   `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, `gpg` >= 2.1,
@@ -59,86 +60,35 @@ cluster in other environments:
 
 ## Host preparation
 
-Done once, outside Ansible. Steps 2 and 5 need no `sudo`; the rest do. The default
-StorageClass is not among them: the `openebs` role sets it when
-`openebs_default_storage_class` is true, which the local inventory does.
+Done once, outside Ansible, and all of it needs `sudo`. The default StorageClass
+is not among it: the `openebs` role sets that when `openebs_default_storage_class`
+is true, which the local inventory does.
 
-**1. Bring up the k0s node** (sudo). `--single` gives a combined
-controller/worker with no taint, which is what a one-machine deployment wants
-— `--enable-worker` would add `node-role.kubernetes.io/master:NoSchedule`
-instead, and nothing would schedule until the `node-prep` tag stripped it:
+**1. Bring up the cluster:**
 
 ```bash
-sudo k0s install controller --single
-sudo k0s start
-sudo k0s status          # wait for "Kube-api probing successful: true"
+sudo ansible/scripts/bootstrap-local-k0s.sh
 ```
 
-This is the plain `k0s` installer rather than `k0sctl`, which drives node
-installs over SSH and earns its keep on multi-node clusters. k0s defaults to a
-pod CIDR of `10.244.0.0/16` and a service CIDR of `10.96.0.0/12`; the inventory
-has to agree with whatever this node actually uses, because those values become
-local-exim's relay allowlist.
+That installs a single-node k0s controller, waits for its API server, creates
+the iRODS CSI driver's kubelet directories (otherwise made by a play needing
+root on each worker), and writes `~/.kube/local-admin.conf` owned by the
+invoking user. Pass `--reset` to tear an existing cluster down first.
 
-**2. Write a kubeconfig** (no sudo, apart from reading k0s's admin config):
+Two details it handles that are easy to get wrong by hand. It uses `--single`,
+giving a combined controller/worker with no taint — `--enable-worker` would add
+`node-role.kubernetes.io/master:NoSchedule` instead, and nothing would schedule
+until the `node-prep` tag stripped it. And it rewrites the kubeconfig's
+`server:` to `127.0.0.1`, because k0s records whatever address the node had at
+install time and keeps it, so a DHCP lease or a VPN interface appearing later
+breaks every `kubectl` call.
 
-```bash
-sudo k0s kubeconfig admin > ~/.kube/local-admin.conf
-chmod 600 ~/.kube/local-admin.conf
-export KUBECONFIG=~/.kube/local-admin.conf
-kubectl get nodes        # the node should reach Ready within a minute or two
-```
+The script prints the pod and service CIDRs at the end. The inventory's
+`k8s_pods_cidr` and `k8s_services_cidr` must match them: those values become
+local-exim's relay allowlist, and a mismatch silently rejects outbound mail
+from every DE pod.
 
-If the node's address later changes, k0s keeps the one it was installed with,
-so fix the `server:` line rather than reinstalling.
-
-**3. Create the iRODS CSI driver's kubelet directories** (sudo), which are
-otherwise created by a play that needs root on each worker:
-
-```bash
-sudo mkdir -p /var/lib/k0s/kubelet/plugins/irods.csi.cyverse.org \
-              /var/lib/k0s/kubelet/plugins_registry
-```
-
-**4. Add the database name to `/etc/hosts`** (sudo). `groups['dbms'][0]` is used
-verbatim both by the Ansible PostgreSQL modules on this machine and by the DB
-URIs rendered into pod configs, so the one name has to resolve in both places:
-
-```
-127.0.0.1  db.de.svc.cluster.local
-```
-
-The DE hostnames need no entry — see Hostnames and DNS below.
-
-**5. Check the host PostgreSQL has no leftover DE databases** (no sudo).
-`postgresql_init` creates the databases with `locale_provider: icu`, and a
-database's ICU locale cannot be changed after creation — so if `de`,
-`notifications`, `metadata`, `grouper`, `qms`, `portal` or `keycloak` already
-exist from earlier work and were created without ICU, `setup-databases` fails
-with `Changing ICU_LOCALE is not supported`. It is easy to misread as a
-permissions problem. Check, and drop what is stale (dump first if unsure —
-these are on a workstation, not managed by the deployment):
-
-```bash
-psql -h db.de.svc.cluster.local -U postgres \
-  -Atc "select datname from pg_database where datname not like 'template%'"
-```
-
-Check the **roles** too, which outlive the databases they own:
-
-```bash
-psql -h db.de.svc.cluster.local -U postgres \
-  -Atc "select rolname, rolcanlogin from pg_authid where rolname in
-        ('de','keycloak','portal','GrouperSystem')"
-```
-
-A role that already exists without `LOGIN` is the nastier version of this:
-`postgresql_init` reconciles only the attributes it names, so it sets the
-password correctly and the service still cannot connect. Keycloak surfaces it
-as a crashloop on `password authentication failed for user "keycloak"`, which
-points nowhere near the cause. `alter role <name> login` fixes it.
-
-**6. Let PostgreSQL accept connections from pods** (sudo). `local_db_endpoint` points
+**2. Let PostgreSQL accept connections from pods.** `local_db_endpoint` points
 the Service at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,
 which may belong to an overlay interface and would expose the database well
@@ -154,7 +104,30 @@ and in `pg_hba.conf`, matching the cluster's pod CIDR:
 host  all  all  10.244.0.0/16  scram-sha-256
 ```
 
-Then restart PostgreSQL.
+**This is not enough on its own, and the way it fails is silent.** The bridge
+address does not exist until the CNI creates it, which happens long after
+PostgreSQL starts at boot — and PostgreSQL only *warns* when a
+`listen_addresses` entry cannot be bound. It comes up looking healthy, listening
+on loopback alone, and every DE service fails to reach the database with an
+error pointing nowhere near the cause. Allow the address to be bound before it
+exists:
+
+```bash
+echo 'net.ipv4.ip_nonlocal_bind = 1' | sudo tee /etc/sysctl.d/90-de-local-db.conf
+sudo sysctl -p /etc/sysctl.d/90-de-local-db.conf
+```
+
+Then restart PostgreSQL, and confirm both addresses are bound — this is worth
+checking after any reboot until you trust it:
+
+```bash
+ss -ltn | grep 5432
+```
+
+No `/etc/hosts` entry is needed, for the database or for the DE hostnames. The
+inventory sets `db_login_host` so the control machine reaches PostgreSQL on
+loopback while pods use the cluster DNS name; see
+[PostgreSQL](/infrastructure/postgresql.md) and Hostnames and DNS below.
 
 ## Hostnames and DNS
 
@@ -217,24 +190,13 @@ it does not exercise the shape the endpoints actually use.
 Generate a root that permits one:
 
 ```bash
-mkdir -p ~/.local/share/de-local-ca && cd ~/.local/share/de-local-ca
-cat > ca.cnf <<'EOF'
-[req]
-distinguished_name = dn
-x509_extensions = v3_ca
-prompt = no
-[dn]
-O = CyVerse DE local development
-CN = CyVerse DE local development CA
-[v3_ca]
-basicConstraints = critical, CA:TRUE, pathlen:1
-keyUsage = critical, keyCertSign, cRLSign
-subjectKeyIdentifier = hash
-EOF
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout rootCA-key.pem -out rootCA.pem -config ca.cnf
-chmod 600 rootCA-key.pem
+ansible/scripts/generate-local-ca.sh
 ```
+
+It writes `rootCA.pem` and `rootCA-key.pem` to `~/.local/share/de-local-ca`
+(override with `-d`), with the `pathlen:1` constraint set, and prints the
+inventory settings to point at them. Re-running needs `-f`, since replacing the
+root invalidates every certificate already issued beneath it.
 
 Then trust it (sudo), which covers both the system store and the NSS store
 Firefox and Chrome read through p11-kit:
@@ -243,9 +205,18 @@ Firefox and Chrome read through p11-kit:
 sudo trust anchor --store ~/.local/share/de-local-ca/rootCA.pem
 ```
 
-Verify with `curl https://de.localhost/` — no `-k`. A `path length constraint
-exceeded` means the root has the wrong constraint; `unable to get local issuer
-certificate` means it is not trusted yet.
+Once the endpoints are up, verify with no `-k` and read the TLS result rather
+than the HTTP status, which will be a redirect or a 500 until the backends
+exist:
+
+```bash
+curl -s -o /dev/null -w '%{http_code} verify=%{ssl_verify_result}\n' \
+  https://de.10-96-0-100.sslip.io/
+```
+
+`verify=0` is the chain validating. A `path length constraint exceeded` means
+the root has the wrong constraint; `unable to get local issuer certificate`
+means it is not trusted yet.
 
 The CA private key ends up in a Secret in the `cert-manager` namespace, so
 anything able to read secrets there can mint certificates this machine trusts —
@@ -289,16 +260,25 @@ Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
 | `deploy-all-services` | Every DE service |
 | `cronjobs` | The scheduled jobs |
 
-Then `argo_resources.yml`, the portal reference-table seeding described below,
-and `bootstrap_portal_admin.yml`.
+Then `argo_resources.yml` and `bootstrap_portal_admin.yml`.
 
 `image-cache` is deliberately opt-in: it pre-pulls every image in
 `vice_image_cache` onto the node's disk.
 
-Verify the CA issuer with a throwaway Certificate before going past
-`cert-issuers`, and check that `curl https://dashboard.localhost` succeeds
-without `-k` after `traefik`. Both failures are much cheaper to find there than
-after forty services are running.
+Two checks are worth making early, because both failures are far cheaper to
+find here than after forty services are running. After `cert-issuers`, confirm
+`default-cluster-issuer` reports `READY=True`. After `de-reqs`, confirm a pod
+can actually reach the database — the host-side binding described above fails
+silently, and every service depends on it:
+
+```bash
+kubectl -n de run pgtest --rm -it --restart=Never --image=postgres:16-alpine \
+  --env=PGPASSWORD=<dbms_connection_pass> -- \
+  psql -h db.de.svc.cluster.local -U de -d de -Atc 'select inet_server_addr()'
+```
+
+It should print the bridge address. `Connection refused` means PostgreSQL is
+listening on loopback only.
 
 ## Ordering hazards
 
@@ -334,15 +314,17 @@ groups.
 LDIF only loads against a fresh volume, so a wrong `ldap_dn_suffix` means
 deleting the StatefulSet's PVC and starting over.
 
-**The portal's `account_*` reference tables are empty on a fresh database.**
-`postgresql_init` populates only `account_institution_grid`, but both
-`bootstrap_portal_admin.yml` and self-registration insert an `account_user` row
-using subselects for a `Not Provided` row in `account_awarechannel`,
+**The portal's `account_*` reference tables no longer need seeding by hand.**
+`bootstrap_portal_admin.yml` and self-registration both insert an `account_user`
+row using subselects for a `Not Provided` row in `account_awarechannel`,
 `account_ethnicity`, `account_fundingagency`, `account_gender`,
-`account_occupation`, `account_region`, `account_country`, and
-`account_researcharea`. Without those rows the subselects return NULL and the
-insert dies on a NOT NULL constraint — self-registration returns a 500. Seed
-them before the bootstrap step.
+`account_occupation`, and `account_researcharea`; without those rows the
+subselects return NULL and the insert dies on a NOT NULL constraint. `portal2`
+migration `00003_reference_data` populates all of them, along with
+`account_country` and `account_region`, so a `setup-databases` run against an
+empty database leaves them complete. This was a manual step before that
+migration existed — verify rather than assume if `portal_version` is pinned to
+something older.
 
 ## Consequences of the shortcuts
 
@@ -381,17 +363,16 @@ proceed without it.
 
 | # | Step | Needs | Blocker | Automation notes |
 | --- | --- | --- | --- | --- |
-| 1 | `k0s install controller --single` | sudo | yes | Reasonable to leave manual — it is the one step that defines the machine. A `k0sctl.yaml` against localhost would work but adds SSH-to-self. |
-| 2 | Write the kubeconfig | sudo (read) | yes | Could fold into step 1 as a documented one-liner. Low value alone. |
-| 3 | Kubelet plugin directories for the iRODS CSI driver | sudo | yes | `kubernetes.yml` does this in a `become: true` play over the worker group. A local variant would need one privileged play, which is the only thing forcing sudo into the Ansible run — worth weighing against keeping `local.yml` sudo-free. |
-| 4 | `/etc/hosts` entry for the database name | sudo | yes | Avoidable: give the `dbms` inventory host an `ansible_host` of `127.0.0.1` and the pods a Service name, instead of one name that has to resolve in both places. Would remove a sudo step and a class of confusion. **Best automation candidate.** |
-| 5 | PostgreSQL `listen_addresses` + `pg_hba.conf` | sudo | yes | Deliberately manual: the workstation's PostgreSQL is not the deployment's to own. Could be offered as an opt-in play guarded by a variable, defaulting off. |
+| 1 | `scripts/bootstrap-local-k0s.sh` | sudo | yes | Absorbs what were three separate steps: the k0s install, the kubeconfig, and the kubelet plugin directories. What remains manual is inherent — installing the cluster is the step that defines the machine, and it needs root. |
+| 2 | PostgreSQL `listen_addresses`, `pg_hba.conf`, and `ip_nonlocal_bind` | sudo | yes | Deliberately manual: the workstation's PostgreSQL is not the deployment's to own. Could be offered as an opt-in play guarded by a variable, defaulting off. The `ip_nonlocal_bind` half is the part most worth automating, because forgetting it fails silently after every reboot. |
+| 3 | `trust anchor` for the local root CA | sudo | yes | Generation is now `scripts/generate-local-ca.sh`; only the trust step needs root, and it is one command. |
 | — | ~~Edge proxy TCP passthrough~~ | — | — | **Eliminated.** The pinned Traefik ClusterIP answers on 443 from the host, so no proxy sits in front of the cluster and no NodePort appears in a URL. |
-| 7 | Generate and trust the local root CA | sudo (trust only) | yes | Generation is scriptable today (see the TLS section); only `trust anchor` needs sudo. Fold the openssl half into `scripts/generate-secrets.sh` or a sibling script. **Good automation candidate.** |
 | — | ~~Cluster DNS for the DE hostnames~~ | — | — | **Never needed.** sslip.io resolves from both the host and the cluster, so there is no CoreDNS edit to maintain — which also avoids fighting a resource k0s owns. |
-| 8 | Check for leftover DE databases and roles | no | yes, if dirty | Could become a pre-flight assertion in `postgresql_init` that fails with a clear message instead of `Changing ICU_LOCALE is not supported`. **Good automation candidate.** |
-| 9 | ~~Keycloak realm, clients, LDAP federation, group mapper~~ | — | — | **Automated** by the `keycloak_config` role (tag `keycloak-config`). Realm, 5 realm roles, required actions, LDAP federation with the standard plus DE-specific mappers, the `profile` scope claim mappers, all 8 clients, and the `vice-api` service-account role. |
-| 10 | Seed the portal `account_*` reference tables | no | yes, for registration | Pure data seeding; belongs in `postgresql_init/tasks/portal.yml` next to the GRID import that already runs there. **Good automation candidate.** |
+| — | ~~`/etc/hosts` entry for the database name~~ | — | — | **Eliminated** by `db_login_host`, which lets the control machine reach PostgreSQL on loopback while pods use the cluster DNS name. One name no longer has to mean the same thing in two places. |
+| — | ~~Generate the local root CA~~ | — | — | **Automated** by `scripts/generate-local-ca.sh`, with the `pathlen:1` constraint the endpoint chain requires. |
+| — | ~~Check for leftover DE databases and roles~~ | — | — | **Automated.** `postgresql_init` fails up front naming any database whose locale provider it cannot reconcile, and declares every role it creates with `role_attr_flags: LOGIN`. |
+| — | ~~Keycloak realm, clients, LDAP federation, group mapper~~ | — | — | **Automated** by the `keycloak_config` role (tag `keycloak-config`). Realm, 5 realm roles, required actions, LDAP federation with the standard plus DE-specific mappers, the `profile` scope claim mappers, all 8 clients, and the `vice-api` service-account role. |
+| — | ~~Seed the portal `account_*` reference tables~~ | — | — | **Never needed now.** `portal2` migration `00003_reference_data` seeds every table the registration path reads. |
 
 # Citations
 
@@ -400,5 +381,8 @@ proceed without it.
 * `ansible/roles/local_db_endpoint/`
 * `ansible/roles/rabbitmq_k8s/`
 * `ansible/roles/cluster_issuers/tasks/main.yml`
+* `ansible/roles/postgresql_init/tasks/preflight.yml`
+* `ansible/scripts/bootstrap-local-k0s.sh`
+* `ansible/scripts/generate-local-ca.sh`
 * `ansible/scripts/generate-secrets.sh`
 * [mkcert](https://github.com/FiloSottile/mkcert)

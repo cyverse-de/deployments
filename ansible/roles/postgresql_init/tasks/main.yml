@@ -1,4 +1,9 @@
 ---
+- name: Check for databases this role cannot reconcile
+  ansible.builtin.include_tasks: preflight.yml
+  tags:
+    - update-databases
+
 - name: Prepare for database work
   ansible.builtin.include_role:
     name: db_staging
