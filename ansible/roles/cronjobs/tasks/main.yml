@@ -78,7 +78,7 @@
                 restartPolicy: Never
                 containers:
                   - name: clean-failed-jobs
-                    image: bitnami/kubectl:1.29.2
+                    image: "{{ cronjobs_kubectl_image }}"
                     imagePullPolicy: IfNotPresent
                     args: ["delete", "pods", "--field-selector", "status.phase=Failed"]
 
@@ -110,6 +110,6 @@
                 restartPolicy: Never
                 containers:
                   - name: clean-failed-jobs
-                    image: bitnami/kubectl:1.29.2
+                    image: "{{ cronjobs_kubectl_image }}"
                     imagePullPolicy: IfNotPresent
                     args: ["delete", "pods", "--field-selector", "status.phase=Completed"]
