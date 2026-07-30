@@ -324,7 +324,18 @@ on a new machine — a failure is much easier to place:
 | `deploy-all-services` | Every DE service |
 | `cronjobs` | The scheduled jobs |
 
-Then `argo_resources.yml` and `bootstrap_portal_admin.yml`.
+Then `argo_resources.yml` and `bootstrap_portal_admin.yml`, which between them
+create the Argo secrets and an account to log in with — there is none until the
+second one runs, since LDAP holds only the two service accounts the seed
+creates.
+
+`argo_resources_secrets` selects which per-tool secrets to create. All but
+`wc-data` read from files the inventory ships under `secrets/`, so an inventory
+that does not run MATLAB or the NCBI submission tools lists only `wc-data`.
+
+`bootstrap_portal_admin.yml` creates the account in four places in turn — LDAP,
+the portal database, iRODS via portal-conductor, and the DE via terrain — so a
+failure part-way leaves the earlier ones done. It is safe to re-run.
 
 `image-cache` is the one thing an untagged run skips: it pre-pulls every image
 in `vice_image_cache` onto the node's disk, which is a lot of disk and a lot of
@@ -443,18 +454,41 @@ offline. If that matters, run a local wildcard resolver (dnsmasq) instead;
 sslip.io is also self-hostable, which is why it is preferred over the
 alternatives.
 
-**Pods need the private CA for any server-side TLS to a DE hostname.**
-vice-operator is the case that surfaced it, via
-`vice_operator_ca_bundle_configmap`. A service added later that calls a DE
-endpoint over HTTPS from inside the cluster will need the same treatment, and
-will fail with `certificate signed by unknown authority` until it gets it.
+**Pods need the private CA for any server-side TLS to a DE hostname.** A
+container trusts only what its image ships, so an endpoint served by the local
+root is rejected however thoroughly the host and browser trust it. Setting
+`de_ca_bundle_configmap` publishes the certificate and mounts it into the
+services that call a DE endpoint — every service holding the Keycloak URL, some
+twenty of them. Without it terrain rejects every authenticated request, and the
+error names no certificate: a `SunCertPathBuilderException` surfacing as a 500.
+
+Go services take the mounted file through `SSL_CERT_FILE`. A JVM cannot be
+pointed at a PEM, so JVM services get an init container that copies their own
+image's `cacerts` and imports the CA into the copy, with
+`-Djavax.net.ssl.trustStore` added to the shared `java-tool-options` ConfigMap.
+A service added later that makes such a call needs the same volume, mount and
+environment variable added to its manifest; the gate is already there in the
+templates to copy.
 
 **Analyses write into a shared zone.** `irods_user` is a rodsadmin proxy
 account, so this deployment has write access to every user's home collection in
 the reused zone, and both deployments push ACLs and AVUs onto the same
 collections. `de_default_output_folder` is set to a distinct name to keep
 outputs out of the folders the other environments use, but that is containment,
-not isolation.
+not isolation. Bootstrapping an admin also creates a real account and home
+collection in that zone, which outlives any number of local cluster rebuilds.
+
+The accounts portal-conductor grants ownership of each new home collection to
+must exist in the zone. `portal_conductor_irods_admin_user` defaults to `rods`,
+the stock iRODS administrator, which in the CyVerse data store exists only in
+the `cyverse.dev` zone — granting there fails with `CAT_INVALID_USER` *after*
+the user and its password have been created, so it reads as a transient fault
+rather than a misconfiguration. Confirm what the zone actually has before
+assuming:
+
+```sql
+SELECT user_name, user_type_name, zone_name FROM r_user_main;
+```
 
 ## Manual steps, and which are worth automating
 
