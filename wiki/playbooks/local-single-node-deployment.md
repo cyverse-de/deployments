@@ -462,13 +462,36 @@ services that call a DE endpoint — every service holding the Keycloak URL, som
 twenty of them. Without it terrain rejects every authenticated request, and the
 error names no certificate: a `SunCertPathBuilderException` surfacing as a 500.
 
-Go services take the mounted file through `SSL_CERT_FILE`. A JVM cannot be
-pointed at a PEM, so JVM services get an init container that copies their own
-image's `cacerts` and imports the CA into the copy, with
-`-Djavax.net.ssl.trustStore` added to the shared `java-tool-options` ConfigMap.
-A service added later that makes such a call needs the same volume, mount and
-environment variable added to its manifest; the gate is already there in the
-templates to copy.
+**Every runtime finds the certificate a different way, and ignores the other
+runtimes' variable.** The manifests set all three, since each is inert where it
+is not understood:
+
+| Variable | Read by |
+| --- | --- |
+| `SSL_CERT_FILE` | OpenSSL, and so Go |
+| `NODE_EXTRA_CA_CERTS` | Node |
+| `REQUESTS_CA_BUNDLE` | python-requests |
+
+Setting only `SSL_CERT_FILE` looks right and leaves every Node service with the
+certificate mounted and unused. sonora is the one that shows it: the
+authorization-code exchange is a server-side call to Keycloak, so login ends at
+a bare `403 Access denied` from sonora rather than anything mentioning a
+certificate, and Keycloak's own logs show a successful authentication.
+
+A JVM reads none of them — it cannot be pointed at a PEM at all — so JVM
+services get an init container that copies their own image's `cacerts` and
+imports the CA into the copy, with `-Djavax.net.ssl.trustStore` added to the
+shared `java-tool-options` ConfigMap. A service added later that makes such a
+call needs the same volume, mount and variables added to its manifest; the gate
+is already in the templates to copy.
+
+To check a running pod directly rather than inferring from a failure:
+
+```bash
+kubectl -n de exec deploy/<service> -- node -e \
+  "require('https').get('https://<keycloak host>/auth/realms/<realm>', \
+   r => console.log(r.statusCode)).on('error', e => console.log(e.code))"
+```
 
 **Analyses write into a shared zone.** `irods_user` is a rodsadmin proxy
 account, so this deployment has write access to every user's home collection in

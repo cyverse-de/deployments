@@ -50,6 +50,22 @@ supported configuration but has a consequence worth stating: `dewey`,
 `info-typer`, and `infosquito2` will run and idle, and nothing will populate
 the [OpenSearch](/infrastructure/opensearch.md) index.
 
+### Why it is pinned to RabbitMQ 3
+
+`rabbitmq_k8s_version` stays on 3.x. RabbitMQ 4 raised the minimum negotiated
+`frame_max` to 8192, and sonora's AMQP client proposes 4096, so the broker
+closes every connection it opens during negotiation. Only the broker names the
+reason:
+
+```
+failed to negotiate connection parameters: negotiated frame_max = 4096
+is lower than the minimum allowed value (8192)
+```
+
+The client side reports `AMQP error: read ECONNRESET` and reconnects forever,
+so the cause is invisible from the failing service. Moving to 4.x needs that
+client raising its frame size first.
+
 ### Why the pod has a fixed hostname
 
 RabbitMQ takes its node name from the hostname and stores its Mnesia database
