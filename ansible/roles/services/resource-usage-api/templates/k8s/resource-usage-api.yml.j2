@@ -53,7 +53,14 @@ spec:
               ephemeral-storage: "1Gi"
           env:
 {% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            # One variable per runtime, because each ignores the others':
+            # SSL_CERT_FILE is OpenSSL and so covers Go, Node reads only
+            # NODE_EXTRA_CA_CERTS, and python-requests only REQUESTS_CA_BUNDLE.
             - name: SSL_CERT_FILE
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+            - name: REQUESTS_CA_BUNDLE
               value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
 {% endif %}
             - name: TZ
