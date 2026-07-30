@@ -306,8 +306,44 @@ kubectl -n de run pgtest --rm -it --restart=Never --image=postgres:16-alpine \
   psql -h db.de.svc.cluster.local -U de -d de -Atc 'select inet_server_addr()'
 ```
 
-It should print the bridge address. `Connection refused` means PostgreSQL is
-listening on loopback only.
+It should print the address of the database, whichever provider is in use.
+Under `host`, `Connection refused` means PostgreSQL is listening on loopback
+only.
+
+## Tearing down
+
+There are two teardowns, and which one to use depends on whether the point is
+to get back to a clean DE or to prove a bring-up works from nothing.
+
+**Keep the cluster** — `local-teardown.yml` removes the DE and, with no tags,
+everything else `local.yml` installs. It requires an explicit confirmation,
+which names the cluster it is about to empty:
+
+```bash
+ansible-playbook -i "$INVENTORY" local-teardown.yml -e local_teardown_confirm=yes
+ansible-playbook -i "$INVENTORY" local-teardown.yml --tags de -e local_teardown_confirm=yes
+```
+
+The `de` tag leaves the gateway, cert-manager, Argo, storage and the
+CloudNativePG operator in place, which is the fast loop when iterating on the
+DE itself. Under `local_db_provider: cnpg` the database goes with the `de`
+namespace either way. Under `host` it survives, and
+`local_teardown_drop_databases: true` opts into dropping the databases and
+roles — off by default, because that destroys data outside the cluster.
+
+**Destroy the cluster** — `scripts/bootstrap-local-k0s.sh --reset`, then
+reboot, then re-run the script without `--reset`.
+
+The reason to prefer the playbook when either would do is the image cache: a
+full DE is around 11 GiB across 50 images, and `k0s reset` discards all of it.
+The reason to prefer the reset is that only it proves the runbook works on a
+machine that has never run the DE.
+
+Deleting namespaces before the storage provider matters, and is why the
+playbook orders them that way: it lets the hostpath provisioner reclaim each
+volume as its claim is released. `k0s reset` cannot — it removes the
+PersistentVolume objects wholesale, leaving their directories behind under
+`/var/openebs/local`, so the reset script deletes that tree itself.
 
 ## Ordering hazards
 
@@ -409,6 +445,8 @@ proceed without it.
 * `ansible/roles/local_node_prep/`
 * `ansible/roles/local_db_endpoint/`
 * `ansible/roles/cnpg/`
+* `ansible/local-teardown.yml`
+* `ansible/scripts/bootstrap-local-k0s.sh`
 * `ansible/roles/rabbitmq_k8s/`
 * `ansible/roles/cluster_issuers/tasks/main.yml`
 * `ansible/roles/postgresql_init/tasks/preflight.yml`
