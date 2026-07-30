@@ -77,11 +77,12 @@
     - role: k8s_de_reqs
       tags: de-reqs
 
-    # local_db_provider picks where PostgreSQL runs. "host" publishes one
-    # already running on the node as a Service, standing in for the dedicated
-    # database server other environments have. "cnpg" runs it in the cluster
-    # instead, which costs an operator but takes the host's PostgreSQL
-    # configuration — and the ways it can silently drift — out of the picture.
+    # local_db_provider picks where PostgreSQL runs. "cnpg", the default, runs
+    # it in the cluster, which costs an operator but takes the host's
+    # PostgreSQL configuration — and the ways it can silently drift — out of
+    # the picture. "host" publishes one already running on the node as a
+    # Service, standing in for the dedicated database server other
+    # environments have.
     - role: local_db_endpoint
       tags:
         - local-db

@@ -98,7 +98,7 @@ hostnames. See Hostnames and DNS below.
 
 ## The database
 
-`local_db_provider` decides where PostgreSQL runs.
+`local_db_provider` decides where PostgreSQL runs. It defaults to `cnpg`.
 
 **`cnpg`** runs it in the cluster under
 [CloudNativePG](https://cloudnative-pg.io/): the `cnpg` role installs the
@@ -148,6 +148,10 @@ host as well as from pods, so under `cnpg` that address is simply the Service's
 ClusterIP, pinned via `cnpg_service_cluster_ip` so it survives a rebuild and
 the inventory needs no editing afterwards. `postgresql_init` is identical in
 both cases, and identical to what QA and prod run.
+
+`db_login_host` has to be set for `cnpg`: its default is `groups['dbms'][0]`,
+which is a cluster DNS name the control machine cannot resolve. Set it to the
+same address as `cnpg_service_cluster_ip`.
 
 The `cnpg` role publishes its own Service rather than using the operator's
 `<cluster>-rw`, for two reasons: the name can match `groups['dbms'][0]`, and

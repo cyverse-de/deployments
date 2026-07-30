@@ -29,10 +29,20 @@ db_host: replace_me
 db_login_host: "{{ groups['dbms'][0] }}"
 keycloak_db_login_host: "{{ groups['keycloak_dbms'][0] }}"
 
-# Where PostgreSQL runs for a local single-node deployment: "host" for one
-# already running on the node, published as a Service by local_db_endpoint, or
-# "cnpg" to run it in the cluster under CloudNativePG. Only local.yml reads it.
-local_db_provider: host
+# Where PostgreSQL runs for a local single-node deployment: "cnpg" to run it in
+# the cluster under CloudNativePG, or "host" for one already running on the
+# node, published as a Service by local_db_endpoint. Only local.yml reads it.
+#
+# cnpg is the default because the host path needs PostgreSQL configured to
+# listen on the CNI bridge address, which does not exist when it starts at boot
+# — and PostgreSQL warns rather than failing, so the database silently serves
+# loopback only. Under cnpg there is no host configuration to get wrong, and
+# tearing the cluster down takes the databases with it.
+#
+# Set db_login_host alongside this: under cnpg the control machine reaches the
+# database at the Service's ClusterIP, which is not a name cluster DNS can give
+# it. Pin that address with cnpg_service_cluster_ip so it survives a rebuild.
+local_db_provider: cnpg
 
 env: "{{ ns }}"
 
