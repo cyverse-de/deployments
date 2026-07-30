@@ -669,6 +669,17 @@ portal_conductor_url: https://portal-conductor
 portal_conductor_auth_username: "{{ basic_auth_username }}"
 portal_conductor_auth_password: "{{ basic_auth_password }}"
 
+# The two accounts portal-conductor grants ownership of a newly created user's
+# home collection. Both must exist in irods_zone: iRODS rejects a grant to an
+# unknown account with CAT_INVALID_USER, which surfaces as a 500 from
+# /datastore/users *after* the user and its password were created — so a retry
+# looks like it should have worked. "rods" is the stock iRODS administrator and
+# is not present in every zone; check with
+# `select user_name, zone_name from r_user_main` against the ICAT before
+# assuming it is there.
+portal_conductor_irods_admin_user: rods
+portal_conductor_irods_ipcservices_user: ipcservices
+
 # Admin settings
 admin_groups: core-services,dev,staff
 admin_attribute: entitlement

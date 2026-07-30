@@ -126,7 +126,7 @@
 
     - name: Insert the portal admin row if it does not already exist
       community.postgresql.postgresql_query:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ portal_db_user }}"
         login_password: "{{ portal_db_password }}"
@@ -165,7 +165,7 @@
       # registration creates both, so the bootstrap must too. Keyed by username so it
       # backfills an already-created bootstrap user.
       community.postgresql.postgresql_query:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ portal_db_user }}"
         login_password: "{{ portal_db_password }}"
