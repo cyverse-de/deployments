@@ -88,6 +88,15 @@
                   de-app: rabbitmq
               spec:
                 restartPolicy: Always
+                # RabbitMQ derives its node name from the hostname and keys its
+                # Mnesia database on that. Left to default, the hostname is the
+                # pod name, so every reschedule starts from an empty database —
+                # losing all vhosts, users and permissions while orphaning the
+                # previous one on the volume. Every AMQP client then fails
+                # authentication with a 403, which reads as a credentials
+                # problem rather than a lost broker. A fixed hostname keeps the
+                # node name stable at rabbit@rabbitmq across restarts.
+                hostname: rabbitmq
                 volumes:
                   - "{{ rabbitmq_k8s_data_volume }}"
                   - name: rabbitmq-conf

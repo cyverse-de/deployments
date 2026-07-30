@@ -9,7 +9,21 @@
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
   block:
-    - name: Find the rabbitmq pod
+    - name: Wait for the rabbitmq deployment to finish rolling out
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        name: rabbitmq
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+
+    # A pod being deleted keeps status.phase Running until it actually goes, so
+    # the field selector on its own can hand back the outgoing pod during a
+    # rollout — and every exec below then fails with "container not found".
+    - name: Find the running rabbitmq pod
       kubernetes.core.k8s_info:
         kind: Pod
         namespace: "{{ rabbitmq_k8s_namespace }}"
@@ -18,13 +32,17 @@
         field_selectors:
           - status.phase=Running
       register: rabbitmq_k8s_pods
-      until: rabbitmq_k8s_pods.resources | length > 0
+      until: (rabbitmq_k8s_pods.resources | default([])
+              | rejectattr('metadata.deletionTimestamp', 'defined')
+              | list) | length > 0
       retries: 30
       delay: 10
 
     - name: Record the rabbitmq pod name
       ansible.builtin.set_fact:
-        rabbitmq_k8s_pod_name: "{{ rabbitmq_k8s_pods.resources[0].metadata.name }}"
+        rabbitmq_k8s_pod_name: "{{ (rabbitmq_k8s_pods.resources
+          | rejectattr('metadata.deletionTimestamp', 'defined')
+          | list)[0].metadata.name }}"
 
     - name: Create the vhosts
       kubernetes.core.k8s_exec:
