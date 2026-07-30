@@ -124,19 +124,25 @@
     - role: services/openldap-docker
       tags: openldap-docker
 
+    # Guarded rather than unconditional because re-running the install against
+    # a live Keycloak recreates its admin user. An untagged run means a full
+    # bring-up, so 'all' counts: without it the DE would come up complete
+    # except that nothing could authenticate.
     - role: keycloak_install
       tags: keycloak
-      when: "'keycloak' in ansible_run_tags"
+      when: ansible_run_tags | intersect(['all', 'keycloak']) | length > 0
 
-    # Configures the realm keycloak_install leaves empty. Opt-in like the
-    # install above, since it needs Keycloak already serving.
+    # Configures the realm keycloak_install leaves empty. Runs on a full
+    # bring-up, and on its own under keycloak-config against a Keycloak that
+    # is already serving.
     - role: keycloak_config
       tags:
         - keycloak
         - keycloak-config
       when: >-
-        'keycloak' in ansible_run_tags or
-        'keycloak-config' in ansible_run_tags
+        ansible_run_tags
+        | intersect(['all', 'keycloak', 'keycloak-config'])
+        | length > 0
 
     - role: service_configurations
       tags: configure-services

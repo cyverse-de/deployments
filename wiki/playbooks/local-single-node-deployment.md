@@ -265,7 +265,19 @@ Generate the inventory's secrets first — terrain will not start without them:
 ./scripts/generate-secrets.sh "$INVENTORY"
 ```
 
-Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
+Then the whole thing, in one command:
+
+```bash
+ansible-playbook -i "$INVENTORY" local.yml
+```
+
+That is the intended way to bring up a fresh cluster, and the plays are ordered
+so it works unattended: the database server exists before the databases are
+created, and the databases before Keycloak and Grouper need them.
+
+The tags below exist for re-running a part of it. Each is also the order to
+follow if you would rather go step by step, which is worth doing the first time
+on a new machine — a failure is much easier to place:
 
 | Tags | Brings up |
 | --- | --- |
@@ -291,8 +303,9 @@ Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
 
 Then `argo_resources.yml` and `bootstrap_portal_admin.yml`.
 
-`image-cache` is deliberately opt-in: it pre-pulls every image in
-`vice_image_cache` onto the node's disk.
+`image-cache` is the one thing an untagged run skips: it pre-pulls every image
+in `vice_image_cache` onto the node's disk, which is a lot of disk and a lot of
+pulling to do as a side effect. Ask for it by tag.
 
 Two checks are worth making early, because both failures are far cheaper to
 find here than after forty services are running. After `cert-issuers`, confirm
