@@ -4,7 +4,7 @@ title: RabbitMQ
 description: How RabbitMQ is installed and configured for the DE services, either on a host by rabbitmq.yml and rabbitmq_configure.yml or in-cluster by the rabbitmq_k8s role.
 resource: /docs/rabbitmq.md
 tags: [rabbitmq, amqp, messaging]
-timestamp: 2026-07-28T00:00:00Z
+timestamp: 2026-07-30T00:00:00Z
 ---
 
 These playbooks can be used to install and/or configure RabbitMQ for usage by the DE services.
@@ -49,6 +49,21 @@ Pointing `irods_amqp_host` at a broker that no iRODS instance publishes to is a
 supported configuration but has a consequence worth stating: `dewey`,
 `info-typer`, and `infosquito2` will run and idle, and nothing will populate
 the [OpenSearch](/infrastructure/opensearch.md) index.
+
+### Why the pod has a fixed hostname
+
+RabbitMQ takes its node name from the hostname and stores its Mnesia database
+in a directory named after it, so the pod template sets `spec.hostname` rather
+than letting it default to the pod name. Without that, a broker keeps no state
+across a reschedule: it comes up on a new node name, finds no database, and
+creates an empty one — leaving the previous directory orphaned on the volume.
+The vhosts, users, and permissions this role provisions are gone, and the
+symptom is every AMQP client failing with `(403) username or password not
+allowed`, which points at credentials rather than at a broker that lost them.
+
+A single-replica broker on one volume is the only arrangement this role
+supports, so the fixed hostname costs nothing. Anything multi-node would want a
+StatefulSet for the same reason.
 
 # Citations
 

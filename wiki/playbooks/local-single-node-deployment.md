@@ -1,9 +1,9 @@
 ---
 type: Runbook
 title: Local Single-Node Deployment
-description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using a host PostgreSQL, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, an in-cluster RabbitMQ, and a reused QA iRODS zone.
+description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 resource: /ansible/local.yml
-tags: [local, development, k0s, single-node, ansible, sslip.io, dns]
+tags: [local, development, k0s, single-node, ansible, sslip.io, dns, cloudnativepg]
 timestamp: 2026-07-30T00:00:00Z
 ---
 
@@ -25,7 +25,7 @@ broker, and the whole DE. Relative to `kubernetes.yml` it drops:
 | --- | --- |
 | `k8s_cluster` | One node is installed directly with `k0s`, not through `k0sctl`. |
 | `k8s_nodes`, `k8s_firewalld` | They swap off, rewrite `fstab`, set SELinux permissive, and reboot. |
-| `postgresql`, `postgresql_access` | The workstation's PostgreSQL config is not ours to rewrite. |
+| `postgresql`, `postgresql_access` | The database runs in the cluster, or on a workstation whose config is not ours to rewrite. |
 | `nvidia_drivers`, `nvidia_container_toolkit` | Host package management. |
 | `haproxy`, `ui_haproxy` | The edge proxy is a hand-managed systemd unit. |
 | `longhorn` | Storage is [OpenEBS](/infrastructure/openebs.md); one node has nothing to replicate to. |
@@ -34,23 +34,24 @@ broker, and the whole DE. Relative to `kubernetes.yml` it drops:
 | `kubernetes_node_feature_discovery` | Installs a device plugin that crashloops without the container toolkit. |
 
 and adds three roles that stand in for infrastructure living outside the
-cluster in other environments:
+cluster in other environments — a database server and a message broker on hosts
+of their own, and node configuration applied at build time:
 
 - **`local_node_prep`** — applies the `analysis`/`vice`/`batch`/`gpu` labels
   that scheduling and the image cache key off of, and strips the taints that
   carry them. On one node those taints would leave every DE service `Pending`:
   no service manifest carries a toleration.
-- **`local_db_endpoint`** — publishes the host's PostgreSQL as a selector-less
-  Service plus EndpointSlice, so pods can reach it by a stable cluster DNS
-  name.
+- **`cnpg`** or **`local_db_endpoint`** — PostgreSQL, from whichever of the two
+  places `local_db_provider` selects. See The database below.
 - **`rabbitmq_k8s`** — a single-replica [RabbitMQ](/infrastructure/rabbitmq.md)
   in the cluster, because the `rabbitmq` role installs a broker on a host over
   SSH.
 
 ## Prerequisites
 
-- A machine with the `k0s` binary on `PATH` and PostgreSQL running on the host.
-  The cluster itself is installed by the bootstrap script below.
+- A machine with the `k0s` binary on `PATH`. The cluster itself is installed by
+  the bootstrap script below, and the database runs inside it unless
+  `local_db_provider` is set to `host`.
 - Outbound DNS, since the hostnames resolve through `sslip.io`.
 - `ansible`, `kubectl` >= 1.31 (or `kustomize` >= 5.2), `helm` >= 3.16,
   `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, `gpg` >= 2.1,
@@ -88,11 +89,30 @@ The script prints the pod and service CIDRs at the end. The inventory's
 local-exim's relay allowlist, and a mismatch silently rejects outbound mail
 from every DE pod.
 
-**2. Let PostgreSQL accept connections from pods.** `local_db_endpoint` points
-the Service at the CNI bridge address (the first host address of the node's
+**2. Nothing, under the default `local_db_provider: cnpg`** — the database runs
+in the cluster and needs no host preparation at all. Only the `host` provider
+does; see below.
+
+No `/etc/hosts` entry is needed either, for the database or for the DE
+hostnames. See Hostnames and DNS below.
+
+## The database
+
+`local_db_provider` decides where PostgreSQL runs.
+
+**`cnpg`** runs it in the cluster under
+[CloudNativePG](https://cloudnative-pg.io/): the `cnpg` role installs the
+operator, creates a single-instance `Cluster`, and publishes it. There is no
+host preparation, and the database's lifetime matches the cluster's — tearing
+the cluster down takes the databases with it, so a rebuild never inherits stale
+ones.
+
+**`host`** uses a PostgreSQL already running on the workstation, published by
+`local_db_endpoint` as a selector-less Service plus EndpointSlice. The Service
+points at the CNI bridge address (the first host address of the node's
 podCIDR), which is node-local — unlike the node's registered `InternalIP`,
 which may belong to an overlay interface and would expose the database well
-beyond the machine. In `postgresql.conf`:
+beyond the machine. It needs, in `postgresql.conf`:
 
 ```
 listen_addresses = '127.0.0.1,10.244.0.1'
@@ -104,30 +124,35 @@ and in `pg_hba.conf`, matching the cluster's pod CIDR:
 host  all  all  10.244.0.0/16  scram-sha-256
 ```
 
-**This is not enough on its own, and the way it fails is silent.** The bridge
+**That is not enough on its own, and the way it fails is silent.** The bridge
 address does not exist until the CNI creates it, which happens long after
 PostgreSQL starts at boot — and PostgreSQL only *warns* when a
 `listen_addresses` entry cannot be bound. It comes up looking healthy, listening
 on loopback alone, and every DE service fails to reach the database with an
 error pointing nowhere near the cause. Allow the address to be bound before it
-exists:
+exists, then restart PostgreSQL and check `ss -ltn | grep 5432` shows both:
 
 ```bash
 echo 'net.ipv4.ip_nonlocal_bind = 1' | sudo tee /etc/sysctl.d/90-de-local-db.conf
 sudo sysctl -p /etc/sysctl.d/90-de-local-db.conf
 ```
 
-Then restart PostgreSQL, and confirm both addresses are bound — this is worth
-checking after any reboot until you trust it:
+Avoiding that trap is the main reason to prefer `cnpg`.
 
-```bash
-ss -ltn | grep 5432
-```
+### How both are reached
 
-No `/etc/hosts` entry is needed, for the database or for the DE hostnames. The
-inventory sets `db_login_host` so the control machine reaches PostgreSQL on
-loopback while pods use the cluster DNS name; see
-[PostgreSQL](/infrastructure/postgresql.md) and Hostnames and DNS below.
+Either way, pods resolve the database through cluster DNS at
+`groups['dbms'][0]`, and the control machine — which cannot resolve cluster DNS
+— reaches the same server at `db_login_host`. ClusterIPs are routable from the
+host as well as from pods, so under `cnpg` that address is simply the Service's
+ClusterIP, pinned via `cnpg_service_cluster_ip` so it survives a rebuild and
+the inventory needs no editing afterwards. `postgresql_init` is identical in
+both cases, and identical to what QA and prod run.
+
+The `cnpg` role publishes its own Service rather than using the operator's
+`<cluster>-rw`, for two reasons: the name can match `groups['dbms'][0]`, and
+the address can be pinned, which the operator's own Services do not allow. It
+selects the primary by label, so a failover would follow.
 
 ## Hostnames and DNS
 
@@ -246,8 +271,8 @@ Then, in order (`ansible-playbook -i "$INVENTORY" local.yml --tags ...`):
 | `cert-issuers` | The local CA Secret and `default-cluster-issuer` |
 | `traefik` | Gateway API CRDs, Traefik, its default certificate |
 | `argo` | Argo Workflows and argo-events |
+| `de-reqs` | Namespaces, the timezone ConfigMap, local-exim, the image-pull secret, the database server and its Service, RabbitMQ |
 | `setup-databases` | The DE, notifications, metadata, grouper, qms, and portal databases, and their migrations |
-| `de-reqs` | Namespaces, the timezone ConfigMap, local-exim, the image-pull secret, the database Service, RabbitMQ |
 | `openldap-docker` | In-cluster [OpenLDAP](/infrastructure/ldap.md) |
 | `keycloak` | Keycloak and its Gateway, then the realm, clients and LDAP federation |
 | `keycloak-config` | The realm configuration on its own, against a Keycloak that is already up |
@@ -364,8 +389,8 @@ proceed without it.
 | # | Step | Needs | Blocker | Automation notes |
 | --- | --- | --- | --- | --- |
 | 1 | `scripts/bootstrap-local-k0s.sh` | sudo | yes | Absorbs what were three separate steps: the k0s install, the kubeconfig, and the kubelet plugin directories. What remains manual is inherent — installing the cluster is the step that defines the machine, and it needs root. |
-| 2 | PostgreSQL `listen_addresses`, `pg_hba.conf`, and `ip_nonlocal_bind` | sudo | yes | Deliberately manual: the workstation's PostgreSQL is not the deployment's to own. Could be offered as an opt-in play guarded by a variable, defaulting off. The `ip_nonlocal_bind` half is the part most worth automating, because forgetting it fails silently after every reboot. |
-| 3 | `trust anchor` for the local root CA | sudo | yes | Generation is now `scripts/generate-local-ca.sh`; only the trust step needs root, and it is one command. |
+| 2 | `trust anchor` for the local root CA | sudo | yes | Generation is now `scripts/generate-local-ca.sh`; only the trust step needs root, and it is one command. |
+| — | ~~PostgreSQL `listen_addresses`, `pg_hba.conf`, and `ip_nonlocal_bind`~~ | — | — | **Eliminated** under `local_db_provider: cnpg`, which runs the database in the cluster. Still required under `host`, and still the step whose omission fails silently after a reboot. |
 | — | ~~Edge proxy TCP passthrough~~ | — | — | **Eliminated.** The pinned Traefik ClusterIP answers on 443 from the host, so no proxy sits in front of the cluster and no NodePort appears in a URL. |
 | — | ~~Cluster DNS for the DE hostnames~~ | — | — | **Never needed.** sslip.io resolves from both the host and the cluster, so there is no CoreDNS edit to maintain — which also avoids fighting a resource k0s owns. |
 | — | ~~`/etc/hosts` entry for the database name~~ | — | — | **Eliminated** by `db_login_host`, which lets the control machine reach PostgreSQL on loopback while pods use the cluster DNS name. One name no longer has to mean the same thing in two places. |
@@ -379,6 +404,7 @@ proceed without it.
 * `ansible/local.yml`
 * `ansible/roles/local_node_prep/`
 * `ansible/roles/local_db_endpoint/`
+* `ansible/roles/cnpg/`
 * `ansible/roles/rabbitmq_k8s/`
 * `ansible/roles/cluster_issuers/tasks/main.yml`
 * `ansible/roles/postgresql_init/tasks/preflight.yml`
