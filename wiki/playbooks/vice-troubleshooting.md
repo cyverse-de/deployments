@@ -4,7 +4,7 @@ title: VICE Troubleshooting
 description: Diagnosing stuck or broken VICE interactive apps — loading-page stalls, scheduling and image pull failures, readiness problems, and orphaned resources.
 resource: /docs/vice-troubleshooting.md
 tags: [vice, interactive-apps, troubleshooting, app-exposer, vice-operator, kubernetes]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-31T00:00:00Z
 ---
 
 This runbook covers diagnosing and resolving problems with VICE (Visual Interactive Computing
@@ -275,6 +275,21 @@ Look for:
 - Authentication errors (Keycloak token validation failures)
 - `connection refused` to the app container — the app started but is not listening on the
   expected port (same as §4 above, but the readiness probe may have passed prematurely)
+- `failed to get the token from Keycloak: … connect: connection refused` — vice-proxy cannot
+  reach Keycloak at all. Analysis pods run under a default-deny egress policy with per-analysis
+  exceptions, so check `kubectl -n $VICE_NS get netpol vice-egress-<analysis-id> -o yaml`. A
+  NetworkPolicy is evaluated *after* DNAT, so an `ipBlock` naming a Service's ClusterIP never
+  matches — the destination by then is a backing pod's address. Where a DE hostname resolves to
+  an in-cluster address, list the pod CIDR in `vice_operator_egress_cidr_exceptions`. The
+  policy is written when the analysis launches, so an existing analysis keeps the old one.
+- `failed to get the token from Keycloak: … x509: certificate signed by unknown authority` —
+  vice-proxy reaches Keycloak but does not trust its certificate. This is a server-side call,
+  so the browser's trust in the certificate is irrelevant. Set
+  `vice_operator_ca_bundle_configmap`: the operator passes it as `--ca-bundle-configmap`, which
+  mounts the CA into the sidecar at `/etc/de-ca` and sets `SSL_CERT_FILE`. Confirm with
+  `kubectl -n $VICE_NS get pod <pod-name> -o jsonpath='{.spec.containers[?(@.name=="vice-proxy")].env}'`.
+  Like the egress policy, the pod spec is written at launch, so an existing analysis keeps the
+  old one — relaunch after changing it.
 
 ### Check Traefik / the Gateway
 
@@ -289,6 +304,23 @@ kubectl -n $VICE_NS get httproute -l external-id=<uuid>
 ```
 
 If the HTTPRoute doesn't exist, app-exposer failed to create it. Check app-exposer logs.
+
+If it does exist and still points at `vice-operator-loading` while the pod is `Ready`, check
+which Gateway it is attached to, and whether that Gateway has an HTTPS listener:
+
+```bash
+kubectl -n $VICE_NS get httproute <external-id> -o jsonpath='{.spec.parentRefs}'
+kubectl get gateway -A
+kubectl -n <gw-ns> get gateway <gw-name> -o jsonpath='{.spec.listeners[*].protocol}'
+```
+
+The swap from the loading service to the analysis service is performed by the operator's
+loading-status endpoint, which the loading page itself polls. A route attached to a Gateway
+with no HTTPS listener is unreachable over `https://`, so the browser falls through to the
+wildcard route and its default backend, the status endpoint is never called, and the swap
+never happens — the page waits forever while the analysis is perfectly healthy. Set
+`vice_operator_skip_gateway_creation: true` so the operator attaches to the deployment's own
+`vice` Gateway (`vice_operator_gateway_namespace`) instead of creating a plain HTTP one.
 
 ### TLS certificate for the VICE domain
 

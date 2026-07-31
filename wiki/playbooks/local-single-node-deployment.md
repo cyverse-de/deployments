@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, sslip.io, dns, cloudnativepg]
-timestamp: 2026-07-30T00:00:00Z
+timestamp: 2026-07-31T00:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -55,7 +55,7 @@ of their own, and node configuration applied at build time:
 - Outbound DNS, since the hostnames resolve through `sslip.io`.
 - `ansible`, `kubectl` >= 1.31 (or `kustomize` >= 5.2), `helm` >= 3.16,
   `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, `gpg` >= 2.1,
-  `openssl` >= 1.1.1, and `slappasswd`.
+  `openssl` >= 1.1.1, `slappasswd`, and `uv` (for `import_apps.yml`).
 - A pull robot account on the image registry.
 - The private `local-deployment` inventory repo.
 
@@ -337,6 +337,17 @@ that does not run MATLAB or the NCBI submission tools lists only `wc-data`.
 the portal database, iRODS via portal-conductor, and the DE via terrain — so a
 failure part-way leaves the earlier ones done. It is safe to re-run.
 
+Then `import_apps.yml`, which puts something runnable in the DE. The
+migrations seed three apps, but none of them have rows in the permissions
+service, so the app listing is empty until this runs. It imports `DE Word
+Count` and `CloudShell` as public apps — one batch app and one VICE app,
+enough to exercise both execution paths — and `portal-delete-user` privately.
+It has to follow the bootstrap playbook, since it authenticates as
+`portal_bootstrap_user` and creating an app needs an account that already has a
+DE workspace. See
+[Copying Apps Between DE Instances](/playbooks/app-export-import.md) for the
+bundle format and how to add to the set.
+
 `image-cache` is the one thing an untagged run skips: it pre-pulls every image
 in `vice_image_cache` onto the node's disk, which is a lot of disk and a lot of
 pulling to do as a side effect. Ask for it by tag.
@@ -462,6 +473,12 @@ services that call a DE endpoint — every service holding the Keycloak URL, som
 twenty of them. Without it terrain rejects every authenticated request, and the
 error names no certificate: a `SunCertPathBuilderException` surfacing as a 500.
 
+VICE analyses need it too, and they are not covered by the service manifests:
+their vice-proxy sidecar exchanges an authorization code with Keycloak
+server-side, and its pod spec is built by the operator rather than templated
+here. `vice_operator_ca_bundle_configmap` covers both the operator and the
+sidecars — see [vice-operator](/services/vice-operator.md).
+
 **Every runtime finds the certificate a different way, and ignores the other
 runtimes' variable.** The manifests set all three, since each is inert where it
 is not understood:
@@ -543,6 +560,8 @@ proceed without it.
 * `ansible/roles/rabbitmq_k8s/`
 * `ansible/roles/cluster_issuers/tasks/main.yml`
 * `ansible/roles/postgresql_init/tasks/preflight.yml`
+* `ansible/import_apps.yml`
+* `ansible/roles/de_apps/`
 * `ansible/scripts/bootstrap-local-k0s.sh`
 * `ansible/scripts/generate-local-ca.sh`
 * `ansible/scripts/generate-secrets.sh`

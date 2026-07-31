@@ -1,10 +1,10 @@
 ---
 type: Runbook
 title: Miscellaneous Utility Playbooks
-description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
+description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, app imports, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-28T00:00:00Z
+timestamp: 2026-07-30T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -150,6 +150,14 @@ Renders the cluster kubeconfig on the control machine
 (`gocd_kubeconfig_xfer` role) so [GoCD](/infrastructure/gocd.md) agents can
 deploy into the cluster. Re-run whenever the cluster credentials rotate.
 
+## import_apps.yml
+
+Runs the `de_apps` role, which imports a set of app bundles into a deployment
+with [appei](/playbooks/app-export-import.md). Useful for giving a new
+deployment something runnable — a fresh DE's app listing is empty. Must follow
+[bootstrap_portal_admin.yml](/playbooks/bootstrap-portal-admin.md), since it
+authenticates as `portal_bootstrap_user`. Idempotent.
+
 # Citations
 
 [1] `ansible/dirty_frag_mitigation.yml` — module blacklist mitigation.
@@ -163,3 +171,4 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [9] `ansible/nats_cleanup.yml` — NATS Helm release, certificate, and secret teardown.
 [10] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
 [11] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[12] `ansible/import_apps.yml`, `ansible/roles/de_apps/` — default app set import.

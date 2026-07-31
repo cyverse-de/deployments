@@ -4,7 +4,7 @@ title: vice-operator
 description: Operator that runs VICE analyses in a dedicated namespace, built from the app-exposer repo and deployed with its own RBAC instead of skaffold.
 resource: /ansible/roles/services/vice-operator
 tags: [vice, operator, app-exposer, rbac, gateway, gpu]
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-07-31T00:00:00Z
 ---
 
 The vice-operator manages VICE analyses inside the `vice_ns` namespace: its
@@ -37,6 +37,17 @@ latter mounts `files/repos.json` as a ConfigMap; see
 [VICE Image Cache](/playbooks/vice-image-cache.md)). Default
 `vice_operator_replicas` is 1.
 
+`vice_operator_ca_bundle_configmap` does double duty. It mounts the named
+ConfigMap into the operator itself, so OIDC discovery against a Keycloak
+behind a private CA succeeds; it also becomes the operator's
+`--ca-bundle-configmap`, which mounts the same ConfigMap into every analysis's
+vice-proxy sidecar at `/etc/de-ca` and sets `SSL_CERT_FILE`. vice-proxy needs
+it for the back-channel token exchange, which is a server-side call that the
+browser's trust in the certificate does not help with. The ConfigMap must
+therefore live in `vice_ns` — analyses run there too, and a ConfigMap cannot be
+referenced across namespaces. Empty, the default, adds no volume, no mount, and
+no variable, so environments with publicly trusted certificates are unaffected.
+
 The `porklock-config` Secret is populated from the same `irods_host`,
 `irods_user`, `irods_password`, `irods_zone`, and `irods_port` inventory
 variables used by the Argo role's `irods-config` ConfigMap. It is required
@@ -59,3 +70,4 @@ See [Building and Deploying Services](/playbooks/build-and-deploy.md) and
 3. `ansible/roles/services/vice-operator/tasks/main.yml` — namespace, service account, Role/ClusterRole, `porklock-config` Secret, and direct k8s deploy.
 4. `ansible/roles/services/vice-operator/templates/vice_operator.yml.j2` — secret, optional repos ConfigMap, and the flag-driven Deployment.
 5. `ansible/roles/services/vice-operator/files/repos.json` — image mirror list for `manual-mirror` cache mode.
+6. `ansible/roles/common/defaults/main.yml` — `vice_operator_ca_bundle_configmap` and the shared `de_ca_bundle_*` settings it defaults from.
