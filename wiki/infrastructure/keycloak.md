@@ -4,7 +4,7 @@ title: Keycloak
 description: Keycloak administration for the DE — deployment, health checks, client secret rotation, admin users, impersonation, and diagnosing authentication failures.
 resource: /docs/keycloak.md
 tags: [keycloak, authentication, oidc, ldap, secrets, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-31T00:00:00Z
 ---
 
 Keycloak handles all DE authentication. This page covers common administration tasks:
@@ -286,6 +286,30 @@ curl -s -X POST \
   "$KEYCLOAK_URL/auth/admin/realms/$REALM/users/$USER_ID/logout"
 ```
 
+### How long a session lasts
+
+Users being logged out sooner than they expect is a realm setting, not a DE one — sonora
+has no session configuration of its own. Two values govern it, both set by
+`keycloak_config`:
+
+| Variable | Realm field | Default | Effect |
+| --- | --- | --- | --- |
+| `keycloak_config_sso_session_idle_timeout` | `ssoSessionIdleTimeout` | 1800 (30 min) | ends a session left idle this long |
+| `keycloak_config_sso_session_max_lifespan` | `ssoSessionMaxLifespan` | 36000 (10 h) | caps a session however active it is |
+
+The defaults are Keycloak's own, so an environment that sets neither behaves exactly as it
+did before the variables existed. The local deployment raises them to 8 and 24 hours.
+
+The five-minute `accessTokenLifespan` is not what users experience: sonora refreshes that
+token against the session above, so the idle timeout is what they notice. Changing either
+value affects new logins only — sessions already open keep the timeouts they were created
+with, so test by logging out and back in.
+
+If logouts happen while someone is actively working, or after roughly five minutes, this
+is the wrong lever: that means the token refresh itself is failing. Realm event logging is
+off by default, so turn on `eventsEnabled` and look for failing `REFRESH_TOKEN` grants
+before changing timeouts.
+
 ## 7. Keycloak certificate expiry
 
 Keycloak itself has a TLS certificate managed by cert-manager. If it expires, Keycloak
@@ -345,3 +369,5 @@ that user. End the impersonation by logging out of the DE or signing back in as 
 [2] `ansible/roles/keycloak_install/tasks/main.yml` — role that deploys Keycloak (namespace, certs, Deployment, Gateway, admin bootstrap).
 [3] `ansible/kubernetes.yml` — runs the `keycloak_install` role under the `keycloak` tag.
 [4] `ansible/roles/common/defaults/main.yml` — default `keycloak_version` and certificate duration variables.
+[5] `ansible/roles/keycloak_config/defaults/main.yml` — realm settings, including the SSO session timeouts.
+[6] `ansible/roles/keycloak_config/tasks/main.yml` — configures the realm keycloak_install leaves empty.
