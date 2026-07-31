@@ -23,6 +23,14 @@ keycloak_config_realm_display_name: "CyVerse Discovery Environment"
 # The DE is served over HTTPS everywhere, including local deployments.
 keycloak_config_ssl_required: all
 
+# How long a DE login lasts. The idle timeout is what users notice: sonora
+# holds a five-minute access token and refreshes it against this session, so
+# going idle for longer than this ends it. The max lifespan caps a session
+# however active it is. Both default to Keycloak's own defaults, so setting
+# them changes nothing until an environment says otherwise.
+keycloak_config_sso_session_idle_timeout: 1800
+keycloak_config_sso_session_max_lifespan: 36000
+
 keycloak_config_realm_roles:
   - app-runner
   - cyverse-emailer

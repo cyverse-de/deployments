@@ -17,6 +17,8 @@
         realm: "{{ keycloak_realm_name }}"
         display_name: "{{ keycloak_config_realm_display_name }}"
         ssl_required: "{{ keycloak_config_ssl_required }}"
+        sso_session_idle_timeout: "{{ keycloak_config_sso_session_idle_timeout | int }}"
+        sso_session_max_lifespan: "{{ keycloak_config_sso_session_max_lifespan | int }}"
         enabled: true
         state: present
 
