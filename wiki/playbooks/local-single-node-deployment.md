@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, sslip.io, dns, cloudnativepg]
-timestamp: 2026-07-31T00:00:00Z
+timestamp: 2026-07-31T12:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -403,6 +403,59 @@ volume as its claim is released. `k0s reset` cannot — it removes the
 PersistentVolume objects wholesale, leaving their directories behind under
 `/var/openebs/local`, so the reset script deletes that tree itself.
 
+### An operator's finalizers can wedge a namespace permanently
+
+A namespace holding custom resources whose finalizers only their own controller
+clears cannot be deleted in one step. Deleting the namespace deletes the
+controller too, so anything still finalizing when it goes has nothing left to
+release it: the namespace sits in `Terminating` indefinitely, the delete burns
+its timeout, and — because a failed task ends the play — every later task,
+including the CRD cleanup, never runs. `argo-events` does this reliably: its
+`EventBus`, `EventSource` and three `Sensor` resources hold
+`eventbus-controller`, `eventsource-controller` and `sensor-controller`
+finalizers.
+
+`tasks/teardown-namespaces.yml` handles both halves. Before deleting a
+namespace it removes the resources listed in
+`local_teardown_finalizer_resources` while their controllers are still running
+to clear them; afterwards, for any namespace that has not finished terminating,
+it patches `metadata.finalizers` to `[]` on whatever is left. The second half is
+what recovers a namespace already wedged by an earlier run — no manual
+`kubectl patch` needed. Deletions are started with `wait: false` and waited on
+together at the end, so one slow namespace no longer serializes the rest.
+
+An operator added later that uses finalizers needs an entry in
+`local_teardown_finalizer_resources`; without one the teardown still recovers,
+just after a wait rather than cleanly.
+
+### Cluster-scoped leftovers that block the next install
+
+A namespace deletion takes its contents with it, but cluster-scoped objects
+survive, and two kinds of them block a reinstall rather than merely littering:
+
+* **Admission policy.** The Gateway API `standard-install` the traefik role
+  pins creates a `ValidatingAdmissionPolicy`,
+  `safe-upgrades.gateway.networking.k8s.io`, that rejects any Gateway API CRD
+  older than v1.5.0. Remove the CRDs and leave the policy and the next run dies
+  inside the traefik chart — which bundles an older set — with `denied request:
+  Installing CRDs with version before v1.5.0 is prohibited by default`, naming
+  neither the teardown nor the leftover. `local_teardown_admission_policy_names`
+  covers it. Unlike a webhook this needs no backing Service to keep biting: the
+  rules run in the API server itself.
+* **Subdomain CRD groups.** `local_teardown_crd_groups` is matched exactly, so
+  `traefik.io` does not cover the thirteen `hub.traefik.io` CRDs the chart also
+  installs. Each subdomain group needs its own entry.
+
+### Tags and dynamic includes
+
+`local-teardown.yml` includes `tasks/teardown-namespaces.yml` with an explicit
+`apply: tags:`. A dynamic include's own tags only decide whether the file is
+included — the tasks inside keep whatever tags they carry, which is none — so
+under `--tags de` the include is evaluated, prints `included: ...`, and every
+task in the file is then filtered out. The play reports success having deleted
+nothing. `apply:` puts the tag on the included tasks themselves. Worth knowing
+before adding another tagged include here.
+
 ## Ordering hazards
 
 **The `configs` Secret must exist before any service deploys.**
@@ -469,9 +522,10 @@ alternatives.
 container trusts only what its image ships, so an endpoint served by the local
 root is rejected however thoroughly the host and browser trust it. Setting
 `de_ca_bundle_configmap` publishes the certificate and mounts it into the
-services that call a DE endpoint — every service holding the Keycloak URL, some
-twenty of them. Without it terrain rejects every authenticated request, and the
-error names no certificate: a `SunCertPathBuilderException` surfacing as a 500.
+services that call a DE endpoint — every service holding the Keycloak URL,
+twenty-nine of them. Without it terrain rejects every authenticated request, and
+the error names no certificate: a `SunCertPathBuilderException` surfacing as a
+500.
 
 VICE analyses need it too, and they are not covered by the service manifests:
 their vice-proxy sidecar exchanges an authorization code with Keycloak
@@ -496,11 +550,43 @@ a bare `403 Access denied` from sonora rather than anything mentioning a
 certificate, and Keycloak's own logs show a successful authentication.
 
 A JVM reads none of them — it cannot be pointed at a PEM at all — so JVM
-services get an init container that copies their own image's `cacerts` and
-imports the CA into the copy, with `-Djavax.net.ssl.trustStore` added to the
-shared `java-tool-options` ConfigMap. A service added later that makes such a
-call needs the same volume, mount and variables added to its manifest; the gate
-is already in the templates to copy.
+services additionally get an init container that copies their own image's
+`cacerts` and imports the CA into the copy, with `-Djavax.net.ssl.trustStore`
+pointing at the result.
+
+**The JVM flags and the init container are one unit.**
+`service_configurations` appends `-Djavax.net.ssl.trustStore` to the `low`,
+`medium` and `high` keys of the shared `java-tool-options` ConfigMap, so it
+reaches every service reading any of them at once. A JVM pointed at a trust
+store that is not there does not fail — it falls back to its image's `cacerts`
+without a word, leaving the CA mounted and ignored, which is the same silent
+outcome as setting only `SSL_CERT_FILE`. Any service reading one of those keys
+must therefore also carry the init container. `grouper` is deliberately not
+among the keys that get the flags: `grouper_init` builds its pods inline and
+hardcodes `JAVA_TOOL_OPTIONS`, so that key is never read.
+
+**The blocks are shared partials, not per-manifest copies.** The volume, env,
+mount and init-container fragments live once in
+`ansible/templates/partials/`, and each service manifest pulls them in:
+
+```jinja
+      volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
+```
+
+`<playbook_dir>/templates/` is on the Jinja search path for every template
+rendered during a play, whichever role owns the `.j2` file, so a service role's
+manifest can include them directly. Two constraints: the `{% include %}` must
+sit at column 0, because Ansible renders with `lstrip_blocks` off and would
+otherwise emit the leading whitespace verbatim, and each partial carries its own
+indentation for the list it belongs to. Each is guarded on
+`de_ca_bundle_configmap`, so with the bundle unset they render nothing at all.
+
+A service added later that calls a DE endpoint needs
+`de_ca_volume.j2`, `de_ca_env.j2` and `de_ca_volume_mount.j2`; if it is a JVM
+service it needs `de_ca_jvm_volume.j2`, `de_ca_jvm_init_container.j2` and
+`de_ca_jvm_volume_mount.j2` as well.
 
 To check a running pod directly rather than inferring from a failure:
 
@@ -556,10 +642,14 @@ proceed without it.
 * `ansible/roles/local_db_endpoint/`
 * `ansible/roles/cnpg/`
 * `ansible/local-teardown.yml`
+* `ansible/tasks/teardown-namespaces.yml`
 * `ansible/scripts/bootstrap-local-k0s.sh`
 * `ansible/roles/rabbitmq_k8s/`
 * `ansible/roles/cluster_issuers/tasks/main.yml`
 * `ansible/roles/postgresql_init/tasks/preflight.yml`
+* `ansible/roles/postgresql_init/tasks/preflight_server.yml`
+* `ansible/templates/partials/`
+* `ansible/roles/service_configurations/tasks/main.yml`
 * `ansible/import_apps.yml`
 * `ansible/roles/de_apps/`
 * `ansible/scripts/bootstrap-local-k0s.sh`

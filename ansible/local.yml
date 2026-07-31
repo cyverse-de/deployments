@@ -194,3 +194,15 @@
   roles:
     - role: cronjobs
       tags: cronjobs
+
+    # The per-tool secrets an Argo workflow mounts. Not optional here despite
+    # looking it: de_apps imports DE Word Count by default, and that tool
+    # mounts wc-data, so without this a freshly built DE accepts the analysis
+    # and fails it with `secrets "wc-data-latest" not found` — an error that
+    # names neither the tool nor the missing role. Which secrets get created is
+    # argo_resources_secrets; all but wc-data read files only the QA and prod
+    # inventories ship, so a local inventory lists just the ones it has.
+    - role: argo_resources
+      tags:
+        - argo-resources
+        - argo

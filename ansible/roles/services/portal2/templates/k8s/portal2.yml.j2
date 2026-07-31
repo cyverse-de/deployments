@@ -37,11 +37,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
-{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
-        - name: de-ca
-          configMap:
-            name: {{ de_ca_bundle_configmap }}
-{% endif %}
+{% include 'partials/de_ca_volume.j2' %}
         - name: config-volume
           secret:
             secretName: portal2-configs
@@ -53,17 +49,7 @@ spec:
           image: harbor.cyverse.org/de/portal2
           imagePullPolicy: Always
           env:
-{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
-            # One variable per runtime, because each ignores the others':
-            # SSL_CERT_FILE is OpenSSL and so covers Go, Node reads only
-            # NODE_EXTRA_CA_CERTS, and python-requests only REQUESTS_CA_BUNDLE.
-            - name: SSL_CERT_FILE
-              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
-            - name: NODE_EXTRA_CA_CERTS
-              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
-            - name: REQUESTS_CA_BUNDLE
-              value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
-{% endif %}
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -74,11 +60,7 @@ spec:
             - name: NODE_ENV
               value: "production"
           volumeMounts:
-{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
-            - name: de-ca
-              mountPath: {{ de_ca_bundle_mount_path }}
-              readOnly: true
-{% endif %}
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: config-volume
               mountPath: /etc/cyverse/portal2
               readOnly: true

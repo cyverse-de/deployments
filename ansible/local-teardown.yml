@@ -54,6 +54,23 @@
       - cert-manager
       - openebs
 
+    # Custom resources whose finalizers only their own controller clears.
+    # Deleting the namespace deletes the controller too, so anything still
+    # finalizing at that moment hangs the namespace for good: no controller is
+    # left to release it, the delete never returns, and the play dies on a
+    # timeout with the CRDs below still installed. Listed most-dependent first,
+    # so a Sensor goes before the EventBus it subscribes to.
+    local_teardown_finalizer_resources:
+      - api_version: argoproj.io/v1alpha1
+        kind: Sensor
+        namespace: argo-events
+      - api_version: argoproj.io/v1alpha1
+        kind: EventSource
+        namespace: argo-events
+      - api_version: argoproj.io/v1alpha1
+        kind: EventBus
+        namespace: argo-events
+
     # An orphaned webhook is worse than an orphaned ClusterRole: it points at a
     # Service that no longer exists, and the API server then refuses every
     # create it intercepts, which can block a reinstall outright.
@@ -62,13 +79,27 @@
       - cnpg-mutating-webhook-configuration
       - cnpg-validating-webhook-configuration
 
+    # Same hazard, different kind — and this one needs no Service to keep
+    # biting, because the rules are evaluated in the API server itself. The
+    # Gateway API standard-install the traefik role pins ships this policy, and
+    # it refuses any Gateway API CRD older than v1.5.0. Leave it behind and the
+    # next run dies in the traefik chart, which bundles an older set: "denied
+    # request: Installing CRDs with version before v1.5.0 is prohibited by
+    # default" — a message that names neither the teardown nor the leftover.
+    local_teardown_admission_policy_names:
+      - safe-upgrades.gateway.networking.k8s.io
+
     # CRDs are removed by API group rather than by name: the sets are large and
     # change between versions, and an explicit group list stays auditable.
+    # Matched exactly, so a subdomain group needs its own entry — hub.traefik.io
+    # is a separate set of thirteen the traefik chart installs alongside
+    # traefik.io, and listing only the parent leaves every one of them behind.
     local_teardown_crd_groups:
       - cert-manager.io
       - acme.cert-manager.io
       - postgresql.cnpg.io
       - traefik.io
+      - hub.traefik.io
       - gateway.networking.k8s.io
       - argoproj.io
       - openebs.io
@@ -78,6 +109,19 @@
     # a PersistentVolume and go with the namespace, so this does nothing; under
     # "host" it destroys data on the workstation, which should be a choice.
     local_teardown_drop_databases: false
+
+    # Grouped by server for the same reason as the database list: the roles
+    # postgresql_init creates on keycloak_db_login_host are not visible from
+    # db_login_host when the two are different machines.
+    local_teardown_db_roles:
+      - host: "{{ db_login_host }}"
+        roles:
+          - "{{ dbms_connection_user }}"
+          - "{{ portal_db_user }}"
+          - "{{ grouper_connection_user }}"
+      - host: "{{ keycloak_db_login_host }}"
+        roles:
+          - "{{ keycloak_db_username }}"
 
   tasks:
     - name: Refuse to run without an explicit confirmation
@@ -106,15 +150,18 @@
           {{ local_teardown_nodes.resources | map(attribute='metadata.name') | join(', ') }}
       tags: always
 
+    # apply: is load-bearing. A dynamic include's own tags decide whether the
+    # file is included, but the tasks inside it keep whatever tags they carry —
+    # none — so under --tags the include runs, prints "included: ...", and every
+    # task in it is filtered out. The teardown then reports success having
+    # deleted nothing. apply: puts the tag on the included tasks themselves.
     - name: Delete the DE namespaces
-      kubernetes.core.k8s:
-        state: absent
-        api_version: v1
-        kind: Namespace
-        name: "{{ item }}"
-        wait: true
-        wait_timeout: 600
-      loop: "{{ local_teardown_de_namespaces | unique }}"
+      ansible.builtin.include_tasks:
+        file: tasks/teardown-namespaces.yml
+        apply:
+          tags: de
+      vars:
+        teardown_namespaces: "{{ local_teardown_de_namespaces | unique }}"
       tags: de
 
     # Read from postgresql_init rather than restated here, so the list of
@@ -127,16 +174,20 @@
         - local_teardown_drop_databases | bool
       tags: de
 
+    # Keyed by server, because Keycloak's database need not share one with the
+    # rest — dropping everything against db_login_host would leave it behind.
     - name: Drop the DE databases from the host PostgreSQL
       community.postgresql.postgresql_db:
-        login_host: "{{ db_login_host }}"
+        login_host: "{{ item.0.host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
-        name: "{{ item }}"
+        name: "{{ item.1 }}"
         state: absent
         force: true
-      loop: "{{ postgresql_init_managed_databases }}"
+      loop: "{{ postgresql_init_preflight_targets | subelements('databases') }}"
+      loop_control:
+        label: "{{ item.1 }}@{{ item.0.host }}"
       when:
         - local_db_provider == 'host'
         - local_teardown_drop_databases | bool
@@ -147,18 +198,16 @@
     # and take a service down in a way that points nowhere near the cause.
     - name: Drop the DE roles from the host PostgreSQL
       community.postgresql.postgresql_user:
-        login_host: "{{ db_login_host }}"
+        login_host: "{{ item.0.host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         login_db: "{{ pg_db }}"
-        name: "{{ item }}"
+        name: "{{ item.1 }}"
         state: absent
-      loop:
-        - "{{ dbms_connection_user }}"
-        - "{{ portal_db_user }}"
-        - "{{ keycloak_db_username }}"
-        - "{{ grouper_connection_user }}"
+      loop: "{{ local_teardown_db_roles | subelements('roles') }}"
+      loop_control:
+        label: "{{ item.1 }}@{{ item.0.host }}"
       when:
         - local_db_provider == 'host'
         - local_teardown_drop_databases | bool
@@ -176,15 +225,25 @@
         label: "{{ item.0 }}/{{ item.1 }}"
       tags: infra
 
-    - name: Delete the infrastructure namespaces
+    - name: Delete the validating admission policies
       kubernetes.core.k8s:
         state: absent
-        api_version: v1
-        kind: Namespace
-        name: "{{ item }}"
-        wait: true
-        wait_timeout: 600
-      loop: "{{ local_teardown_infra_namespaces }}"
+        api_version: admissionregistration.k8s.io/v1
+        kind: "{{ item.0 }}"
+        name: "{{ item.1 }}"
+      loop: "{{ ['ValidatingAdmissionPolicyBinding', 'ValidatingAdmissionPolicy']
+                | product(local_teardown_admission_policy_names) | list }}"
+      loop_control:
+        label: "{{ item.0 }}/{{ item.1 }}"
+      tags: infra
+
+    - name: Delete the infrastructure namespaces
+      ansible.builtin.include_tasks:
+        file: tasks/teardown-namespaces.yml
+        apply:
+          tags: infra
+      vars:
+        teardown_namespaces: "{{ local_teardown_infra_namespaces }}"
       tags: infra
 
     - name: Look up the custom resource definitions

@@ -4,7 +4,7 @@ title: Copying Apps Between DE Instances
 description: Using the appei tool to export an app and its tools from one DE as a JSON bundle and import them into another via the Terrain API, and the de_apps role that imports a default set into a new deployment.
 resource: /scripts/appei
 tags: [apps, tools, terrain, migration, appei]
-timestamp: 2026-07-30T00:00:00Z
+timestamp: 2026-07-31T12:00:00Z
 ---
 
 # Copying Apps Between DE Instances
@@ -105,6 +105,31 @@ own rather than the system trust store.
   `Unversioned`, `Python 2.7`) have no rows in the permissions service, so they
   appear in no listing. An imported app of the same name does not collide with
   them, and only the imported one is visible.
+
+* **A bundle cannot be re-imported after editing it.** The exported parameter
+  and argument IDs are carried verbatim, so importing an edited copy — even
+  under a new app version — fails with
+  `duplicate key value violates unique constraint "parameter_values_pkey"`,
+  which names a column rather than the bundle. Stripping every `id` and
+  `version_id` from the bundle lets Terrain assign new ones, which works.
+  Deleting the app first does not: `DELETE /apps/{system-id}/{id}` is a soft
+  delete (and returns 403 for a published app — the admin endpoint is
+  `DELETE /admin/apps/{system-id}/{id}`), and the deleted app still appears in
+  the admin listing that `appei` matches against, so the next import reports it
+  as already existing and skips it. Between them, editing
+  `roles/de_apps/files/apps/*.json` only takes effect on a DE that has never
+  imported that app.
+
+* **A `FileOutput` parameter is a command-line argument, not a redirect.** With
+  an empty `name` it is appended positionally, so a tool that writes to stdout
+  receives the output filename as an extra input. `DE Word Count` shipped that
+  way and could not succeed: the step ran
+  `wc <input> wc.out`, GNU `wc` reported `wc.out: No such file or directory`
+  and exited 1, and the analysis failed at the exit handler with the unrelated
+  message `sending final status`. The parameter was removed; the counts land in
+  `logs/step-0.stdout.log` in the output folder, which porklock uploads with
+  the rest. A tool that should produce a named file needs the redirect in the
+  tool's own entrypoint, not a `FileOutput` parameter.
 
 # Citations
 

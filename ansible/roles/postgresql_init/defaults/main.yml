@@ -1,8 +1,24 @@
 ---
-# The databases this role creates, for the pre-flight locale check. Harbor's
-# are deliberately absent: harbor.yml creates them under names of its own.
+# The databases this role creates, for the pre-flight locale check and for
+# local-teardown. Harbor's are deliberately absent: harbor.yml creates them
+# under names of its own.
+#
+# Split by server rather than listed as one set: keycloak.yml connects to
+# keycloak_db_login_host, which need not be db_login_host, and a database that
+# is not on the server being queried simply does not come back in the result —
+# so checking one host would silently pass over the other's databases.
 postgresql_init_managed_databases: "{{ [de_db_name, notifications_db_name, metadata_db_name]
   + ([grouper_db_name] if grouper else [])
   + ([qms_db_name] if qms else [])
-  + ([keycloak_db_name] if keycloak else [])
   + ([portal_db_name] if portal else []) }}"
+
+postgresql_init_keycloak_databases: "{{ [keycloak_db_name] if keycloak else [] }}"
+
+# Each server to pre-flight, with the databases expected on it. Where both
+# names resolve to the same server the second pass is redundant rather than
+# wrong, so this needs no de-duplication.
+postgresql_init_preflight_targets:
+  - host: "{{ db_login_host }}"
+    databases: "{{ postgresql_init_managed_databases }}"
+  - host: "{{ keycloak_db_login_host }}"
+    databases: "{{ postgresql_init_keycloak_databases }}"

@@ -79,7 +79,12 @@
         namespace: "{{ cnpg_namespace }}"
         name: "{{ cnpg_cluster_name }}"
       register: cnpg_cluster_info
-      until: cnpg_cluster_info.resources[0].status.readyInstances | default(0) | int >= 1
+      # Guarded rather than indexed directly: the Cluster is not always visible
+      # on the first read after the apply, and an index error there aborts the
+      # play instead of retrying.
+      until: >-
+        (cnpg_cluster_info.resources | default([]) | first | default({}))
+        .get('status', {}).get('readyInstances', 0) | int >= 1
       retries: "{{ cnpg_ready_retries | int }}"
       delay: "{{ cnpg_ready_delay | int }}"
 

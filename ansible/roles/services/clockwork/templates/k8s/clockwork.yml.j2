@@ -25,6 +25,7 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: clockwork-configs
           secret:
             secretName: clockwork-configs
@@ -47,20 +48,17 @@ spec:
             - --config
             - /etc/iplant/de/clockwork.properties
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: clockwork-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: JAVA_TOOL_OPTIONS
-              valueFrom:
-                configMapKeyRef:
-                  name: java-tool-options
-                  key: low
             - name: OTEL_TRACES_EXPORTER
               valueFrom:
                 secretKeyRef:

@@ -50,6 +50,10 @@
     # TLS. Where that certificate comes from a private CA, the pod has no
     # reason to trust it and startup fails on "certificate signed by unknown
     # authority" — so the CA is mounted and SSL_CERT_FILE points at it.
+    #
+    # This role owns the VICE namespace's copy; k8s_de_reqs publishes the DE
+    # namespace's. The operator also mounts this ConfigMap into each analysis's
+    # vice-proxy sidecar, so it has to live in vice_ns either way.
     - name: Create the private CA bundle for the vice-operator
       when: vice_operator_ca_bundle_configmap | default('', true) | length > 0
       kubernetes.core.k8s:
@@ -60,8 +64,11 @@
           metadata:
             name: "{{ vice_operator_ca_bundle_configmap }}"
             namespace: "{{ vice_ns }}"
-          data:
-            ca.crt: "{{ lookup('file', vice_operator_ca_bundle_file) }}"
+          # Keyed by de_ca_bundle_key rather than a literal, because the
+          # manifest mounts it and passes --ca-bundle-key from the same
+          # variable. Built as one expression: Ansible templates values, not
+          # keys.
+          data: "{{ {de_ca_bundle_key: lookup('file', vice_operator_ca_bundle_file)} }}"
 
     - name: Set up the vice-operator service account
       kubernetes.core.k8s:

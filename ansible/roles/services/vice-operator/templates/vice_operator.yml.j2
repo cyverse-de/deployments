@@ -69,14 +69,14 @@ spec:
 {% endif %}
 {% if want_ca %}
             - name: local-ca
-              mountPath: /etc/de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
               readOnly: true
 {% endif %}
 {% endif %}
           env:
 {% if want_ca %}
           - name: SSL_CERT_FILE
-            value: /etc/de-ca/ca.crt
+            value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
 {% endif %}
           - name: REGISTRY_PASSWORD
             valueFrom:

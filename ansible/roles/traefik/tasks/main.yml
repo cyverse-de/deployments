@@ -149,6 +149,13 @@
     # TLSRoute at startup (WaitForCacheSync blocks on it even when unused). In
     # v1.5.1 TLSRoute is in the standard channel, so standard-install is
     # sufficient; the CRD version must stay in step with the Traefik version.
+    #
+    # standard-install also creates a ValidatingAdmissionPolicy that rejects
+    # any Gateway API CRD older than v1.5.0 — including the set the chart
+    # bundles. That is harmless while it stays in step with the CRDs, but it
+    # outlives them: a teardown that removes the CRDs and leaves the policy
+    # blocks the chart on the next install, so local-teardown.yml removes it by
+    # name in local_teardown_admission_policy_names.
     - name: Pin the Gateway API CRDs
       kubernetes.core.k8s:
         state: present

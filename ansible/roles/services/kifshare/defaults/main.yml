@@ -1,2 +1,9 @@
 ---
 kifshare_replicas: 2
+
+# kifshare runs on gcr.io/distroless/java25-debian13, which has a JVM but no
+# shell and no keytool, so the trust-store init container cannot run from the
+# service image the way it does for the temurin-based services. Build it from a
+# JRE image instead; the JDK major version is matched to the service image so
+# the cacerts it produces is one java25 reads without complaint.
+de_ca_truststore_builder_image: eclipse-temurin:25-jre-noble

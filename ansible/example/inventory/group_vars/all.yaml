@@ -443,6 +443,24 @@
 # harbor_notary_signer_db_name: harbor_notary_signer
 
 
+# The names postgresql_init, db_staging and local-teardown connect to from
+# the control machine. Distinct from groups['dbms'][0] and
+# groups['keycloak_dbms'][0], which the service configs render into pod
+# connection strings: where the database is reached by different names from
+# inside and outside the cluster, one value cannot serve both. Under
+# local_db_provider: cnpg this is the database Service's pinned ClusterIP,
+# which is not a name cluster DNS can give the control machine.
+# Defaults: groups['dbms'][0] / groups['keycloak_dbms'][0]
+# db_login_host: 10.43.0.50
+# keycloak_db_login_host: 10.43.0.50
+
+# Where PostgreSQL runs for a local single-node deployment: "cnpg" to run it
+# in the cluster under CloudNativePG, or "host" for one already running on
+# the node, published as a Service by the local_db_endpoint role. Only
+# local.yml reads it. See wiki/playbooks/local-single-node-deployment.md.
+# Default: cnpg
+# local_db_provider: host
+
 # ---------------------------------------------------------------------
 # Keycloak database
 # ---------------------------------------------------------------------
@@ -824,6 +842,19 @@
 # cluster_issuer_ca_cert_file: /path/to/rootCA.pem
 # cluster_issuer_ca_key_file: /path/to/rootCA-key.pem
 # cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+#
+# A container's trust store comes from its image, so a DE endpoint served by
+# a certificate the image has no reason to trust is rejected however well the
+# host and browser trust it — Go services fail with "x509: certificate signed
+# by unknown authority", JVM services with SunCertPathBuilderException, and
+# both surface as a 500 naming nothing about a certificate. Setting this
+# publishes the CA as a ConfigMap and mounts it into every DE service.
+#
+# Leave it empty wherever the DE is served by a publicly trusted certificate;
+# nothing about the rendered manifests changes until it is set.
+# Default: "" (and de_ca_bundle_file follows cluster_issuer_ca_cert_file)
+# de_ca_bundle_configmap: de-ca-bundle
+# de_ca_bundle_file: /path/to/rootCA.pem
 #
 # In `external` mode you must create these `kubernetes.io/tls` secrets
 # before HTTPS will serve — a Gateway listener whose secret is missing
@@ -1452,6 +1483,21 @@
 # formation_keycloak_client_id: replace_me
 # formation_keycloak_client_secret: replace_me
 
+# How long a DE login lasts, applied to the realm by the keycloak_config role.
+# The idle timeout is what users notice: sonora holds a five-minute access
+# token and refreshes it against this session, so going idle for longer than
+# this ends it. The max lifespan caps a session however active it is. Both
+# default to Keycloak's own values, so leaving them alone changes nothing.
+# Defaults: 1800 / 36000 (seconds)
+# keycloak_config_sso_session_idle_timeout: 1800
+# keycloak_config_sso_session_max_lifespan: 36000
+
+# Set false only where the Keycloak endpoint serves a certificate the Ansible
+# control machine has no reason to trust. A deployment issuing from a root the
+# control machine already trusts should leave this alone.
+# Default: true
+# keycloak_config_validate_certs: false
+
 
 # =====================================================================
 # OpenSearch
@@ -1540,6 +1586,23 @@
 # =====================================================================
 # DE general settings
 # =====================================================================
+
+# How deploy_it.yml runs the service list. Both default to today's behaviour,
+# so leaving them alone changes nothing.
+#
+# deploy_wait false stops skaffold blocking on each service's rollout; the
+# playbook then waits once for every Deployment at the end, turning N
+# sequential waits into one concurrent one. Deploying a single service with
+# --tags wants the default.
+#
+# deploy_continue_on_error false lets one broken service abort the play, which
+# leaves every service after it in the list undeployed while reading as a
+# partial success. Setting it true collects the failures, deploys the rest,
+# and fails at the end naming all of them.
+# Defaults: true / false
+# deploy_wait: false
+# deploy_continue_on_error: true
+# deploy_wait_timeout: 900
 
 # Comma-separated groups whose members get DE admin rights.
 # Default: core-services,dev,staff
@@ -1759,6 +1822,21 @@
 # Entitlements granting access to the VICE admin API.
 # Default: replace_me
 # vice_operator_admin_entitlements: core-services,dev,staff
+
+# CIDRs analyses may reach, for destinations a hostname cannot express.
+# NetworkPolicies are evaluated after DNAT, so naming a Service by its
+# ClusterIP does nothing — the backing pods' CIDR is what has to be listed.
+# This only comes up where a DE hostname resolves inside the cluster.
+# Default: [] (no --egress-cidr-exception flags are rendered)
+# vice_operator_egress_cidr_exceptions:
+#   - 10.42.0.0/16
+
+# Private CA the vice-operator mounts for OIDC discovery against Keycloak, and
+# that it mounts into each analysis's vice-proxy sidecar for the back-channel
+# token exchange. Must live in vice_ns, and this role owns that copy.
+# Default: "{{ de_ca_bundle_configmap }}" — set that instead unless the
+# vice-operator genuinely needs a different bundle from the other services.
+# vice_operator_ca_bundle_configmap: de-ca-bundle
 
 # Registry account the VICE operator pulls app images with.
 # Default: replace_me

@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-07-30T00:00:00Z
+timestamp: 2026-07-31T12:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -103,6 +103,15 @@ permissions or version problem rather than a stale database. `postgresql_init`
 checks `datlocprovider` up front and fails naming the offending databases. The
 check runs only when `create_dbs` is set, so an environment that does not
 create databases is unaffected by ones predating the switch.
+
+The check runs once per database server rather than once overall. Keycloak's
+database is created against `keycloak_db_login_host`, which need not be
+`db_login_host`, and a database that is not on the server being queried simply
+does not come back in the result — so a single pass against one host would
+report every database on the other as fine. `postgresql_init_preflight_targets`
+pairs each host with the databases expected on it, and `local-teardown.yml`
+drives its drops from the same structure for the same reason. Where both names
+resolve to one server the second pass is redundant rather than wrong.
 
 Roles are the subtler half of the same problem, because they outlive the
 databases they own. `postgresql_user` reconciles only the attributes it is

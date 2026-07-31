@@ -42,18 +42,6 @@
           "validators": []
         },
         {
-          "arguments": [],
-          "defaultValue": "wc.out",
-          "description": "The name of the output file.",
-          "id": "48c5d28a-6817-11f0-b765-008cfa5ae621_48c6fbb0-6817-11f0-b765-008cfa5ae621",
-          "isVisible": true,
-          "label": "Output File",
-          "name": "",
-          "required": true,
-          "type": "FileOutput",
-          "validators": []
-        },
-        {
           "arguments": [
             {
               "display": "All",

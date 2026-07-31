@@ -216,6 +216,14 @@ de_ca_bundle_mount_path: /etc/de-ca
 # password is the JDK default, and this trust store is public information.
 de_ca_truststore_dir: /etc/de-ca-jvm
 de_ca_truststore_password: changeit
+# Image that init container runs. Empty means the service's own image, which is
+# what a service built on a JRE base wants: the trust store then matches the JDK
+# that will read it and no second image has to be kept in step. A distroless
+# service image has neither a shell nor keytool, so those services override this
+# with an image that has both — set it per service role, not here. A PKCS12
+# cacerts is portable across JDK 9+, so the public roots coming from the builder
+# rather than from the service image is not a difference that shows up.
+de_ca_truststore_builder_image: ""
 
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
