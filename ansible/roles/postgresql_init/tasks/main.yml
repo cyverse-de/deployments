@@ -41,6 +41,13 @@
   tags:
     - update-databases
 
+- name: Setup grafana database
+  when: grafana
+  ansible.builtin.include_tasks: grafana.yml
+  tags:
+    - grafana
+    - update-databases
+
 - name: Clean up database work
   ansible.builtin.include_role:
     name: db_staging

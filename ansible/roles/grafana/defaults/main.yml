@@ -1,0 +1,40 @@
+---
+# Grafana, providing metrics dashboards for the DE. Installed opt-in only: the
+# role entry in kubernetes.yml is gated on the grafana tag, and there is a
+# standalone grafana.yml playbook for deploying it on its own.
+#
+# Grafana keeps its own state (users, API keys, UI-edited dashboards) in a
+# PostgreSQL database on the dbms host rather than a PVC, so the deployment
+# itself is stateless. The database and the read-only role Grafana uses to query
+# the DE database are created by the postgresql_init role -- see
+# roles/postgresql_init/tasks/grafana.yml and the grafana_db_* variables in
+# roles/common/defaults/main.yml.
+grafana_namespace: grafana
+
+grafana_repo: "https://grafana.github.io/helm-charts"
+grafana_chart_version: "10.5.15"
+
+# Bootstrap administrator. This account exists so that a DE administrator can
+# log in and create real accounts; it is not meant to be shared. Override
+# grafana_admin_password in the private inventory's group_vars.
+grafana_admin_user: admin
+grafana_admin_password: Ch@ng3M3
+
+# Grafana is not exposed outside the cluster. Reach it with:
+#   kubectl -n grafana port-forward svc/grafana 3000:80
+# Self-service signup stays off; accounts are created by an administrator.
+grafana_allow_sign_up: false
+
+# PostgreSQL feature level Grafana targets for the DE datasource. This is a
+# floor, not the server's actual version -- Grafana uses it to decide which SQL
+# features to emit, so a value at or below the server version is safe.
+grafana_de_postgres_version: 1400
+
+grafana_replicas: 1
+
+grafana_cpu_request: "100m"
+grafana_cpu_limit: "500m"
+grafana_mem_request: "256Mi"
+grafana_mem_limit: "512Mi"
+grafana_ephemeral_request: "256Mi"
+grafana_ephemeral_limit: "512Mi"

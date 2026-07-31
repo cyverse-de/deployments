@@ -171,6 +171,10 @@
     - role: opensearch
       tags: opensearch
 
+    - role: grafana
+      tags: grafana
+      when: "'grafana' in ansible_run_tags"
+
     - role: kubernetes_node_feature_discovery
       tags: feature-discovery
 

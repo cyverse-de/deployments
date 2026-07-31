@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-27T00:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -50,8 +50,14 @@ inventory group. It runs the `postgresql_init` role, which:
 * checks out the migration repositories and applies them with the `migrate` tool.
 
 The Discovery Environment databases (`de`, `notifications`, `metadata`) are always
-created. The Grouper, QMS, Harbor, Keycloak, and User Portal databases
-are each created only when their feature toggle is enabled.
+created. The Grouper, QMS, Harbor, Keycloak, User Portal, and
+[Grafana](/infrastructure/grafana.md) databases are each created only when their
+feature toggle is enabled.
+
+The Grafana pass is the one that also grants privileges rather than just creating
+a role and a database: alongside the `grafana` owner it creates a `grafana_ro`
+role with `SELECT` on `public.logins` and `public.users` in the `de` database and
+nothing else, which is what Grafana queries the DE data through.
 
 This pass needs the `migrate` command (golang-migrate) on the control host's
 `PATH`. See `docs/index.md` for tool requirements.
@@ -116,6 +122,7 @@ typically reachable directly from operator workstations (or via VPN). Connect wi
 | `metadata`      | Metadata templates and AVUs                                |
 | `qms`           | Quota/subscription management (if QMS enabled)             |
 | `keycloak`      | Keycloak user and realm data                               |
+| `grafana`       | Grafana's own state: accounts, API keys, dashboard edits (if Grafana enabled) |
 
 ### Backups
 

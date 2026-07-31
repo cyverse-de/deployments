@@ -4,7 +4,7 @@ title: Deploying a Full DE Environment
 description: How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
 resource: /ansible/kubernetes.yml
 tags: [deploy, kubernetes, ansible, k0s, environment]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-27T00:00:00Z
 ---
 
 `kubernetes.yml` is the top-level playbook for standing up and maintaining a
@@ -58,7 +58,7 @@ afterwards with `deploy_it.yml`, see
 * Third-party subsystems: `de-reqs`, `argo`, `ingress-nginx`, `traefik`,
   `opensearch`, `grouper`, `image-cache`, `ingress`, `networking`
 * Opt-in only (skipped unless the tag is passed explicitly): `harbor`,
-  `keycloak`, `jaeger`
+  `keycloak`, `jaeger`, `grafana`
 * Databases and services: `install-postgres`, `setup-databases`,
   `configure-services`, `deploy-all-services`, `deploy-single-service`
   (with `-e project=<service>`), `cronjobs`

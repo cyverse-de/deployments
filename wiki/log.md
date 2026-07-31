@@ -1,9 +1,18 @@
 # Wiki Update Log
 
+## 2026-07-29
+
+* **Update**: [Grafana](/infrastructure/grafana.md) — fixed the provisioned DE datasource, which had `database` at the top level of the datasource entry instead of under `jsonData`. That populates only the deprecated `data_source.database` column, and while Grafana's backend falls back to it (so queries and the health check both passed), the UI reads `jsonData.database` — so the datasource showed up with no database configured and couldn't be used from a dashboard. Added a "Where the datasource is" section covering that trap, the assertion that actually catches it, and the fact that a provisioned dashboard has no datasource picker in its top bar because the datasource is pinned per panel. Same note added to the Grafana section of `ansible/README.md`.
+
 ## 2026-07-28
 
 * **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [de-mailer](/services/de-mailer.md) — documented the new `local-exim.yml` playbook, which deploys the local-exim mail relay on its own instead of through `--tags de-reqs` (which also re-runs the namespace, cert-issuer, timezone, and Harbor pull-secret tasks). It imports the same task file the `k8s_de_reqs` role uses, so the two paths can't drift. Recorded the hazard that prompted it on the de-mailer page: the `exim_*` role defaults are non-functional placeholders, and `exim_smarthost`'s `127.0.0.1:25` default points exim at itself, so an environment that never set it accepts mail from de-mailer and then fails to route it. The playbook asserts a non-loopback smarthost before applying.
 * **Update**: [de-mailer](/services/de-mailer.md) and [Portal Exim Mail Relay](/playbooks/portal-exim.md) — corrected the documented `exim_smarthost` format. It feeds exim's `route_list ... byname`, so it is a host list in which a single colon separates hosts and a port needs a second one (`host::port`); the previously documented `host:port` form silently appends a bogus second host that exim resolves to `0.0.0.25` and tries on failover. Fixed the same guidance in the `exim_smarthost` role default and the example inventory. Also recorded on the de-mailer page that the relay pods reach the smarthost SNAT'd as their node IP, so the upstream allowlist must cover the cluster nodes.
+
+## 2026-07-27
+
+* **New**: [Grafana](/infrastructure/grafana.md) — first metrics dashboards for the DE. The new `grafana` role installs the upstream Helm chart opt-in (`when: "'grafana' in ansible_run_tags"`, plus a standalone `grafana.yml`), with a bootstrap admin account, a read-only PostgreSQL datasource on the DE database, and a provisioned DE Logins dashboard built from `public.logins`. Grafana keeps its own state in a `grafana` database rather than a PVC, so the pod is disposable. Documented the two database roles and why they're separate, the `$__env{}` indirection that keeps both passwords out of the chart's ConfigMaps, and the timezone reasoning behind pinning the dashboard to UTC — `logins.login_time` is a naive `America/Phoenix` wall clock, and converting it to true instants would push post-17:00 logins into the next day's bucket. Added `grafana` to the opt-in tag list in [Full Deployment](/playbooks/full-deployment.md).
+* **Update**: [PostgreSQL](/infrastructure/postgresql.md) — added the Grafana database to the `setup-databases` feature-toggle list and the operator database table, and noted that the Grafana pass is the only one that grants table privileges rather than just creating a role and a database.
 
 ## 2026-07-24
 

@@ -37,6 +37,7 @@ ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
 | keycloak                  | `keycloak_db_username`  | `keycloak` var  | no — Keycloak manages its own schema |
 | harbor_core, harbor_clair | `harbor_database_user`  | `harbor` var    | no         |
 | portal                    | `portal_db_user`        | `portal` var    | yes        |
+| grafana                   | `grafana_db_user`       | `grafana` var   | no — Grafana manages its own schema |
 
 The `create_user`, `create_dbs`, `install_exts`, and `migrate` variables control whether database users, the databases
 themselves, extensions, and migrations are handled on a given run. These, the per-service enable flags, and the owner
@@ -106,6 +107,41 @@ explicitly:
 ```bash
 ansible-playbook -i <inventory> --tags keycloak kubernetes.yml
 ```
+
+## Grafana
+
+Grafana provides metrics dashboards for the DE. It ships with a Postgres datasource pointed at the DE database and one
+dashboard covering logins and distinct users over time. Like Keycloak, the role runs in `kubernetes.yml` only when the
+`grafana` tag is passed explicitly, and there is a standalone playbook for deploying it on its own:
+
+```bash
+ansible-playbook -i <inventory> --tags grafana kubernetes.yml
+# or
+ansible-playbook -i <inventory> grafana.yml
+```
+
+Set `grafana: true` and run the database initialization first — Grafana keeps its own state (accounts created through
+the UI, API keys, dashboard edits) in a `grafana` database rather than on a PVC, and queries the DE database through a
+separate read-only role:
+
+```bash
+ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
+```
+
+Grafana is not exposed outside the cluster. Reach it by port-forwarding and logging in as `grafana_admin_user`, then
+create real accounts from there:
+
+```bash
+kubectl -n grafana port-forward svc/grafana 3000:80
+```
+
+Dashboards live in `roles/grafana/files/dashboards/` and are provisioned from a ConfigMap. To change one, edit it in the
+browser, export the JSON through Share → Export, and write it back over the file.
+
+The datasource is provisioned from the role and pinned per panel, so there is **no datasource picker** in a dashboard's
+top bar. To see which datasource a panel uses, hover the panel title and press `e`; the whole dashboard's wiring is under
+Dashboard settings → JSON Model, and the datasource itself is at Connections → Data sources → DE, where it shows as
+"Provisioned" and read-only. Change it by editing the role, not the UI.
 
 ## Services
 

@@ -1,0 +1,101 @@
+---
+- name: Initialize grafana database
+  delegate_to: localhost
+  block:
+    - name: Create the grafana database user
+      community.postgresql.postgresql_user:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ pg_db }}"
+        name: "{{ grafana_db_user }}"
+        password: "{{ grafana_db_password }}"
+      when: create_user is defined and create_user
+      tags:
+        - grafana
+        - update-databases
+
+    # Grafana queries the DE database through this role rather than the
+    # read-write de account, because anyone with the Grafana admin password can
+    # run arbitrary SQL through the datasource. It gets SELECT on the two tables
+    # the dashboards read and nothing else.
+    - name: Create the grafana read-only database user
+      community.postgresql.postgresql_user:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ pg_db }}"
+        name: "{{ grafana_ro_db_user }}"
+        password: "{{ grafana_ro_db_password }}"
+        role_attr_flags: NOCREATEDB,NOCREATEROLE,NOSUPERUSER
+      when: create_user is defined and create_user
+      tags:
+        - grafana
+        - update-databases
+
+    # Grafana manages its own schema on first startup, so there are no
+    # migrations to run against this database.
+    - name: Create the grafana database
+      community.postgresql.postgresql_db:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        name: "{{ grafana_db_name }}"
+        owner: "{{ grafana_db_user }}"
+        encoding: "{{ encoding }}"
+        locale_provider: "icu"
+        icu_locale: "{{ icu_locale }}"
+        template: "{{ template }}"
+      when: create_dbs is defined and create_dbs
+      tags:
+        - grafana
+        - update-databases
+
+    - name: Allow the grafana read-only user to connect to the de database
+      community.postgresql.postgresql_privs:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        type: database
+        objs: "{{ de_db_name }}"
+        privs: CONNECT
+        role: "{{ grafana_ro_db_user }}"
+      tags:
+        - grafana
+        - update-databases
+
+    - name: Allow the grafana read-only user to use the public schema
+      community.postgresql.postgresql_privs:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        type: schema
+        objs: public
+        privs: USAGE
+        role: "{{ grafana_ro_db_user }}"
+      tags:
+        - grafana
+        - update-databases
+
+    - name: Grant the grafana read-only user access to the login tables
+      community.postgresql.postgresql_privs:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        type: table
+        schema: public
+        objs: "{{ grafana_ro_db_tables | join(',') }}"
+        privs: SELECT
+        role: "{{ grafana_ro_db_user }}"
+      tags:
+        - grafana
+        - update-databases

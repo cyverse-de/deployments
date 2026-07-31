@@ -443,6 +443,7 @@ qms: true
 portal: false
 harbor: true
 keycloak: true
+grafana: false
 install_exts: true
 migrate_release_version: v4.17.0
 migrate_tarball_name: migrate.linux-amd64.tar.gz # or migrate.darwin-amd64.tar.gz
@@ -699,6 +700,27 @@ keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
 keycloak_proxy_headers: "xforwarded"
 keycloak_http_enabled: "true"
+
+# Grafana Database Configuration
+#
+# These live here rather than in roles/grafana/defaults/main.yml because
+# postgresql_init runs in a different play (hosts: dbms) that never loads the
+# grafana role. Only common, which both roles depend on, is visible to both.
+#
+# grafana_db_user owns the database Grafana keeps its own state in: accounts
+# created through the UI, API keys, and any dashboard edits made in the browser.
+grafana_db_name: grafana
+grafana_db_user: grafana
+grafana_db_password: Ch@ng3M3
+
+# Read-only role Grafana uses to query the DE database for the dashboards. It is
+# granted SELECT on grafana_ro_db_tables and nothing else -- add a table here if
+# a new dashboard needs it.
+grafana_ro_db_user: grafana_ro
+grafana_ro_db_password: Ch@ng3M3
+grafana_ro_db_tables:
+  - logins
+  - users
 
 # Gateway API CRD version
 gateway_api_crd_version: v1.5.1  # Keep in step with the Traefik version (v3.7 -> Gateway API v1.5.1)
