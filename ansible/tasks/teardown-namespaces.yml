@@ -48,22 +48,17 @@
     wait: false
   loop: "{{ teardown_namespaces }}"
 
-# A grace period, not the real wait: most namespaces go on their own within it,
-# and the ones that do not are the ones the recovery step exists for. Failure
-# here is uninteresting, so it is suppressed.
-- name: Give the namespaces a chance to terminate on their own
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Namespace
-    name: "{{ item }}"
-  loop: "{{ teardown_namespaces }}"
-  loop_control:
-    label: "{{ item }}"
-  register: teardown_ns_grace
-  until: teardown_ns_grace.resources | default([]) | length == 0
-  retries: "{{ teardown_grace_retries | default(20) }}"
-  delay: 15
-  failed_when: false
+# Long enough for a controller to finish finalizing what it still owns, and no
+# longer. Waiting on the namespaces to disappear instead cannot tell a slow
+# deletion from a wedged one — the DE namespace takes minutes on its own,
+# because the database's volumes go with it — so a grace period sized to
+# outlast that spends the same minutes on every run, reports each poll as
+# FAILED - RETRYING, and ends in an [ERROR] for an outcome that is expected and
+# handled. What actually distinguishes wedged from slow is whether anything is
+# still holding a finalizer, which the next task reads directly.
+- name: Let the controllers finish what they are finalizing
+  ansible.builtin.wait_for:
+    timeout: "{{ teardown_finalizer_settle_seconds | default(20) | int }}"
 
 # One un-looped lookup, so the result is a plain list rather than a per-item
 # register that the expressions above have to reach into differently.
@@ -73,15 +68,17 @@
     kind: Namespace
   register: teardown_ns_all
 
-- name: Record the namespaces that did not finish
+- name: Record the namespaces that have not finished yet
   ansible.builtin.set_fact:
     teardown_ns_stuck: "{{ teardown_ns_all.resources | default([])
       | map(attribute='metadata.name') | select('in', teardown_namespaces) | list }}"
 
-- name: Report the namespaces that need their finalizers released
+# Still terminating is normal at this point and says nothing on its own; the
+# task below is what finds out whether any of them is actually held open.
+- name: Report the namespaces still terminating
   ansible.builtin.debug:
     msg: >-
-      Still terminating after the grace period:
+      Still terminating:
       {{ teardown_ns_stuck | join(', ') if teardown_ns_stuck | length > 0 else 'none' }}
 
 - name: Find the custom resources still holding a terminating namespace open

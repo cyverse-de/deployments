@@ -4,7 +4,7 @@ title: VICE Troubleshooting
 description: Diagnosing stuck or broken VICE interactive apps — loading-page stalls, scheduling and image pull failures, readiness problems, and orphaned resources.
 resource: /docs/vice-troubleshooting.md
 tags: [vice, interactive-apps, troubleshooting, app-exposer, vice-operator, kubernetes]
-timestamp: 2026-07-31T00:00:00Z
+timestamp: 2026-07-31T19:00:00Z
 ---
 
 This runbook covers diagnosing and resolving problems with VICE (Visual Interactive Computing
@@ -66,6 +66,27 @@ export DBMS_HOST=<dbms-host>          # from dbms_host in the inventory
 ## 1. App stuck on loading page
 
 This is the most common VICE complaint. Work through the stages below in order.
+
+> **Polling `/loading/status` is what performs the swap.** The operator moves the
+> analysis's HTTPRoute off the loading service when that endpoint is asked and
+> reports ready — it is not a background reconcile. A browser does this on its
+> own, because the loading page polls it; anything else does not. Checking an
+> analysis with `curl` against `/` alone therefore shows the loading page
+> forever and looks exactly like a stuck launch, no matter how healthy the pod
+> is. Poll the status endpoint first, then request the app:
+>
+> ```bash
+> curl -s "https://<subdomain>.<vice-domain>/loading/status"   # triggers the swap once ready
+> curl -sI "https://<subdomain>.<vice-domain>/"                # now 307s to Keycloak
+> ```
+>
+> Confirm it happened by looking at the route's backend, which should name the
+> analysis service rather than `vice-operator-loading`:
+>
+> ```bash
+> kubectl -n $VICE_NS get httproute <external-id> \
+>   -o jsonpath='{.spec.rules[0].backendRefs[0].name}{"\n"}'
+> ```
 
 ### Stage 1 — Find the pod
 
