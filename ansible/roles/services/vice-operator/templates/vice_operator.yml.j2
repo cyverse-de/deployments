@@ -135,6 +135,10 @@ spec:
             - "--vice-base-url={{ vice_operator_base_url }}"
             - "--public-url={{ vice_operator_public_base_url }}"
             - "--local-storage-class={{ vice_local_storage_class }}"
+{% if want_ca %}
+            - "--ca-bundle-configmap={{ vice_operator_ca_bundle_configmap }}"
+            - "--ca-bundle-key={{ de_ca_bundle_key }}"
+{% endif %}
             - "--status-listener-url=https://{{de_hostname}}/job"
 {% if vice_operator_skip_gateway_creation %}
             - "--gateway-skip-creation"
@@ -163,6 +167,9 @@ spec:
 {% endfor %}
 {% for egress_host_exception in vice_operator_egress_host_exceptions %}
             - "--egress-host-exception={{ egress_host_exception }}"
+{% endfor %}
+{% for egress_cidr_exception in vice_operator_egress_cidr_exceptions %}
+            - "--egress-cidr-exception={{ egress_cidr_exception }}"
 {% endfor %}
           ports:
             - containerPort: {{ vice_operator_port }}

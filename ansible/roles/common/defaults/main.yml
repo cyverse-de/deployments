@@ -936,9 +936,16 @@ vice_operator_ingress_pod_exceptions:
 vice_operator_egress_host_exceptions:
   - "{{ irods_host }}"
   - "{{ registry_hostname }}"
+# CIDRs analyses may reach, for destinations a hostname cannot express. A
+# NetworkPolicy sees the post-DNAT address, so reaching a service by its
+# ClusterIP needs the backing pods' CIDR here, not the ClusterIP — which only
+# comes up where a DE hostname resolves inside the cluster.
+vice_operator_egress_cidr_exceptions: []
 # Mount a private CA into the vice-operator so it can complete OIDC discovery
-# against a Keycloak whose certificate is not signed by a public CA. Empty
-# means the pod uses its image's trust store, which is what an environment with
+# against a Keycloak whose certificate is not signed by a public CA. Also names
+# the ConfigMap the operator mounts into each analysis's vice-proxy sidecar for
+# its back-channel token exchange, so it must live in vice_ns. Empty means both
+# use their image's trust store, which is what an environment with
 # publicly-trusted certificates wants.
 # Defaults to the shared bundle so one setting covers every service; still
 # overridable on its own for an environment that needs vice-operator to differ.
