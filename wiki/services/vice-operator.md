@@ -4,7 +4,7 @@ title: vice-operator
 description: Operator that runs VICE analyses in a dedicated namespace, built from the app-exposer repo and deployed with its own RBAC instead of skaffold.
 resource: /ansible/roles/services/vice-operator
 tags: [vice, operator, app-exposer, rbac, gateway, gpu]
-timestamp: 2026-07-31T12:00:00Z
+timestamp: 2026-07-31T18:00:00Z
 ---
 
 The vice-operator manages VICE analyses inside the `vice_ns` namespace: its
@@ -55,6 +55,28 @@ differ, and one object reconciled by two roles is worse than two objects. The
 key, mount path and `--ca-bundle-key` flag all derive from `de_ca_bundle_key`
 and `de_ca_bundle_mount_path`, so overriding either stays consistent across the
 ConfigMap the role writes and the manifest that reads it.
+
+## Registration with app-exposer
+
+Deploying the operator does not make it usable. app-exposer schedules VICE
+launches onto the operators listed in the `operators` table of the DE database
+and reconciles that list into its scheduler every few minutes; it does not
+discover them. Until a row exists the operator is invisible, and a launch fails
+with `no operators configured` while the operator's own logs show nothing but
+successful health probes — the failure names neither the operator nor the table.
+
+`vice_operators_values` supplies the rows and `tasks/register.yml` creates them
+through app-exposer's admin API (`POST /vice/admin/operators`, over a
+port-forward, since the admin routes are internal) rather than by INSERT, so the
+field validation and the server-assigned id come from the service that owns the
+table. Each entry needs `name`, `url` — how app-exposer reaches the operator
+inside the cluster — and `base_url`, the operator's public address;
+`tls_skip_verify` and `priority` are optional. Registration matches on name, so
+re-running is a no-op; an entry whose `url` changed is left alone rather than
+silently rewritten.
+
+The default is empty, because QA and prod already have their rows. A deployment
+building the database from nothing has to list its own.
 
 The `porklock-config` Secret is populated from the same `irods_host`,
 `irods_user`, `irods_password`, `irods_zone`, and `irods_port` inventory

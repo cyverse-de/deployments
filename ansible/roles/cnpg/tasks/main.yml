@@ -138,3 +138,20 @@
          | list | length) > 0
       retries: "{{ cnpg_ready_retries | int }}"
       delay: "{{ cnpg_ready_delay | int }}"
+
+    # A ready EndpointSlice still is not the thing postgresql_init depends on.
+    # It reaches the database at the Service's ClusterIP from the control
+    # machine, and that path only works once kube-proxy has programmed the rule
+    # for a Service created seconds earlier — which it does independently of
+    # anything the API server has already reported ready. Waiting on the object
+    # and then connecting has a window in it, and the failure lands in the
+    # pre-flight as "unable to connect to database: connection timeout expired",
+    # pointing at the database rather than at the rule that is not there yet.
+    #
+    # So wait on the connection itself, from the host that will make it.
+    - name: Wait until the control machine can open a connection to the database
+      ansible.builtin.wait_for:
+        host: "{{ db_login_host }}"
+        port: "{{ pg_listen_port | int }}"
+        timeout: "{{ cnpg_reachable_timeout | int }}"
+        delay: 2

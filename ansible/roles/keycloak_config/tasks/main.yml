@@ -240,3 +240,41 @@
       loop: "{{ keycloak_config_service_account_roles | subelements('roles') }}"
       loop_control:
         label: "{{ item.0.client_id }} -> {{ item.1 }}"
+
+    # In master rather than the DE realm — see keycloak_config_master_clients
+    # for why terrain's admin client has to live there.
+    - name: Create the clients that belong in the master realm
+      community.general.keycloak_client:
+        <<: *auth
+        realm: "{{ keycloak_config_auth_realm }}"
+        client_id: "{{ item.client_id }}"
+        secret: "{{ item.secret }}"
+        public_client: false
+        authorization_services_enabled: false
+        standard_flow_enabled: "{{ item.standard_flow | default(false) }}"
+        direct_access_grants_enabled: "{{ item.direct_access_grants | default(false) }}"
+        service_accounts_enabled: "{{ item.service_accounts | default(false) }}"
+        implicit_flow_enabled: false
+        state: present
+      loop: "{{ keycloak_config_master_clients }}"
+      loop_control:
+        label: "{{ item.client_id }}"
+      no_log: true
+
+    # client_id here names the client whose roles are being granted, not the one
+    # receiving them; that is service_account_user_client_id. Without this the
+    # service account authenticates and every admin call comes back 403, which
+    # is a different symptom from the invalid_client above and needs the same
+    # fix applied to a different realm.
+    - name: Grant the master service accounts their per-realm admin roles
+      community.general.keycloak_user_rolemapping:
+        <<: *auth
+        realm: "{{ keycloak_config_auth_realm }}"
+        service_account_user_client_id: "{{ item.0.client_id }}"
+        client_id: "{{ item.0.role_client_id }}"
+        roles:
+          - name: "{{ item.1 }}"
+        state: present
+      loop: "{{ keycloak_config_master_service_account_roles | subelements('roles') }}"
+      loop_control:
+        label: "{{ item.0.client_id }} -> {{ item.0.role_client_id }}/{{ item.1 }}"

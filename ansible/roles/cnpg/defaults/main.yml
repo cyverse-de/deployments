@@ -43,3 +43,9 @@ cnpg_service_cluster_ip: ""
 
 cnpg_ready_retries: 60
 cnpg_ready_delay: 10
+
+# How long to wait for the control machine to be able to reach the database
+# Service, after the cluster and its endpoint already report ready. This covers
+# kube-proxy programming the rule for a just-created Service, which is quick but
+# not instant and is not reflected in any object's status.
+cnpg_reachable_timeout: 300

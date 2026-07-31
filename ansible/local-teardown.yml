@@ -164,6 +164,35 @@
         teardown_namespaces: "{{ local_teardown_de_namespaces | unique }}"
       tags: de
 
+    # Deleting a namespace removes its claims but not the volumes behind them,
+    # and a hostpath volume is reclaimed only by a provisioner that is still
+    # running — which the infra phase below deletes. Anything not reclaimed by
+    # then stays Released for good, and its directory under /var/openebs/local
+    # with it. Ordering the namespaces so storage goes last is what makes this
+    # possible; doing it here is what makes it happen, while the provisioner is
+    # still around to act on the delete.
+    - name: Look up the volumes whose claims have gone
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: PersistentVolume
+      register: local_teardown_pvs
+      tags: de
+
+    # Released and Failed only: those had a claim that no longer exists.
+    # Available volumes may have been provisioned by hand and are not ours.
+    - name: Delete the released volumes while their provisioner still exists
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: PersistentVolume
+        name: "{{ item }}"
+        wait: true
+        wait_timeout: 180
+      loop: "{{ local_teardown_pvs.resources | default([])
+                | selectattr('status.phase', 'in', ['Released', 'Failed'])
+                | map(attribute='metadata.name') | list }}"
+      tags: de
+
     # Read from postgresql_init rather than restated here, so the list of
     # databases torn down cannot drift from the list created.
     - name: Load the managed-database list from postgresql_init

@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, sslip.io, dns, cloudnativepg]
-timestamp: 2026-07-31T12:00:00Z
+timestamp: 2026-07-31T18:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -446,6 +446,24 @@ survive, and two kinds of them block a reinstall rather than merely littering:
   `traefik.io` does not cover the thirteen `hub.traefik.io` CRDs the chart also
   installs. Each subdomain group needs its own entry.
 
+### Volumes outlive the provisioner that reclaims them
+
+Deleting a namespace removes its claims but not the volumes behind them, and a
+hostpath volume is reclaimed only by a provisioner that is still running — which
+the infra phase then deletes. Anything not reclaimed in that window stays
+`Released` for good and keeps its directory under `/var/openebs/local`, which is
+the same leak `k0s reset` causes. Ordering the namespaces so storage goes last
+makes the reclaim possible; the teardown also deletes the released volumes
+explicitly while the provisioner is still there to act on it.
+
+### `until` with `loop` is evaluated per item
+
+The register available to an `until` condition inside a loop is that item's own
+result, not the aggregate — `.resources`, not `.results`. Writing the condition
+against `.results` makes it undefined per item, `default([])` turns that into an
+empty list, and the wait passes on the first try every time while looking
+correct. The namespace waits here are written per item for that reason.
+
 ### Tags and dynamic includes
 
 `local-teardown.yml` includes `tasks/teardown-namespaces.yml` with an explicit
@@ -457,6 +475,35 @@ nothing. `apply:` puts the tag on the included tasks themselves. Worth knowing
 before adding another tagged include here.
 
 ## Ordering hazards
+
+**A ready endpoint is not a reachable one.** `postgresql_init` connects to the
+database from the control machine at the Service's ClusterIP, and that path
+works only once kube-proxy has programmed the rule for a Service created
+seconds earlier — which no object's status reports. Waiting for the CNPG
+Cluster and then for its EndpointSlice still leaves a window, and the failure
+lands in the locale pre-flight as `unable to connect to database: connection
+timeout expired`, pointing at the database rather than at the rule that is not
+there yet. The `cnpg` role therefore ends by waiting on the connection itself,
+from the host that will make it.
+
+**app-exposer does not discover the vice-operator.** It schedules onto the rows
+in the `operators` table and reconciles them into its scheduler every few
+minutes; an operator that is deployed, healthy and serving is invisible until a
+row exists. A launch then fails with `no operators configured` while the
+operator's own logs show nothing but successful health probes.
+`vice_operators_values` lists them and the vice-operator role registers them
+through app-exposer's admin API — empty by default, since QA and prod already
+have their rows, so a deployment building the database from nothing has to say
+so. See [vice-operator](/services/vice-operator.md).
+
+**terrain's Keycloak admin client belongs in the master realm.** terrain builds
+its admin token URL against `realms/master` by name and only then calls
+`admin/realms/<realm>`, so a client of the same name in the DE realm is never
+used. The mismatch surfaces inside terrain's `/secured/bootstrap` response as
+`session: {status: 401, error: invalid_client}` — a session error, which reads
+like bad credentials rather than the wrong realm, and which nothing else
+complains about. `keycloak_config` creates it in master and grants its service
+account `view-users` from the `<realm>-realm` client that Keycloak keeps there.
 
 **The `configs` Secret must exist before any service deploys.**
 `service_configurations` is its only producer and every service `envFrom`s it;

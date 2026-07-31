@@ -1,5 +1,5 @@
 ---
-# Deletes a set of namespaces, in three steps rather than one blocking delete.
+# Deletes a set of namespaces, in stages rather than one blocking delete.
 #
 # A single `state: absent` with `wait: true` per namespace is what this
 # replaces, and it fails in a way that costs the whole play: an operator's
@@ -10,11 +10,16 @@
 # after it — including the CRD cleanup — never runs.
 #
 # So: clear the known offenders while their controllers are still up, start all
-# the deletions without blocking, then release whatever is still held before
-# waiting. The last step is what recovers a namespace already wedged by an
-# earlier run.
+# the deletions without blocking, give them a grace period, then release
+# whatever is still held before waiting for real. The recovery step is also
+# what rescues a namespace a previous run already wedged.
 #
 # Expects: teardown_namespaces (list of names).
+#
+# Note on `until` with `loop`: the condition is evaluated per item, against
+# that item's own result — which has `.resources`, not `.results`. Writing it
+# against `.results` makes the expression undefined per item, `default([])`
+# turns that into an empty list, and the wait passes immediately every time.
 
 - name: Delete the custom resources whose controllers clear their finalizers
   kubernetes.core.k8s:
@@ -30,8 +35,8 @@
   loop_control:
     label: "{{ item.kind }} in {{ item.namespace }}"
   # Best-effort: the CRD may not be installed, or the controller may already be
-  # gone from a previous partial run. Either way the recovery step below is
-  # what guarantees the namespace can finish.
+  # gone from a previous partial run. The recovery step below is what actually
+  # guarantees the namespace can finish.
   failed_when: false
 
 - name: Start deleting the namespaces
@@ -43,9 +48,10 @@
     wait: false
   loop: "{{ teardown_namespaces }}"
 
-# Everything below runs against namespaces that are already Terminating, so
-# nothing here can prolong a deletion that would otherwise have succeeded.
-- name: Look up the namespaces that have not finished terminating
+# A grace period, not the real wait: most namespaces go on their own within it,
+# and the ones that do not are the ones the recovery step exists for. Failure
+# here is uninteresting, so it is suppressed.
+- name: Give the namespaces a chance to terminate on their own
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Namespace
@@ -53,13 +59,30 @@
   loop: "{{ teardown_namespaces }}"
   loop_control:
     label: "{{ item }}"
-  register: teardown_ns_remaining
-  until: >-
-    (teardown_ns_remaining.results | default([]) | map(attribute='resources')
-     | flatten | length) == 0
-  retries: 20
+  register: teardown_ns_grace
+  until: teardown_ns_grace.resources | default([]) | length == 0
+  retries: "{{ teardown_grace_retries | default(20) }}"
   delay: 15
   failed_when: false
+
+# One un-looped lookup, so the result is a plain list rather than a per-item
+# register that the expressions above have to reach into differently.
+- name: Look up which namespaces are still terminating
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Namespace
+  register: teardown_ns_all
+
+- name: Record the namespaces that did not finish
+  ansible.builtin.set_fact:
+    teardown_ns_stuck: "{{ teardown_ns_all.resources | default([])
+      | map(attribute='metadata.name') | select('in', teardown_namespaces) | list }}"
+
+- name: Report the namespaces that need their finalizers released
+  ansible.builtin.debug:
+    msg: >-
+      Still terminating after the grace period:
+      {{ teardown_ns_stuck | join(', ') if teardown_ns_stuck | length > 0 else 'none' }}
 
 - name: Find the custom resources still holding a terminating namespace open
   kubernetes.core.k8s_info:
@@ -67,20 +90,14 @@
     kind: "{{ item.kind }}"
     namespace: "{{ item.namespace }}"
   loop: "{{ local_teardown_finalizer_resources
-            | selectattr('namespace', 'in', teardown_namespaces) | list }}"
+            | selectattr('namespace', 'in', teardown_ns_stuck) | list }}"
   loop_control:
     label: "{{ item.kind }} in {{ item.namespace }}"
   register: teardown_stuck_resources
-  when: teardown_ns_stuck | length > 0
   failed_when: false
-  vars:
-    teardown_ns_stuck: >-
-      {{ teardown_ns_remaining.results | default([])
-         | map(attribute='resources') | flatten
-         | map(attribute='metadata.name') | list }}
 
 # merge_type: merge (RFC 7386) replaces the array wholesale, which is the only
-# way to empty it — a strategic merge patch can add finalizers but not remove
+# way to empty it — a strategic merge patch can add finalizers but never remove
 # them. With the finalizers gone the API server completes the delete that was
 # already requested, and the namespace follows within a few seconds.
 - name: Release the finalizers their controller is no longer around to clear
@@ -109,8 +126,6 @@
   loop_control:
     label: "{{ item }}"
   register: teardown_ns_final
-  until: >-
-    (teardown_ns_final.results | default([]) | map(attribute='resources')
-     | flatten | length) == 0
+  until: teardown_ns_final.resources | default([]) | length == 0
   retries: 40
   delay: 15

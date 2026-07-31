@@ -177,3 +177,10 @@
         path: "/tmp/vice_operator_{{ vice_ns }}.yml"
         state: absent
       when: deployed.changed
+
+# Deploying the operator is not the same as app-exposer knowing about it; see
+# register.yml. Empty by default, so this is a no-op wherever the operators are
+# already in the database.
+- name: Register the operators with app-exposer
+  ansible.builtin.include_tasks: register.yml
+  when: vice_operators_values | default([]) | length > 0

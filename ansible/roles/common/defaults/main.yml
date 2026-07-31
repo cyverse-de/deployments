@@ -897,7 +897,19 @@ vice_namespace_egress_disallow:
   - 128.196.254.64/32
   - 131.153.56.98/32
 vice_default_time_limit_extension: "4h"
+# The operators app-exposer schedules VICE analyses onto, registered with its
+# admin API by the vice-operator role. app-exposer reads these from the
+# `operators` table and does not discover them, so an operator missing from
+# here is invisible to it however healthy it is — a launch fails with "no
+# operators configured". Each entry needs name, url (how app-exposer reaches
+# the operator, in-cluster) and base_url (the operator's public URL);
+# tls_skip_verify and priority are optional.
+#
+# Empty because QA and prod already have their rows; a deployment building the
+# database from nothing has to list its own.
 vice_operators_values: []
+# Local port for the port-forward the registration runs over.
+vice_operator_registry_local_port: 18100
 vice_operator_cluster_config_secret: cluster-config-secret
 vice_operator_disable_spec_launch: false
 vice_operator_skip_gateway_creation: false
