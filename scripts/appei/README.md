@@ -47,6 +47,11 @@ none.
 The Docker images referenced by the tools are not copied; they must be
 pullable from the target cluster.
 
+The bundles a deployment imports by default live in
+`ansible/roles/de_apps/files/apps/`, and `ansible/import_apps.yml` imports them
+with the commands above. Export new bundles into that directory to add to the
+set.
+
 `uv run appei logout --server <server>` deletes a cached token.
 
 ## Development

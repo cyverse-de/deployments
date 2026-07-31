@@ -1,0 +1,20 @@
+---
+# Imports a default set of DE apps, and the tools they run, with scripts/appei.
+#
+# Run this after bootstrap_portal_admin.yml: the import authenticates as
+# portal_bootstrap_user, and creating an app needs an account that already has a
+# DE workspace, which that playbook is what provides. It is idempotent — apps and
+# tools already on the target are reused rather than recreated.
+#
+# Needs uv on the control machine and a route to the public DE hostname.
+#
+# Run: ansible-playbook -i <inventory> import_apps.yml
+
+- name: Import the default DE apps
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: de_apps
+  tags: de-apps

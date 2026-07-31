@@ -1,0 +1,30 @@
+---
+# Imports app bundles with scripts/appei, which talks to Terrain over the
+# public DE hostname. Nothing runs this as part of a deployment; import_apps.yml
+# is the only caller, and it has to follow bootstrap_portal_admin.yml.
+de_apps_appei_project: "{{ playbook_dir }}/../scripts/appei"
+de_apps_bundle_dir: "{{ role_path }}/files/apps"
+
+de_apps_server: "{{ de_hostname }}"
+de_apps_username: "{{ portal_bootstrap_user }}"
+de_apps_password: "{{ portal_bootstrap_password }}"
+
+# Each entry names a bundle in de_apps_bundle_dir. publish makes the app public,
+# which also publishes its tools and drops its beta AVU; feature implies publish.
+de_apps_bundles:
+  - file: de-word-count.json
+    publish: true
+  - file: cloudshell.json
+    publish: true
+  # Deletes portal accounts, so it stays private to the importing admin.
+  - file: portal-delete-user.json
+    publish: false
+
+# requests ignores the system trust store, so a DE whose certificate chains to a
+# private CA has to name the bundle. Empty leaves certifi in place.
+de_apps_ca_bundle: >-
+  {{ de_ca_bundle_file if de_ca_bundle_configmap | default('', true) | length > 0
+     else '' }}
+
+de_apps_ready_retries: 10
+de_apps_ready_delay: 6
