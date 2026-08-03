@@ -24,9 +24,29 @@ configured for the DE realm. The key clients are:
 | VICE API | `vice_api_keycloak_client_id` | `vice_api_keycloak_client_secret` | [vice-operator](/services/vice-operator.md) API authentication |
 | VICE operator | `vice_operator_keycloak_client_id` | `vice_operator_keycloak_client_secret` | vice-operator internal auth |
 | Portal/formation | `formation_keycloak_client_id` | `formation_keycloak_client_secret` | [portal-conductor](/services/portal-conductor.md) |
+| Groups | `groups_keycloak_client_id` | `groups_keycloak_client_secret` | [groups](/services/groups.md) (reads user attributes) |
 
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.
+
+### Which realm a service account's roles come from
+
+`keycloak_config` grants service-account roles from three separate lists, and
+picking the wrong one produces a client that authenticates successfully and then
+gets a 403 on every call — a failure that looks like a bad secret but is not.
+
+| Variable | Realm | Grants |
+|---|---|---|
+| `keycloak_config_service_account_roles` | DE | realm roles (e.g. `vice-operator`) |
+| `keycloak_config_client_service_account_roles` | DE | client roles (e.g. `realm-management` → `view-users`) |
+| `keycloak_config_master_service_account_roles` | master | client roles on `<realm>-realm` |
+
+The distinction that matters is where the service *logs in*. terrain's admin
+client uses the master list because terrain builds its token URL against
+`realms/master` by name. The groups service logs in against the DE realm and
+queries that same realm, so its client and its `view-users` grant both belong
+there — and `view-users` is a client role of the built-in `realm-management`
+client, not a realm role, so granting it by name alone silently matches nothing.
 
 ## Deployment
 

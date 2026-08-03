@@ -22,6 +22,17 @@ authorization, with one deliberate exception — adding a member who has no
 subject row yet requires Keycloak, because that is where the username is
 verified.
 
+That lookup runs against the DE realm, not master, so the client and its
+`realm-management`/`view-users` grant both live there; see
+[which realm a service account's roles come from](/infrastructure/keycloak.md).
+Because the call is HTTPS, the deployment manifest carries the `de_ca_*`
+partials, so a deployment with a private CA trusts it. The Grouper importer
+deliberately carries none: it reaches Grouper and the DE database over
+`postgresql` with `sslmode` disabled and the permissions service over plain
+HTTP, so it opens no TLS connection at all. `GET /` reports both dependencies
+(`{"database":true,"keycloak":true}`), which is the quickest way to tell a
+CA or credential problem from a database one.
+
 Group authorization is delegated to the permissions service, where each group is
 a resource of type `group`. Accounts listed in `groups_admin_users` bypass every
 per-group check and have full administrative control over all groups, so only
