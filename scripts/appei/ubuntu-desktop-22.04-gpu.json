@@ -1,0 +1,147 @@
+{
+  "app_type": "DE",
+  "beta": true,
+  "can_favor": true,
+  "can_rate": true,
+  "can_run": true,
+  "categories": [],
+  "deleted": false,
+  "description": "KASM Ubuntu Desktop with GPU enabled",
+  "disabled": false,
+  "documentation": {
+    "app_id": "780639c8-241f-11ef-be5c-008cfa5ae621",
+    "created_by": "tswetnam@iplantcollaborative.org",
+    "created_on": "2024-09-06T15:47:48.000Z",
+    "documentation": "### Ubuntu Desktop GPU\n\n#### Description and Quick Start\nKASM Ubuntu Desktop with GPU enabled\n\n#### Test Data\n/iplant/home/shared/cyverse_training\n\n#### Input File(s)\nn/a\n\n#### Parameters Used in App\nn/a\n\n#### Output File(s)\nn/a\n\n### License\nBSD\n\n\n### Reference(s)\n",
+    "modified_by": "tswetnam@iplantcollaborative.org",
+    "modified_on": "2024-09-06T15:47:48.000Z",
+    "references": [],
+    "version_id": "780b9008-241f-11ef-be5c-008cfa5ae621"
+  },
+  "edited_date": "2024-09-06T15:47:48.000Z",
+  "groups": [],
+  "hierarchies": [],
+  "id": "780639c8-241f-11ef-be5c-008cfa5ae621",
+  "integration_date": "2024-09-06T15:47:48.000Z",
+  "integrator_email": "tswetnam@arizona.edu",
+  "integrator_name": "Tyson Swetnam",
+  "isBlessed": false,
+  "is_favorite": false,
+  "is_public": true,
+  "job_stats": {
+    "job_count": 83,
+    "job_count_completed": 83,
+    "job_count_failed": 0,
+    "job_last_completed": "2026-07-31T12:02:47.000Z",
+    "last_used": "2026-07-31T09:45:03.000Z"
+  },
+  "label": "Ubuntu Desktop GPU",
+  "limitChecks": {
+    "canRun": true,
+    "results": []
+  },
+  "name": "Ubuntu Desktop GPU",
+  "overall_job_type": "interactive",
+  "permission": "read",
+  "pipeline_eligibility": {
+    "is_valid": false,
+    "reason": "Job type, interactive, can't currently be included in a pipeline."
+  },
+  "rating": {
+    "average": 5.0,
+    "total": 1
+  },
+  "references": [],
+  "requirements": [
+    {
+      "gpu_models": [
+        "NVIDIA-A16"
+      ],
+      "max_cpu_cores": 16.0,
+      "max_gpus": 0,
+      "memory_limit": 34359738368,
+      "step_number": 0
+    }
+  ],
+  "step_count": 1,
+  "suggested_categories": [],
+  "system_id": "de",
+  "tools": [
+    {
+      "attribution": "",
+      "container": {
+        "container_devices": [
+          {
+            "container_path": "/mnt/notused",
+            "host_path": "/dev/nvidia",
+            "id": "2b1d4c2c-6b97-11ef-a3bf-008cfa5ae621"
+          }
+        ],
+        "container_ports": [
+          {
+            "bind_to_host": false,
+            "container_port": 6901,
+            "host_port": null,
+            "id": "2b1d9894-6b97-11ef-a3bf-008cfa5ae621"
+          }
+        ],
+        "id": "410bd04a-241f-11ef-9e0e-008cfa5ae621",
+        "image": {
+          "deprecated": false,
+          "id": "964da566-487c-11ef-95e2-008cfa5ae621",
+          "name": "harbor.cyverse.org/vice/kasm/ubuntu",
+          "osg_image_path": "",
+          "tag": "gpu-22.04",
+          "url": ""
+        },
+        "interactive_apps": {
+          "cas_url": "https://olson.cyverse.org/cas",
+          "cas_validate": "validate",
+          "frontend_url": null,
+          "id": "2b1cae7a-6b97-11ef-a3bf-008cfa5ae621",
+          "image": "discoenv/cas-proxy",
+          "name": "cas-proxy",
+          "ssl_cert_path": null,
+          "ssl_key_path": null
+        },
+        "max_cpu_cores": 16.0,
+        "memory_limit": 34359738368,
+        "network_mode": "bridge",
+        "skip_tmp_mount": true,
+        "uid": 1000,
+        "working_directory": "/home/kasm-user/data-store"
+      },
+      "description": "KASM Ubuntu Desktop w/ experimental GPU ",
+      "id": "41099b36-241f-11ef-9e0e-008cfa5ae621",
+      "implementation": {
+        "implementor": "Michele Cosi",
+        "implementor_email": "cosi@arizona.edu",
+        "test": {
+          "input_files": [],
+          "output_files": []
+        }
+      },
+      "interactive": true,
+      "is_public": true,
+      "location": "",
+      "name": "harbor.cyverse.org/vice/kasm/ubuntu",
+      "permission": "read",
+      "restricted": false,
+      "time_limit_seconds": 14400,
+      "type": "interactive",
+      "version": "gpu-22.04"
+    }
+  ],
+  "version": "gpu-22.04",
+  "version_id": "780b9008-241f-11ef-be5c-008cfa5ae621",
+  "versions": [
+    {
+      "version": "gpu-22.04",
+      "version_id": "780b9008-241f-11ef-be5c-008cfa5ae621"
+    },
+    {
+      "version": "gpu-22.04",
+      "version_id": "780b9008-241f-11ef-be5c-008cfa5ae621"
+    }
+  ]
+}
