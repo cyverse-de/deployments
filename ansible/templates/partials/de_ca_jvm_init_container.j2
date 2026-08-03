@@ -1,0 +1,34 @@
+{# Include at column 0, as a sibling of the pod spec's containers: key.
+
+   Every service that reads JAVA_TOOL_OPTIONS from the java-tool-options
+   ConfigMap must include this: service_configurations appends
+   -Djavax.net.ssl.trustStore to those values for the whole set, and a JVM
+   pointed at a trust store that does not exist falls back to its image's
+   cacerts without a word, so the CA would be mounted and silently ignored. #}
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+      # A JVM will not read a PEM bundle, so the image's own cacerts is copied
+      # and the CA imported into the copy. Run from the service image by
+      # default, so the trust store matches the JDK that will read it and no
+      # second image has to be kept in step — a distroless service image has
+      # neither a shell nor keytool and must set de_ca_truststore_builder_image.
+      initContainers:
+        - name: trust-store
+          image: "{{ de_ca_truststore_builder_image | default('', true) or build_json.builds[0].tag }}"
+          command:
+            - sh
+            - -c
+            - >-
+              cp "$(dirname $(dirname $(readlink -f $(command -v java))))/lib/security/cacerts"
+              {{ de_ca_truststore_dir }}/cacerts &&
+              chmod u+w {{ de_ca_truststore_dir }}/cacerts &&
+              keytool -importcert -noprompt -alias de-local-ca
+              -keystore {{ de_ca_truststore_dir }}/cacerts
+              -storepass {{ de_ca_truststore_password }}
+              -file {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+          volumeMounts:
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+            - name: de-ca-jvm
+              mountPath: {{ de_ca_truststore_dir }}
+{% endif %}

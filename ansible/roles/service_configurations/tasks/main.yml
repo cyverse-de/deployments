@@ -105,11 +105,28 @@
           metadata:
             name: java-tool-options
             namespace: "{{ ns }}"
+          # A JVM cannot be pointed at a PEM bundle, so where a CA bundle is in
+          # use the services get a prepared trust store instead — built by an
+          # init container from their own image's cacerts. Appending the flags
+          # here rather than per service keeps it to one place, but it also
+          # binds the two: every service reading one of these keys must include
+          # partials/de_ca_jvm_init_container.j2, because a JVM pointed at a
+          # trust store that is not there falls back to its image's cacerts in
+          # silence — the CA ends up mounted and ignored.
+          #
+          # grouper is deliberately not among them: grouper_init builds its
+          # pods inline and hardcodes JAVA_TOOL_OPTIONS, so this key is never
+          # read and adding the flags here would only suggest otherwise.
           data:
-            low: "{{ jvm_opts_low }}"
-            medium: "{{ jvm_opts_medium }}"
-            high: "{{ jvm_opts_high }}"
+            low: "{{ jvm_opts_low }}{{ jvm_truststore_opts }}"
+            medium: "{{ jvm_opts_medium }}{{ jvm_truststore_opts }}"
+            high: "{{ jvm_opts_high }}{{ jvm_truststore_opts }}"
             grouper: "{{ jvm_opts_grouper }}"
+      vars:
+        jvm_truststore_opts: >-
+          {{ (' -Djavax.net.ssl.trustStore=' ~ de_ca_truststore_dir ~ '/cacerts'
+              ~ ' -Djavax.net.ssl.trustStorePassword=' ~ de_ca_truststore_password)
+             if de_ca_bundle_configmap | default('', true) | length > 0 else '' }}
       when: load_configs is undefined or (load_configs | bool)
 
     # The shared service-configs secret was replaced by per-service

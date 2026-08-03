@@ -1,0 +1,18 @@
+---
+# Which of the per-tool secrets to create. All but wc-data read their contents
+# from files the inventory repo ships under secrets/, and those exist only
+# where the tool in question is licensed or configured — MATLAB's runtime data,
+# the NCBI submission configs and its SSH key. An inventory without them cannot
+# create the secret, and the failure is a missing-file error from a lookup
+# rather than anything about Argo.
+#
+# The default is every one, which is what QA and prod expect. Deployments that
+# do not run those tools list only what they have.
+argo_resources_secrets:
+  - wc-data
+  - matlab-mcr-2017b
+  - ncbi-sra-submit-configs-1-2
+  - ncbi-sra-submit-configs-test-1-2
+  - ncbi-sra-submit-ssh-key
+  - ncbi-submit-configs-prod
+  - ncbi-submit-configs-test-1-1

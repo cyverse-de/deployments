@@ -1,0 +1,128 @@
+---
+# Deletes a set of namespaces, in stages rather than one blocking delete.
+#
+# A single `state: absent` with `wait: true` per namespace is what this
+# replaces, and it fails in a way that costs the whole play: an operator's
+# custom resources carry finalizers only that operator's controller clears, and
+# deleting the namespace takes the controller with it. Anything still
+# finalizing then has nothing left to release it, so the namespace sits in
+# Terminating forever, the task burns its timeout and fails, and every task
+# after it — including the CRD cleanup — never runs.
+#
+# So: clear the known offenders while their controllers are still up, start all
+# the deletions without blocking, give them a grace period, then release
+# whatever is still held before waiting for real. The recovery step is also
+# what rescues a namespace a previous run already wedged.
+#
+# Expects: teardown_namespaces (list of names).
+#
+# Note on `until` with `loop`: the condition is evaluated per item, against
+# that item's own result — which has `.resources`, not `.results`. Writing it
+# against `.results` makes the expression undefined per item, `default([])`
+# turns that into an empty list, and the wait passes immediately every time.
+
+- name: Delete the custom resources whose controllers clear their finalizers
+  kubernetes.core.k8s:
+    state: absent
+    delete_all: true
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.namespace }}"
+    wait: true
+    wait_timeout: 120
+  loop: "{{ local_teardown_finalizer_resources
+            | selectattr('namespace', 'in', teardown_namespaces) | list }}"
+  loop_control:
+    label: "{{ item.kind }} in {{ item.namespace }}"
+  # Best-effort: the CRD may not be installed, or the controller may already be
+  # gone from a previous partial run. The recovery step below is what actually
+  # guarantees the namespace can finish.
+  failed_when: false
+
+- name: Start deleting the namespaces
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ item }}"
+    wait: false
+  loop: "{{ teardown_namespaces }}"
+
+# Long enough for a controller to finish finalizing what it still owns, and no
+# longer. Waiting on the namespaces to disappear instead cannot tell a slow
+# deletion from a wedged one — the DE namespace takes minutes on its own,
+# because the database's volumes go with it — so a grace period sized to
+# outlast that spends the same minutes on every run, reports each poll as
+# FAILED - RETRYING, and ends in an [ERROR] for an outcome that is expected and
+# handled. What actually distinguishes wedged from slow is whether anything is
+# still holding a finalizer, which the next task reads directly.
+- name: Let the controllers finish what they are finalizing
+  ansible.builtin.wait_for:
+    timeout: "{{ teardown_finalizer_settle_seconds | default(20) | int }}"
+
+# One un-looped lookup, so the result is a plain list rather than a per-item
+# register that the expressions above have to reach into differently.
+- name: Look up which namespaces are still terminating
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Namespace
+  register: teardown_ns_all
+
+- name: Record the namespaces that have not finished yet
+  ansible.builtin.set_fact:
+    teardown_ns_stuck: "{{ teardown_ns_all.resources | default([])
+      | map(attribute='metadata.name') | select('in', teardown_namespaces) | list }}"
+
+# Still terminating is normal at this point and says nothing on its own; the
+# task below is what finds out whether any of them is actually held open.
+- name: Report the namespaces still terminating
+  ansible.builtin.debug:
+    msg: >-
+      Still terminating:
+      {{ teardown_ns_stuck | join(', ') if teardown_ns_stuck | length > 0 else 'none' }}
+
+- name: Find the custom resources still holding a terminating namespace open
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.namespace }}"
+  loop: "{{ local_teardown_finalizer_resources
+            | selectattr('namespace', 'in', teardown_ns_stuck) | list }}"
+  loop_control:
+    label: "{{ item.kind }} in {{ item.namespace }}"
+  register: teardown_stuck_resources
+  failed_when: false
+
+# merge_type: merge (RFC 7386) replaces the array wholesale, which is the only
+# way to empty it — a strategic merge patch can add finalizers but never remove
+# them. With the finalizers gone the API server completes the delete that was
+# already requested, and the namespace follows within a few seconds.
+- name: Release the finalizers their controller is no longer around to clear
+  kubernetes.core.k8s:
+    state: patched
+    merge_type: merge
+    api_version: "{{ item.0.item.api_version }}"
+    kind: "{{ item.0.item.kind }}"
+    namespace: "{{ item.1.metadata.namespace }}"
+    name: "{{ item.1.metadata.name }}"
+    definition:
+      metadata:
+        finalizers: []
+  loop: "{{ teardown_stuck_resources.results | default([])
+            | rejectattr('skipped', 'defined')
+            | subelements('resources', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.item.kind }}/{{ item.1.metadata.name }}"
+
+- name: Wait for the namespaces to go
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Namespace
+    name: "{{ item }}"
+  loop: "{{ teardown_namespaces }}"
+  loop_control:
+    label: "{{ item }}"
+  register: teardown_ns_final
+  until: teardown_ns_final.resources | default([]) | length == 0
+  retries: 40
+  delay: 15

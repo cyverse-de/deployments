@@ -52,6 +52,10 @@
         dest: "{{ skaffold_dir }}/k8s/{{ manifest_file }}"
         mode: "0644"
 
+    # deploy_wait: false applies the manifest and returns instead of blocking
+    # on rollout. Deploying many services that way turns N sequential waits
+    # into one concurrent one, which is where the wall-clock goes — the caller
+    # is then responsible for waiting (see deploy_it.yml).
     - name: Run skaffold deploy
       delegate_to: localhost
       run_once: true
@@ -63,6 +67,21 @@
           --build-artifacts "{{ build_json_path }}"
           --force
           --kubeconfig "{{ kubeconfig }}"
+          --status-check={{ deploy_wait | bool | lower }}
           {% if deploy_profile is defined -%}
           --profile {{ deploy_profile }}
           {%- endif -%}
+      register: deploy_service_result
+      # With deploy_continue_on_error the run records the failure and carries
+      # on, so one broken service does not truncate the rest of the list. The
+      # caller reports every failure at the end and exits non-zero.
+      failed_when:
+        - deploy_service_result.rc != 0
+        - not (deploy_continue_on_error | bool)
+
+    - name: Record the failed deploy
+      delegate_to: localhost
+      run_once: true
+      when: deploy_service_result.rc != 0
+      ansible.builtin.set_fact:
+        deploy_failed_services: "{{ deploy_failed_services | default([]) + [project_name] }}"

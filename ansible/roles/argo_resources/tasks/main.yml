@@ -28,6 +28,7 @@
           type: opaque
           data:
             test_data.txt: "{{ 'This file is a test of the data containers feature.' | b64encode }}"
+      when: "'wc-data' in argo_resources_secrets"
 
     - name: Create the matlab secret
       kubernetes.core.k8s:
@@ -43,6 +44,7 @@
           type: opaque
           data:
             IRODS.env: "{{ lookup('file', secrets_dir + '/matlab_mcr_2017b-data/v1.0/irods_auth/IRODS.env') | b64encode }}"
+      when: "'matlab-mcr-2017b' in argo_resources_secrets"
 
     - name: Create the ncbi-sra-submit-configs-1-2 secret
       kubernetes.core.k8s:
@@ -78,6 +80,7 @@
             bioproject-update-comment.xml: >-
               {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/bioproject-update-comment.xml') | b64encode }}
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/1.2/templates/submission.xml') | b64encode }}"
+      when: "'ncbi-sra-submit-configs-1-2' in argo_resources_secrets"
 
     - name: Create the ncbi-sra-submit-configs-test-1-2 secret
       kubernetes.core.k8s:
@@ -114,6 +117,7 @@
             bioproject-update-comment.xml: >-
               {{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/bioproject-update-comment.xml') | b64encode }}
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-configs/test.1.2/templates/submission.xml') | b64encode }}"
+      when: "'ncbi-sra-submit-configs-test-1-2' in argo_resources_secrets"
 
     - name: Add the ncbi-sra-submit-ssh-key-data-latest secret
       kubernetes.core.k8s:
@@ -129,6 +133,7 @@
           type: opaque
           data:
             id_rsa_ncbi: "{{ lookup('file', secrets_dir + '/ncbi-sra-submit-ssh-key-data/latest/ssh/id_rsa_ncbi') | b64encode }}"
+      when: "'ncbi-sra-submit-ssh-key' in argo_resources_secrets"
 
     - name: Add the ncbi-submit-configs-prod secret
       kubernetes.core.k8s:
@@ -168,6 +173,7 @@
             genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/genome-metadata.xml') | b64encode }}"
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/submission.xml') | b64encode }}"
             template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/prod/templates/template.sbt') | b64encode }}"
+      when: "'ncbi-submit-configs-prod' in argo_resources_secrets"
 
     - name: Add the ncbi-submit-configs-test-1-1 secret
       kubernetes.core.k8s:
@@ -209,3 +215,4 @@
             genome-metadata.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/genome-metadata.xml') | b64encode }}"
             submission.xml: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/submission.xml') | b64encode }}"
             template.sbt: "{{ lookup('file', secrets_dir + '/ncbi-submit-configs/test.1.1/templates/template.sbt') | b64encode }}"
+      when: "'ncbi-submit-configs-test-1-1' in argo_resources_secrets"

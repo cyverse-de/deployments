@@ -28,6 +28,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: app-exposer-configs
           secret:
             secretName: app-exposer-configs
@@ -56,6 +57,7 @@ spec:
             - --cluster-config-secret
             - "$(CLUSTER_CONFIG_SECRET)"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -91,6 +93,7 @@ spec:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: app-exposer-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true

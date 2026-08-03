@@ -25,12 +25,15 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: bulk-typer-configs
           secret:
             secretName: bulk-typer-configs
             items:
               - key: bulk-typer.properties
                 path: bulk-typer.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: bulk-typer
           image: harbor.cyverse.org/de/bulk-typer
@@ -48,10 +51,13 @@ spec:
             - /etc/iplant/de/bulk-typer.properties
             - --periodic
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: bulk-typer-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

@@ -14,6 +14,7 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: event-recorder-configs
           secret:
             secretName: event-recorder-configs
@@ -36,6 +37,7 @@ spec:
             - --config
             - /etc/iplant/de/jobservices.yml
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -52,6 +54,7 @@ spec:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: event-recorder-configs
               mountPath: /etc/iplant/de
               readOnly: true

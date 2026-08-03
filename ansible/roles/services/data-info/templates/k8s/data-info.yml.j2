@@ -29,12 +29,15 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: data-info-configs
           secret:
             secretName: data-info-configs
             items:
               - key: data-info.properties
                 path: data-info.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: data-info
           image: harbor.cyverse.org/de/data-info
@@ -51,10 +54,13 @@ spec:
             - --config
             - /etc/iplant/de/data-info.properties
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: data-info-configs
               mountPath: /etc/iplant/de
               readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

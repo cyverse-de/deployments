@@ -28,8 +28,8 @@
     "user": "{{ irods_user  }}",
     "password": "{{ irods_password  }}",
     "zone": "{{ irods_zone  }}",
-    "admin_user": "rods",
-    "ipcservices_user": "ipcservices"
+    "admin_user": "{{ portal_conductor_irods_admin_user }}",
+    "ipcservices_user": "{{ portal_conductor_irods_ipcservices_user }}"
   },
   "portal_db": {
     "host": "{{portal_db_host}}",

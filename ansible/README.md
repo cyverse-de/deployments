@@ -50,6 +50,15 @@ down clusters according to a YAML configuration file. We're using stacked contro
 node also acts as an etcd member node. Control nodes do not run workloads and do not show up in the `kubectl get nodes`
 command output.
 
+### Local single-node deployment
+
+`kubernetes.yml` assumes it owns the cluster and the nodes: it runs `k0sctl`, reconfigures each node over SSH, and
+installs PostgreSQL on a database host. To deploy onto a cluster that already exists — a single node on a workstation,
+for example — use `local.yml` instead. It does all of its work through the API server, needs no SSH or sudo, and adds
+three roles that stand in for the pieces that normally live outside the cluster: `local_node_prep` (node labels and
+taints), `local_db_endpoint` (a Service for a database running on the node), and `rabbitmq_k8s` (an in-cluster broker).
+See `wiki/playbooks/local-single-node-deployment.md` for the full runbook.
+
 ## OpenLDAP
 
 The DE uses OpenLDAP with an RFC 2307 schema as its user directory by default. If you don't have an existing LDAP
@@ -60,7 +69,8 @@ DE has not been tested with other LDAP schemas.
 
 The DE and CyVerse Data Store both use RabbitMQ as a message bus. The DE uses it for notifications, and the data store
 uses it to push updates to ElasticSearch for indexing. The `rabbitmq.yml` playbook will install and configure RabbitMQ
-on a single node; see [docs/rabbitmq.md](docs/rabbitmq.md).
+on a single node; see [docs/rabbitmq.md](docs/rabbitmq.md). That playbook acts on a host, so for a deployment with no
+broker host the `rabbitmq_k8s` role runs a single-replica broker in the cluster instead.
 
 ## HTCondor
 

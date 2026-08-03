@@ -4,15 +4,6 @@
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
   block:
-    - name: Install Gateway API CRDs
-      kubernetes.core.k8s:
-        state: present
-        # Traefik v3.7's Gateway provider targets Gateway API v1.5.1 and watches
-        # TLSRoute at startup (WaitForCacheSync blocks on it even when unused). In
-        # v1.5.1 TLSRoute is in the standard channel, so standard-install is
-        # sufficient; the CRD version must stay in step with the Traefik version.
-        src: https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml
-
     - name: Create traefik namespace
       kubernetes.core.k8s:
         name: "{{ traefik_namespace }}"
@@ -137,7 +128,39 @@
               enabled: true
           service:
             type: NodePort
+            # A fixed ClusterIP lets hostnames be derived from it — a
+            # magic-DNS domain such as sslip.io encodes the address in the
+            # name, so the address has to stop moving. Empty leaves the
+            # cluster to assign one. ClusterIP is immutable, so changing this
+            # on an existing release needs the Service deleted first.
+            spec: "{{ {'clusterIP': traefik_cluster_ip} if traefik_cluster_ip | default('', true) | length > 0 else {} }}"
           tlsStore:
             default:
               defaultCertificate:
                 secretName: "{{ traefik_cert_name }}"
+
+    # Applied after the chart, not before it. The chart bundles its own copy of
+    # these CRDs and has to install them to render its own Gateway object, but
+    # its apply conflicts with whatever field manager got there first, which
+    # aborts the release on a fresh cluster. Letting the chart go first and
+    # re-asserting the pinned version here keeps both happy.
+    #
+    # Traefik v3.7's Gateway provider targets Gateway API v1.5.1 and watches
+    # TLSRoute at startup (WaitForCacheSync blocks on it even when unused). In
+    # v1.5.1 TLSRoute is in the standard channel, so standard-install is
+    # sufficient; the CRD version must stay in step with the Traefik version.
+    #
+    # standard-install also creates a ValidatingAdmissionPolicy that rejects
+    # any Gateway API CRD older than v1.5.0 — including the set the chart
+    # bundles. That is harmless while it stays in step with the CRDs, but it
+    # outlives them: a teardown that removes the CRDs and leaves the policy
+    # blocks the chart on the next install, so local-teardown.yml removes it by
+    # name in local_teardown_admission_policy_names.
+    - name: Pin the Gateway API CRDs
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        server_side_apply:
+          field_manager: deployments-traefik-role
+          force_conflicts: true
+        src: https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_crd_version }}/standard-install.yaml

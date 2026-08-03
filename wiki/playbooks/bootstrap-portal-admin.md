@@ -4,7 +4,7 @@ title: Bootstrapping a Portal Admin
 description: How bootstrap_portal_admin.yml creates a login-capable portal admin across LDAP, the portal database, iRODS, and the DE.
 resource: /ansible/bootstrap_portal_admin.yml
 tags: [portal, admin, bootstrap, ldap, irods, terrain]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 Portal login is Keycloak/LDAP-only, so an admin needs both an LDAP identity
@@ -32,6 +32,18 @@ ANSIBLE_JINJA2_NATIVE=True ansible-playbook -i <inventory> bootstrap_portal_admi
    (superuser per `portal_bootstrap_superuser`), plus the matching
    `account_emailaddress` row the portal's Email card reads. Both inserts
    skip existing users.
+
+   On a **freshly created portal database this play fails**, and so does
+   portal self-registration. The insert fills its foreign keys with subselects
+   for a `Not Provided` row in `account_awarechannel`, `account_ethnicity`,
+   `account_fundingagency`, `account_gender`, `account_occupation`,
+   `account_region` (joined to `account_country`), and `account_researcharea`.
+   `postgresql_init` seeds only `account_institution_grid`; the migrations are
+   schema-only, and the rest of these lookup tables were populated by hand in
+   the Django-era portal. With them empty the subselects return NULL and the
+   insert dies on a NOT NULL constraint — self-registration surfaces this as an
+   HTTP 500. Seed a `Not Provided` row in each table, plus at least one
+   `account_country`/`account_region` pair, before running this playbook.
 3. **iRODS home via portal-conductor** — port-forwards to the in-cluster
    [portal-conductor](/services/portal-conductor.md) service and POSTs to
    `/datastore/users` with basic auth (`portal_conductor_auth_username`/

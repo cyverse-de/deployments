@@ -1,0 +1,9 @@
+---
+# The upstream Kubernetes-published kubectl image. This was bitnami/kubectl,
+# which Docker Hub no longer serves — Bitnami withdrew their free tags, so
+# every cluster that re-pulls it gets ErrImagePull "not found". registry.k8s.io
+# has no Docker Hub rate limits and is versioned in step with Kubernetes.
+#
+# kubectl supports a one-minor-version skew either side of the API server, so
+# this needs bumping alongside the clusters it runs on.
+cronjobs_kubectl_image: registry.k8s.io/kubectl:v1.33.6

@@ -22,6 +22,28 @@ irods_zone: replace_me
 irods_password: replace_me
 db_host: replace_me
 
+# The name postgresql_init and db_staging connect to, from the control machine.
+# Distinct from groups['dbms'][0], which the service configs render into pod
+# connection strings: where the database is reached by different names from
+# inside and outside the cluster, one value cannot serve both.
+db_login_host: "{{ groups['dbms'][0] }}"
+keycloak_db_login_host: "{{ groups['keycloak_dbms'][0] }}"
+
+# Where PostgreSQL runs for a local single-node deployment: "cnpg" to run it in
+# the cluster under CloudNativePG, or "host" for one already running on the
+# node, published as a Service by local_db_endpoint. Only local.yml reads it.
+#
+# cnpg is the default because the host path needs PostgreSQL configured to
+# listen on the CNI bridge address, which does not exist when it starts at boot
+# — and PostgreSQL warns rather than failing, so the database silently serves
+# loopback only. Under cnpg there is no host configuration to get wrong, and
+# tearing the cluster down takes the databases with it.
+#
+# Set db_login_host alongside this: under cnpg the control machine reaches the
+# database at the Service's ClusterIP, which is not a name cluster DNS can give
+# it. Pin that address with cnpg_service_cluster_ip so it survives a rebuild.
+local_db_provider: cnpg
+
 env: "{{ ns }}"
 
 # Common Variables
@@ -155,6 +177,53 @@ cert_manager_le_issuer_name: letsencrypt
 cert_manager_le_issuer_email: "{{ email_dest }}"
 cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
 cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
+
+# How default-cluster-issuer signs: selfSigned | ca.
+#   selfSigned - cert-manager generates a throwaway root; browsers must be told
+#                to trust each per-endpoint CA individually.
+#   ca         - an existing CA keypair is loaded from disk and used as the
+#                root. Use this when the root is already in the clients' trust
+#                store, so the certs the 'selfsigned' cert_manager_provider
+#                chain issues come out trusted with no other changes. The root
+#                must permit an intermediate (pathlen >= 1), because that chain
+#                inserts a per-endpoint CA beneath it — notably ruling out a
+#                mkcert root, which is issued with pathlen:0.
+cluster_issuer_default_type: selfSigned
+cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+# Paths on the Ansible control machine. Only read when the type is 'ca'.
+cluster_issuer_ca_cert_file: replace_me
+cluster_issuer_ca_key_file: replace_me
+
+# A ConfigMap holding a CA certificate that services must trust to make
+# server-side HTTPS calls to DE endpoints — Keycloak above all. A container's
+# trust store comes from its image, so an endpoint served by a locally issued
+# root is rejected however well the host and browser trust it: Go services fail
+# with "x509: certificate signed by unknown authority" and JVM services with
+# SunCertPathBuilderException, both surfacing as a 500 rather than anything
+# naming a certificate.
+#
+# Empty means the images' own trust store suffices, which is the case wherever
+# the DE is served by a publicly trusted certificate — so this changes nothing
+# unless it is set.
+de_ca_bundle_configmap: ""
+# Path on the Ansible control machine to read the certificate from.
+de_ca_bundle_file: "{{ cluster_issuer_ca_cert_file }}"
+de_ca_bundle_key: ca.crt
+de_ca_bundle_mount_path: /etc/de-ca
+
+# A JVM cannot read a PEM bundle, so JVM services get a copy of their image's
+# cacerts with this certificate imported, built by an init container. The
+# password is the JDK default, and this trust store is public information.
+de_ca_truststore_dir: /etc/de-ca-jvm
+de_ca_truststore_password: changeit
+# Image that init container runs. Empty means the service's own image, which is
+# what a service built on a JRE base wants: the trust store then matches the JDK
+# that will read it and no second image has to be kept in step. A distroless
+# service image has neither a shell nor keytool, so those services override this
+# with an image that has both — set it per service role, not here. A PKCS12
+# cacerts is portable across JDK 9+, so the public roots coming from the builder
+# rather than from the service image is not a difference that shows up.
+de_ca_truststore_builder_image: ""
 
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
@@ -397,6 +466,11 @@ longhorn_tolerations:
 
 # OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
 openebs_enabled: false
+# Whether openebs-hostpath becomes the cluster's default StorageClass. Needed
+# when OpenEBS is the only storage provider, because openldap-docker's volume
+# claim template does not name a class. Off by default so that adding OpenEBS
+# to a cluster cannot silently steal the default from an existing provider.
+openebs_default_storage_class: false
 
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd
@@ -626,6 +700,17 @@ portal_conductor_url: https://portal-conductor
 portal_conductor_auth_username: "{{ basic_auth_username }}"
 portal_conductor_auth_password: "{{ basic_auth_password }}"
 
+# The two accounts portal-conductor grants ownership of a newly created user's
+# home collection. Both must exist in irods_zone: iRODS rejects a grant to an
+# unknown account with CAT_INVALID_USER, which surfaces as a 500 from
+# /datastore/users *after* the user and its password were created — so a retry
+# looks like it should have worked. "rods" is the stock iRODS administrator and
+# is not present in every zone; check with
+# `select user_name, zone_name from r_user_main` against the ICAT before
+# assuming it is there.
+portal_conductor_irods_admin_user: rods
+portal_conductor_irods_ipcservices_user: ipcservices
+
 # Admin settings
 admin_groups: core-services,dev,staff
 admin_attribute: entitlement
@@ -648,10 +733,19 @@ grouper_db_name: grouper # actual useful value
 grouper_morph_string: n0tr34l
 grouper_connection_user: GrouperSystem
 grouper_connection_pass: Ch@ng3m3
+# grouper_init refers to these rather than the connection_* pair above, and
+# they name the same account. Without defaults the role fails on an undefined
+# variable, which only stays hidden while every inventory happens to set them.
+grouper_db_user: "{{ grouper_connection_user }}"
+grouper_db_pass: "{{ grouper_connection_pass }}"
+# Rendered into grouper.properties; grouper_env above already defaults this way.
+grouper_environment: "{{ env }}"
 grouper_gsh_image: harbor.cyverse.org/de/grouper # actual useful value
 grouper_gsh_image_version: v3.0.0 # actual useful value
 grouper_ws_replicas: 2
 grouper_loader_replicas: 1
+grouper_ws_pod_anti_affinity: true
+grouper_loader_pod_anti_affinity: true
 grouper_tag: v3.0.0
 grouper_folder_name_prefix: "iplant:de:{{ env }}"
 
@@ -739,6 +833,9 @@ traefik_cert_name: "traefik-tls"
 traefik_cert_duration: "2160h"
 traefik_cert_renew_before: "240h"
 
+# Pin Traefik's ClusterIP. Empty means the cluster assigns one, which is what
+# every environment with real DNS wants.
+traefik_cluster_ip: ""
 traefik_http_port: 31380
 traefik_https_port: 31383
 
@@ -800,7 +897,19 @@ vice_namespace_egress_disallow:
   - 128.196.254.64/32
   - 131.153.56.98/32
 vice_default_time_limit_extension: "4h"
+# The operators app-exposer schedules VICE analyses onto, registered with its
+# admin API by the vice-operator role. app-exposer reads these from the
+# `operators` table and does not discover them, so an operator missing from
+# here is invisible to it however healthy it is — a launch fails with "no
+# operators configured". Each entry needs name, url (how app-exposer reaches
+# the operator, in-cluster) and base_url (the operator's public URL);
+# tls_skip_verify and priority are optional.
+#
+# Empty because QA and prod already have their rows; a deployment building the
+# database from nothing has to list its own.
 vice_operators_values: []
+# Local port for the port-forward the registration runs over.
+vice_operator_registry_local_port: 18100
 vice_operator_cluster_config_secret: cluster-config-secret
 vice_operator_disable_spec_launch: false
 vice_operator_skip_gateway_creation: false
@@ -847,6 +956,21 @@ vice_operator_ingress_pod_exceptions:
 vice_operator_egress_host_exceptions:
   - "{{ irods_host }}"
   - "{{ registry_hostname }}"
+# CIDRs analyses may reach, for destinations a hostname cannot express. A
+# NetworkPolicy sees the post-DNAT address, so reaching a service by its
+# ClusterIP needs the backing pods' CIDR here, not the ClusterIP — which only
+# comes up where a DE hostname resolves inside the cluster.
+vice_operator_egress_cidr_exceptions: []
+# Mount a private CA into the vice-operator so it can complete OIDC discovery
+# against a Keycloak whose certificate is not signed by a public CA. Also names
+# the ConfigMap the operator mounts into each analysis's vice-proxy sidecar for
+# its back-channel token exchange, so it must live in vice_ns. Empty means both
+# use their image's trust store, which is what an environment with
+# publicly-trusted certificates wants.
+# Defaults to the shared bundle so one setting covers every service; still
+# overridable on its own for an environment that needs vice-operator to differ.
+vice_operator_ca_bundle_configmap: "{{ de_ca_bundle_configmap }}"
+vice_operator_ca_bundle_file: "{{ de_ca_bundle_file }}"
 vice_operator_admin_entitlements: replace_me
 vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
 vice_api_keycloak_base_url: "{{ keycloak_server_uri }}"

@@ -4,7 +4,7 @@ title: Ingress and Gateway Routing
 description: Traefik (Gateway API) is the primary edge for DE traffic, with ingress-nginx available for Ingress-based exposure; the kubernetes_ingress role defines the DE, portal, and VICE gateways and routes.
 resource: /ansible/roles/kubernetes_ingress
 tags: [ingress, traefik, gateway-api, ingress-nginx, routing, vice, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 The deployment's primary in-cluster edge is Traefik acting as a Kubernetes Gateway API provider:
@@ -24,11 +24,21 @@ so it can be fronted by either mechanism:
   unconditionally.
 - `traefik` (tags `traefik`, `de-reqs`; only when `gateway_provider == "traefik"`) — installs the
   Gateway API CRDs (`gateway_api_crd_version`, v1.5.1, which must stay in step with the Traefik
-  version — Traefik v3.7 blocks at startup waiting for the TLSRoute CRD), creates a self-signed CA,
+  version — Traefik v3.7 blocks at startup waiting for the TLSRoute CRD) **after** the Helm
+  release, not before it. The ordering is load-bearing on a cluster that has no Gateway API CRDs
+  yet: the chart bundles its own copy at v1.4.0 and installs them on first release, while Gateway
+  API v1.5.x ships a `ValidatingAdmissionPolicy` (`safe-upgrades.gateway.networking.k8s.io`) that
+  refuses any CRD older than v1.5.0. Applying the pin first therefore makes the policy reject the
+  chart's own CRDs and the whole release fails. Letting the chart install v1.4.0 and then
+  force-applying v1.5.1 over it leaves the pinned version in place. On an upgrade Helm does not
+  reinstall CRDs, so the question only arises on a first install. It also creates a self-signed CA,
   Issuer, and default TLS certificate via cert-manager in the `traefik` namespace, then installs
   the `traefik/traefik` Helm chart with the `kubernetesGateway` provider enabled. It listens on
   NodePorts `traefik_http_port` (31380) and `traefik_https_port` (31383), with 24h read/write
-  timeouts and `allowEncodedSlash: true` (required for the VICE loading page).
+  timeouts and `allowEncodedSlash: true` (required for the VICE loading page). Both NodePorts are
+  overridable, which is what lets the role adopt a Traefik release that is already installed on
+  different ports: the Helm release name and namespace match, so it upgrades in place rather than
+  installing a second copy.
 
 There is no `traefik.yml` standalone playbook; both roles run only via `kubernetes.yml`.
 

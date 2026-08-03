@@ -4,7 +4,7 @@ title: Building and Deploying Services
 description: How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 resource: /ansible/BUILD_DEPLOY.md
 tags: [build, deploy, release, skaffold, ansible]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-31T12:00:00Z
 ---
 
 This repo is the source of truth for build and deploy configuration: each
@@ -62,7 +62,47 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
 * Deploys assume the cluster subsystems are already installed — see
   [PostgreSQL](/infrastructure/postgresql.md).
 
+## Deploying the whole list
+
+`deploy_it.yml` runs every service role in one list, and two variables change
+how it handles that. Both default to the behaviour described above, so a run
+that sets neither is unchanged.
+
+| Variable | Default | Effect when set |
+| --- | --- | --- |
+| `deploy_wait` | `true` | `false` passes `--status-check=false`, so skaffold applies each manifest and returns instead of blocking on the rollout. The playbook then waits once for every Deployment in `ns` at the end, turning N sequential waits into one concurrent one. |
+| `deploy_continue_on_error` | `false` | `true` records a failed deploy and carries on, then fails at the end naming every service that failed. |
+
+`deploy_continue_on_error` exists because a role that fails inside a `roles:`
+list aborts the play: without it, one broken service silently leaves every
+service after it in the list undeployed, and the run reads as a partial
+success rather than as the truncation it is.
+
+Deploying a single service with `--tags` wants the defaults — there is nothing
+to overlap, and a failure should stop the run. The batch settings are for a
+full bring-up; `deploy_wait_timeout` (default 900s) bounds the single wait.
+
+## A deploy always restarts the service, even with nothing to change
+
+Skaffold stamps a `skaffold.dev/run-id` label — a fresh UUID per invocation —
+onto the **pod template**. A pod-template change is a spec change, so
+`skaffold deploy` rolls its service every time, whether or not the image or
+manifest differs. Deploying without a tag therefore restarts the whole DE.
+
+This is worth knowing rather than working around. Redeploying to restart a
+service is a reasonable thing to want — services read their configuration from
+the `configs` Secret through `envFrom`, and changing that Secret does not
+restart anything on its own — so the behaviour is useful more often than not.
+It matters mainly if you expected a no-op re-run to be free.
+
+It can be suppressed by overriding the label
+(`skaffold deploy --label skaffold.dev/run-id=<stable value>`), which makes an
+unchanged service genuinely untouched. Keep any such value distinct per
+service: skaffold scopes `--status-check` by this label, so one value shared
+across services makes each deploy wait on all of them.
+
 # Citations
 
 [1] `ansible/BUILD_DEPLOY.md` — source document: full prerequisites, what a build does step by step, all variables, troubleshooting.
 [2] `ansible/roles/build-service/`, `ansible/roles/deploy-service/` — the roles that implement builds and deploys.
+[3] `ansible/deploy_it.yml` — the service list, and the post-run wait and failure report driven by `deploy_wait` / `deploy_continue_on_error`.

@@ -1,0 +1,159 @@
+---
+# Configures the realm that keycloak_install deliberately leaves empty: the
+# realm itself, its roles, LDAP user federation, the claim mappers the DE reads
+# entitlements from, and the service clients. Every value derives from existing
+# variables so the same role configures any environment.
+
+# ---------------------------------------------------------------------
+# Admin API connection
+# ---------------------------------------------------------------------
+keycloak_config_url: "{{ keycloak_server_uri }}"
+keycloak_config_auth_realm: master
+keycloak_config_auth_client_id: admin-cli
+keycloak_config_username: "{{ keycloak_admin_username }}"
+keycloak_config_password: "{{ keycloak_admin_password }}"
+# Only set false where the endpoint serves a certificate the control machine
+# has no reason to trust; a deployment issuing from a trusted root should not.
+keycloak_config_validate_certs: true
+
+# ---------------------------------------------------------------------
+# Realm
+# ---------------------------------------------------------------------
+keycloak_config_realm_display_name: "CyVerse Discovery Environment"
+# The DE is served over HTTPS everywhere, including local deployments.
+keycloak_config_ssl_required: all
+
+# How long a DE login lasts. The idle timeout is what users notice: sonora
+# holds a five-minute access token and refreshes it against this session, so
+# going idle for longer than this ends it. The max lifespan caps a session
+# however active it is. Both default to Keycloak's own defaults, so setting
+# them changes nothing until an environment says otherwise.
+keycloak_config_sso_session_idle_timeout: 1800
+keycloak_config_sso_session_max_lifespan: 36000
+
+keycloak_config_realm_roles:
+  - app-runner
+  - cyverse-emailer
+  - cyverse-ldap-reader
+  - cyverse-subscription-updater
+  - vice-operator
+
+keycloak_config_required_actions:
+  - {alias: TERMS_AND_CONDITIONS, name: Terms and Conditions, enabled: true}
+  - {alias: UPDATE_PASSWORD, name: Update Password, enabled: true}
+  - {alias: UPDATE_PROFILE, name: Update Profile, enabled: true}
+  - {alias: VERIFY_EMAIL, name: Verify Email, enabled: true}
+  - {alias: delete_credential, name: Delete Credential, enabled: true}
+  - {alias: idp_link, name: Linking Identity Provider, enabled: true}
+  - {alias: update_user_locale, name: Update User Locale, enabled: true}
+
+# ---------------------------------------------------------------------
+# LDAP user federation
+# ---------------------------------------------------------------------
+keycloak_config_ldap_name: ldap
+keycloak_config_ldap_users_dn: "ou=People,{{ ldap_base_dn }}"
+keycloak_config_ldap_groups_dn: "ou=Groups,{{ ldap_base_dn }}"
+keycloak_config_ldap_bind_dn: "{{ ldap_cn }},{{ ldap_base_dn }}"
+# ldap_ldap_reader_pw only exists where the directory is seeded in-cluster.
+# Elsewhere the same account is the one Grouper binds as, so its password is
+# the fallback rather than leaving the variable undefined.
+keycloak_config_ldap_bind_credential: "{{ ldap_ldap_reader_pw | default(grouper_loader_password) }}"
+keycloak_config_ldap_full_sync_period: 86400
+keycloak_config_ldap_changed_sync_period: 3600
+
+# ---------------------------------------------------------------------
+# Clients
+# ---------------------------------------------------------------------
+# Each entry is one confidential client. Flags default to false in the task, so
+# only the flows a client actually uses appear here. Post-logout redirect URIs
+# are '+' throughout, which Keycloak reads as "the same as the redirect URIs".
+keycloak_config_clients:
+  # The DE UI.
+  - client_id: "{{ keycloak_client_id }}"
+    secret: "{{ keycloak_client_secret }}"
+    root_url: "{{ de_base_uri }}"
+    admin_url: "{{ de_base_uri }}"
+    redirect_uris: ["{{ de_base_uri }}/*"]
+    web_origins: ["{{ de_base_uri }}"]
+    standard_flow: true
+    direct_access_grants: true
+
+  # VICE analyses authenticate against this one, from arbitrary hostnames
+  # under the VICE wildcard.
+  - client_id: "{{ keycloak_vice_client_id }}"
+    secret: "{{ keycloak_vice_client_secret }}"
+    redirect_uris: ["https://*"]
+    web_origins: ["https://{{ vice_wildcard_fqdn }}/*"]
+    standard_flow: true
+    direct_access_grants: true
+    service_accounts: true
+
+  # app-exposer talks to the vice-operator API as a service account; the realm
+  # role it needs is granted separately below.
+  - client_id: "{{ vice_api_keycloak_client_id }}"
+    secret: "{{ vice_api_keycloak_client_secret }}"
+    service_accounts: true
+
+  # vice-operator relays authentication for analyses; the callback paths are
+  # part of its API contract, so they stay literal while the host derives.
+  - client_id: "{{ vice_operator_keycloak_client_id }}"
+    secret: "{{ vice_operator_keycloak_client_secret }}"
+    redirect_uris: ["{{ vice_operator_public_base_url }}/auth/callback"]
+    web_origins: ["+"]
+    standard_flow: true
+    direct_access_grants: true
+
+  - client_id: "{{ vice_operator_swagger_client_id }}"
+    secret: "{{ vice_operator_swagger_client_secret }}"
+    redirect_uris: ["{{ vice_operator_public_base_url }}/docs/callback"]
+    web_origins: ["{{ vice_operator_public_base_url }}"]
+    standard_flow: true
+
+  - client_id: "{{ formation_keycloak_client_id }}"
+    secret: "{{ formation_keycloak_client_secret }}"
+    service_accounts: true
+
+  # The user portal.
+  - client_id: "{{ portal_keycloak_client }}"
+    secret: "{{ portal_keycloak_secret }}"
+    root_url: "{{ user_portal_base_uri }}"
+    admin_url: "{{ user_portal_base_uri }}"
+    redirect_uris: ["{{ user_portal_base_uri }}/*"]
+    web_origins: ["{{ user_portal_base_uri }}"]
+    standard_flow: true
+    direct_access_grants: true
+
+# Realm roles granted to client service accounts, as {client_id, roles}.
+keycloak_config_service_account_roles:
+  - client_id: "{{ vice_api_keycloak_client_id }}"
+    roles: [vice-operator]
+
+# ---------------------------------------------------------------------
+# master realm
+# ---------------------------------------------------------------------
+# terrain's admin API client lives here, not in the DE realm, because that is
+# where terrain asks for its token: keycloak/admin.clj builds the token URL
+# against realms/master by name and only then calls admin/realms/<realm>. A
+# client of the same name in the DE realm authenticates from nothing terrain
+# does, and the mismatch surfaces as `invalid_client` inside terrain's
+# /secured/bootstrap response — reported as a session error, which reads like a
+# credentials problem rather than a realm one.
+#
+# Nothing but client credentials is enabled: terrain uses the service account
+# and no browser flow.
+keycloak_config_master_clients:
+  - client_id: "{{ keycloak_admin_client_id }}"
+    secret: "{{ keycloak_admin_client_secret }}"
+    service_accounts: true
+
+# Roles granted to those service accounts, from the per-realm admin client that
+# Keycloak keeps in master as "<realm>-realm".
+#
+# view-users and no more: terrain's admin client only reads, looking up a user
+# and that user's sessions (clients/keycloak/admin.clj). view-users already
+# implies query-users and query-groups, and manage-users would hand the DE the
+# ability to rewrite the directory it authenticates against.
+keycloak_config_master_service_account_roles:
+  - client_id: "{{ keycloak_admin_client_id }}"
+    role_client_id: "{{ keycloak_realm_name }}-realm"
+    roles: [view-users]

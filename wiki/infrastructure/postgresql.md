@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-07-31T12:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -80,6 +80,45 @@ The `dbms` group holds the PostgreSQL host for the Discovery Environment
 databases. The `keycloak_dbms` group holds the host for the Keycloak database —
 it may be the same server or a separate one. Both passes use the first host
 listed in each group.
+
+`groups['dbms'][0]` is not only an Ansible target: it is interpolated verbatim
+into every database URI the service config templates render, and so it has to
+resolve inside pods. With a dedicated database host that is automatic, and the
+control machine reaches the same name.
+
+Where it does not — as in a
+[local single-node deployment](/playbooks/local-single-node-deployment.md),
+whose inventory hostname is a cluster DNS name backed by a selector-less
+Service and EndpointSlice — set `db_login_host` (and `keycloak_db_login_host`)
+to the address the control machine should use instead. Both default to their
+`groups[...][0]` value, so an inventory that says nothing keeps the single-name
+behaviour.
+
+### Pre-flight locale check
+
+A database's locale provider is fixed when it is created, so `postgresql_db`
+cannot reconcile one that predates this role's move to `locale_provider: icu`:
+it aborts with `Changing ICU_LOCALE is not supported`, which reads like a
+permissions or version problem rather than a stale database. `postgresql_init`
+checks `datlocprovider` up front and fails naming the offending databases. The
+check runs only when `create_dbs` is set, so an environment that does not
+create databases is unaffected by ones predating the switch.
+
+The check runs once per database server rather than once overall. Keycloak's
+database is created against `keycloak_db_login_host`, which need not be
+`db_login_host`, and a database that is not on the server being queried simply
+does not come back in the result — so a single pass against one host would
+report every database on the other as fine. `postgresql_init_preflight_targets`
+pairs each host with the databases expected on it, and `local-teardown.yml`
+drives its drops from the same structure for the same reason. Where both names
+resolve to one server the second pass is redundant rather than wrong.
+
+Roles are the subtler half of the same problem, because they outlive the
+databases they own. `postgresql_user` reconciles only the attributes it is
+given, so a role left over without `LOGIN` gets its password set correctly and
+still cannot connect — Keycloak surfaces this as a crashloop on `password
+authentication failed`. Every role this pass creates is therefore declared with
+`role_attr_flags: LOGIN`.
 
 ## Group Variable Setup
 

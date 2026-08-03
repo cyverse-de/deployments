@@ -1,0 +1,8 @@
+{# Include at column 0: Ansible renders with lstrip_blocks off, so leading
+   whitespace on the include line is emitted verbatim. This file carries its
+   own indentation, which assumes a pod spec's volumes: list. #}
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca
+          configMap:
+            name: {{ de_ca_bundle_configmap }}
+{% endif %}

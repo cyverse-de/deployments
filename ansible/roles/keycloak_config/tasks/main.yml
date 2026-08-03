@@ -1,0 +1,280 @@
+---
+- name: Configure the Keycloak realm
+  delegate_to: localhost
+  vars:
+    keycloak_config_auth: &auth
+      auth_keycloak_url: "{{ keycloak_config_url }}"
+      auth_realm: "{{ keycloak_config_auth_realm }}"
+      auth_client_id: "{{ keycloak_config_auth_client_id }}"
+      auth_username: "{{ keycloak_config_username }}"
+      auth_password: "{{ keycloak_config_password }}"
+      validate_certs: "{{ keycloak_config_validate_certs }}"
+  block:
+    - name: Create the realm
+      community.general.keycloak_realm:
+        <<: *auth
+        id: "{{ keycloak_realm_name }}"
+        realm: "{{ keycloak_realm_name }}"
+        display_name: "{{ keycloak_config_realm_display_name }}"
+        ssl_required: "{{ keycloak_config_ssl_required }}"
+        sso_session_idle_timeout: "{{ keycloak_config_sso_session_idle_timeout | int }}"
+        sso_session_max_lifespan: "{{ keycloak_config_sso_session_max_lifespan | int }}"
+        enabled: true
+        state: present
+
+    - name: Create the realm roles
+      community.general.keycloak_role:
+        <<: *auth
+        realm: "{{ keycloak_realm_name }}"
+        name: "{{ item }}"
+        state: present
+      loop: "{{ keycloak_config_realm_roles }}"
+
+    - name: Set the enabled required actions
+      community.general.keycloak_authentication_required_actions:
+        <<: *auth
+        realm: "{{ keycloak_realm_name }}"
+        required_actions: "{{ keycloak_config_required_actions }}"
+        state: present
+
+    # The entitlement mapper is the one the DE depends on: admin_attribute and
+    # admin_groups are checked against the claim it produces, so a deployment
+    # missing it authenticates users but grants nobody admin.
+    - name: Configure LDAP user federation and its mappers
+      community.general.keycloak_user_federation:
+        <<: *auth
+        realm: "{{ keycloak_realm_name }}"
+        name: "{{ keycloak_config_ldap_name }}"
+        provider_id: ldap
+        provider_type: org.keycloak.storage.UserStorageProvider
+        state: present
+        config:
+          vendor: other
+          connectionUrl: "{{ ldap_uri }}"
+          startTls: false
+          useTruststoreSpi: always
+          connectionPooling: true
+          authType: simple
+          bindDn: "{{ keycloak_config_ldap_bind_dn }}"
+          bindCredential: "{{ keycloak_config_ldap_bind_credential }}"
+          editMode: READ_ONLY
+          usersDn: "{{ keycloak_config_ldap_users_dn }}"
+          usernameLDAPAttribute: uid
+          rdnLDAPAttribute: uid
+          uuidLDAPAttribute: uidNumber
+          userObjectClasses: "inetOrgPerson, posixAccount"
+          searchScope: 1
+          pagination: true
+          importEnabled: true
+          syncRegistrations: false
+          batchSizeForSync: 500
+          fullSyncPeriod: "{{ keycloak_config_ldap_full_sync_period }}"
+          changedSyncPeriod: "{{ keycloak_config_ldap_changed_sync_period }}"
+          allowKerberosAuthentication: false
+          cachePolicy: DEFAULT
+        mappers:
+          # Supplying any mappers replaces the set Keycloak would otherwise
+          # create with the provider, so the standard ones have to be listed
+          # too. Without the username mapper Keycloak fetches no uid and every
+          # user fails to import with "User returned from LDAP has null
+          # username", naming the attribute it was told to use rather than the
+          # missing mapper.
+          - name: username
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: username
+              ldap.attribute: uid
+              read.only: true
+              always.read.value.from.ldap: false
+              is.mandatory.in.ldap: true
+          - name: last name
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: lastName
+              ldap.attribute: sn
+              read.only: true
+              always.read.value.from.ldap: true
+              is.mandatory.in.ldap: true
+          # Optional in the DE's directory, so not mandatory: a user without
+          # one would otherwise fail to import entirely.
+          - name: first name
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: firstName
+              ldap.attribute: givenName
+              read.only: true
+              always.read.value.from.ldap: true
+              is.mandatory.in.ldap: false
+          - name: email
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: email
+              ldap.attribute: mail
+              read.only: true
+              always.read.value.from.ldap: true
+              is.mandatory.in.ldap: false
+          - name: creation date
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: createTimestamp
+              ldap.attribute: createTimestamp
+              read.only: true
+              always.read.value.from.ldap: true
+              is.mandatory.in.ldap: false
+          - name: modify date
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: modifyTimestamp
+              ldap.attribute: modifyTimestamp
+              read.only: true
+              always.read.value.from.ldap: true
+              is.mandatory.in.ldap: false
+          - name: entitlement
+            providerId: group-ldap-mapper
+            config:
+              groups.dn: "{{ keycloak_config_ldap_groups_dn }}"
+              group.name.ldap.attribute: cn
+              group.object.classes: posixGroup
+              preserve.group.inheritance: false
+              membership.ldap.attribute: memberUid
+              membership.attribute.type: UID
+              membership.user.ldap.attribute: uid
+              mode: READ_ONLY
+              user.roles.retrieve.strategy: LOAD_GROUPS_BY_MEMBER_ATTRIBUTE
+              memberof.ldap.attribute: memberOf
+              drop.non.existing.groups.during.sync: true
+              groups.path: /
+          - name: name
+            providerId: user-attribute-ldap-mapper
+            config:
+              user.model.attribute: name
+              ldap.attribute: cn
+              read.only: true
+              always.read.value.from.ldap: true
+              is.mandatory.in.ldap: true
+          - name: roles
+            providerId: role-ldap-mapper
+            config:
+              roles.dn: "{{ keycloak_config_ldap_groups_dn }}"
+              role.name.ldap.attribute: cn
+              role.object.classes: posixGroup
+              membership.ldap.attribute: memberUid
+              membership.attribute.type: UID
+              membership.user.ldap.attribute: uid
+              mode: READ_ONLY
+              # Maps into realm roles rather than a client's roles. The UI
+              # defaults this on; the API rejects the mapper without either
+              # this or an explicit client.id.
+              use.realm.roles.mapping: "true"
+
+    # These put the claims into the token. The LDAP mappers above only bring
+    # the values into Keycloak; without these the tokens omit them.
+    #
+    # Reports changed on every run: the module compares the scope it sends
+    # against the one Keycloak returns, and the server adds fields the desired
+    # state has no way to express. The mapper IDs are stable across runs, so it
+    # converges — the churn is in the reporting, not the resource.
+    - name: Add the name and entitlement mappers to the profile client scope
+      community.general.keycloak_clientscope:
+        <<: *auth
+        realm: "{{ keycloak_realm_name }}"
+        name: profile
+        state: present
+        protocol_mappers:
+          - name: name
+            protocol: openid-connect
+            protocolMapper: oidc-usermodel-property-mapper
+            config:
+              user.attribute: name
+              claim.name: name
+              jsonType.label: String
+              id.token.claim: "true"
+              access.token.claim: "true"
+              userinfo.token.claim: "true"
+          - name: entitlement
+            protocol: openid-connect
+            protocolMapper: oidc-group-membership-mapper
+            config:
+              claim.name: entitlement
+              # The DE matches bare group names, not paths.
+              full.path: "false"
+              id.token.claim: "true"
+              access.token.claim: "true"
+              userinfo.token.claim: "true"
+
+    - name: Create the clients
+      community.general.keycloak_client:
+        <<: *auth
+        realm: "{{ keycloak_realm_name }}"
+        client_id: "{{ item.client_id }}"
+        secret: "{{ item.secret }}"
+        root_url: "{{ item.root_url | default(omit) }}"
+        base_url: "{{ item.base_url | default(omit) }}"
+        admin_url: "{{ item.admin_url | default(omit) }}"
+        redirect_uris: "{{ item.redirect_uris | default([]) }}"
+        web_origins: "{{ item.web_origins | default([]) }}"
+        public_client: false
+        authorization_services_enabled: false
+        standard_flow_enabled: "{{ item.standard_flow | default(false) }}"
+        direct_access_grants_enabled: "{{ item.direct_access_grants | default(false) }}"
+        service_accounts_enabled: "{{ item.service_accounts | default(false) }}"
+        implicit_flow_enabled: false
+        attributes:
+          # '+' means "the same as the redirect URIs", which is what the UI
+          # shows for every one of these clients.
+          post.logout.redirect.uris: "+"
+        state: present
+      loop: "{{ keycloak_config_clients }}"
+      loop_control:
+        label: "{{ item.client_id }}"
+      no_log: true
+
+    - name: Grant realm roles to client service accounts
+      community.general.keycloak_user_rolemapping:
+        <<: *auth
+        realm: "{{ keycloak_realm_name }}"
+        service_account_user_client_id: "{{ item.0.client_id }}"
+        roles:
+          - name: "{{ item.1 }}"
+        state: present
+      loop: "{{ keycloak_config_service_account_roles | subelements('roles') }}"
+      loop_control:
+        label: "{{ item.0.client_id }} -> {{ item.1 }}"
+
+    # In master rather than the DE realm — see keycloak_config_master_clients
+    # for why terrain's admin client has to live there.
+    - name: Create the clients that belong in the master realm
+      community.general.keycloak_client:
+        <<: *auth
+        realm: "{{ keycloak_config_auth_realm }}"
+        client_id: "{{ item.client_id }}"
+        secret: "{{ item.secret }}"
+        public_client: false
+        authorization_services_enabled: false
+        standard_flow_enabled: "{{ item.standard_flow | default(false) }}"
+        direct_access_grants_enabled: "{{ item.direct_access_grants | default(false) }}"
+        service_accounts_enabled: "{{ item.service_accounts | default(false) }}"
+        implicit_flow_enabled: false
+        state: present
+      loop: "{{ keycloak_config_master_clients }}"
+      loop_control:
+        label: "{{ item.client_id }}"
+      no_log: true
+
+    # client_id here names the client whose roles are being granted, not the one
+    # receiving them; that is service_account_user_client_id. Without this the
+    # service account authenticates and every admin call comes back 403, which
+    # is a different symptom from the invalid_client above and needs the same
+    # fix applied to a different realm.
+    - name: Grant the master service accounts their per-realm admin roles
+      community.general.keycloak_user_rolemapping:
+        <<: *auth
+        realm: "{{ keycloak_config_auth_realm }}"
+        service_account_user_client_id: "{{ item.0.client_id }}"
+        client_id: "{{ item.0.role_client_id }}"
+        roles:
+          - name: "{{ item.1 }}"
+        state: present
+      loop: "{{ keycloak_config_master_service_account_roles | subelements('roles') }}"
+      loop_control:
+        label: "{{ item.0.client_id }} -> {{ item.0.role_client_id }}/{{ item.1 }}"

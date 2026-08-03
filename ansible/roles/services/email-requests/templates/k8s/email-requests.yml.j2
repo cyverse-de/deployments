@@ -14,6 +14,7 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: email-requests-configs
           secret:
             secretName: email-requests-configs
@@ -33,6 +34,7 @@ spec:
               memory: "256Mi"
               ephemeral-storage: "1Gi"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -52,6 +54,7 @@ spec:
             - --config
             - /etc/iplant/de/jobservices.yml
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: email-requests-configs
               mountPath: /etc/iplant/de
               readOnly: true

@@ -29,16 +29,21 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: metadata-configs
           secret:
             secretName: metadata-configs
             items:
               - key: metadata.properties
                 path: metadata.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: metadata
           image: harbor.cyverse.org/de/metadata
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: metadata-configs
               mountPath: /etc/iplant/de
               readOnly: true
@@ -55,6 +60,7 @@ spec:
             - --config
             - /etc/iplant/de/metadata.properties
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

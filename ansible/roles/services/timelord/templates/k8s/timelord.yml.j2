@@ -28,6 +28,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: timelord-configs
           secret:
             secretName: timelord-configs
@@ -38,6 +39,7 @@ spec:
         - name: timelord
           image: harbor.cyverse.org/de/timelord
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -56,6 +58,7 @@ spec:
                   name: configs
                   key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: timelord-configs
               mountPath: /etc/iplant/de
               readOnly: true

@@ -33,6 +33,8 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: signing-keys
           secret:
             secretName: signing-keys
@@ -45,6 +47,7 @@ spec:
             items:
               - key: terrain.properties
                 path: terrain.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: terrain
           image: harbor.cyverse.org/de/terrain
@@ -61,6 +64,8 @@ spec:
             - --config
             - /etc/iplant/de/terrain.properties
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: signing-keys
               mountPath: /etc/iplant/crypto/signing_key
               readOnly: true
@@ -71,6 +76,7 @@ spec:
               mountPath: /etc/iplant/de
               readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

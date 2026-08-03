@@ -1,0 +1,73 @@
+---
+# Registers this deployment's vice-operator(s) with app-exposer.
+#
+# app-exposer does not discover operators — it reads them from the `operators`
+# table in the DE database and reconciles that list into its scheduler every
+# few minutes. An operator that is deployed, healthy and serving is invisible
+# to it until a row exists, and a VICE launch then fails with "no operators
+# configured" while the operator's own logs show nothing but successful health
+# probes. Nothing else in the deployment writes that row.
+#
+# Registration goes through app-exposer's admin API rather than an INSERT so
+# the field validation and the server-assigned id come from the service that
+# owns the table.
+- name: Register the operators app-exposer schedules onto
+  delegate_to: localhost
+  run_once: true
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    vice_registry_url: "http://127.0.0.1:{{ vice_operator_registry_local_port }}/vice/admin/operators"
+  block:
+    # Port-forwarded rather than addressed through the public hostname: the
+    # admin routes are internal, and this has to work before DNS for the
+    # deployment resolves.
+    - name: Port-forward to the in-cluster app-exposer service
+      ansible.builtin.shell:
+        cmd: >-
+          nohup kubectl port-forward -n {{ ns }} svc/app-exposer
+          {{ vice_operator_registry_local_port }}:80
+          >/tmp/app-exposer-portforward.log 2>&1 & echo $!
+      register: vice_registry_port_forward
+      changed_when: false
+
+    - name: Wait for the local app-exposer port to be ready
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ vice_operator_registry_local_port }}"
+        timeout: 60
+
+    - name: List the operators already registered
+      ansible.builtin.uri:
+        url: "{{ vice_registry_url }}"
+        return_content: true
+      register: vice_registered_operators
+
+    # Matched by name, which is what makes a re-run a no-op. A registered
+    # operator whose url or base_url has changed is left alone rather than
+    # silently rewritten; PATCH it by id, or delete and re-run.
+    - name: Register the operators that are missing
+      ansible.builtin.uri:
+        url: "{{ vice_registry_url }}"
+        method: POST
+        body_format: json
+        body:
+          name: "{{ item.name }}"
+          url: "{{ item.url }}"
+          base_url: "{{ item.base_url }}"
+          tls_skip_verify: "{{ item.tls_skip_verify | default(false) }}"
+          priority: "{{ item.priority | default(0) | int }}"
+        status_code: [201]
+      loop: "{{ vice_operators_values
+                | rejectattr('name', 'in', vice_registered_operator_names) | list }}"
+      loop_control:
+        label: "{{ item.name }} -> {{ item.url }}"
+      vars:
+        vice_registered_operator_names: >-
+          {{ vice_registered_operators.json | default([]) | map(attribute='name') | list }}
+  always:
+    - name: Stop the port-forward
+      ansible.builtin.command:
+        cmd: "kill {{ vice_registry_port_forward.stdout }}"
+      changed_when: false
+      failed_when: false

@@ -17,16 +17,21 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: info-typer-configs
           secret:
             secretName: info-typer-configs
             items:
               - key: info-typer.properties
                 path: info-typer.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: info-typer
           image: harbor.cyverse.org/de/info-typer
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: info-typer-configs
               mountPath: /etc/iplant/de
               readOnly: true
@@ -43,6 +48,7 @@ spec:
             - --config
             - /etc/iplant/de/info-typer.properties
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

@@ -26,6 +26,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: job-status-recorder-configs
           secret:
             secretName: job-status-recorder-configs
@@ -36,6 +37,7 @@ spec:
         - name: job-status-recorder
           image: harbor.cyverse.org/de/job-status-recorder
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: job-status-recorder-configs
               mountPath: /etc/iplant/de
               readOnly: true
@@ -49,6 +51,7 @@ spec:
               memory: "256Mi"
               ephemeral-storage: "1Gi"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

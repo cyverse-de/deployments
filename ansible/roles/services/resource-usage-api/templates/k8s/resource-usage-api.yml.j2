@@ -28,6 +28,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: resource-usage-api-configs
           secret:
             secretName: resource-usage-api-configs
@@ -47,6 +48,7 @@ spec:
               memory: "256Mi"
               ephemeral-storage: "1Gi"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -71,6 +73,7 @@ spec:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: resource-usage-api-configs
               mountPath: /etc/cyverse/de/configs
               readOnly: true

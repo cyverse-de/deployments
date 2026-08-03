@@ -4,13 +4,17 @@
   block:
     - name: Create the harbor database user
       community.postgresql.postgresql_user:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         login_db: "{{ pg_db }}"
         name: "{{ harbor_database_user }}"
         password: "{{ harbor_database_password }}"
+        # Named explicitly because the module reconciles only the attributes it
+        # is given: a role left over without LOGIN keeps its password set and
+        # still cannot connect. See the keycloak role for the failure it causes.
+        role_attr_flags: LOGIN
       when: create_user is defined and create_user
       tags:
         - harbor
@@ -18,7 +22,7 @@
 
     - name: Create the harbor core database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -32,7 +36,7 @@
 
     - name: Create the harbor clair database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -46,7 +50,7 @@
 
     - name: Create the harbor notary server database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -60,7 +64,7 @@
 
     - name: Create the harbor notary signer database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"

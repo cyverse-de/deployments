@@ -4,7 +4,7 @@ title: Deploying a Full DE Environment
 description: How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
 resource: /ansible/kubernetes.yml
 tags: [deploy, kubernetes, ansible, k0s, environment]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-07-31T12:00:00Z
 ---
 
 `kubernetes.yml` is the top-level playbook for standing up and maintaining a
@@ -25,6 +25,19 @@ cluster nodes (`usermod -aG k0s $K0S_SSH_USER`), then:
 k0sctl kubeconfig > ~/.kube/prod.conf
 export KUBECONFIG=~/.kube/prod.conf
 ```
+
+The `kubeconfig` Ansible var is what actually selects the cluster. It defaults
+to the `KUBECONFIG` environment variable, but an inventory may pin it in
+group_vars — and a group_vars value wins over the environment, silently. Where
+the two disagree, the export is ignored and the inventory decides.
+
+That only holds for tasks that use the var. A cluster-touching task with
+neither `environment: KUBECONFIG: "{{ kubeconfig }}"` nor a `kubeconfig`
+module argument falls through to the ambient environment, so it acts on
+whichever cluster the operator's shell last pointed at while the rest of the
+play works on the intended one — a failure mode with no symptom until the wrong
+cluster changes. Any new task that talks to a cluster needs one or the other;
+setting it on the enclosing `block` is the usual form.
 
 ## Deployment sequence
 
@@ -48,6 +61,13 @@ role under `roles/services/`. Deploys read each service's build descriptor
 `de-releases/builds` checkout). To build images first, or to deploy a subset
 afterwards with `deploy_it.yml`, see
 [Building and Deploying Services](/playbooks/build-and-deploy.md).
+
+`kubernetes.yml` assumes it owns the cluster and the nodes: it runs `k0sctl`,
+reconfigures each node over SSH, and installs PostgreSQL on a database host. To
+deploy onto a cluster that already exists — a single node on a workstation, for
+instance — use `local.yml` instead, which does everything in-cluster and adds
+the roles that stand in for the out-of-cluster pieces. See
+[Local Single-Node Deployment](/playbooks/local-single-node-deployment.md).
 
 ## Major tags
 

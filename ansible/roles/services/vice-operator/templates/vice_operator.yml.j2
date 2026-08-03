@@ -38,8 +38,11 @@ spec:
         app: vice-operator
     spec:
       serviceAccountName: vice-operator
-{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+{% set want_repos = image_cache_mode and image_cache_mode == 'manual-mirror' %}
+{% set want_ca = vice_operator_ca_bundle_configmap | default('', true) | length > 0 %}
+{% if want_repos or want_ca %}
       volumes:
+{% if want_repos %}
         - name: image-repos
           configMap:
             name: vice-operator-repos
@@ -47,17 +50,34 @@ spec:
               - key: repos
                 path: repos.json
 {% endif %}
+{% if want_ca %}
+        - name: local-ca
+          configMap:
+            name: {{ vice_operator_ca_bundle_configmap }}
+{% endif %}
+{% endif %}
       containers:
         - name: vice-operator
           image: "{{ build_json.builds[0].tag }}"
           imagePullPolicy: Always
           command: ["/vice-operator"]
-{% if image_cache_mode and image_cache_mode == 'manual-mirror' %}
+{% if want_repos or want_ca %}
           volumeMounts:
+{% if want_repos %}
             - name: image-repos
               mountPath: /etc/cyverse/de
 {% endif %}
+{% if want_ca %}
+            - name: local-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+{% endif %}
+{% endif %}
           env:
+{% if want_ca %}
+          - name: SSL_CERT_FILE
+            value: {{ de_ca_bundle_mount_path }}/{{ de_ca_bundle_key }}
+{% endif %}
           - name: REGISTRY_PASSWORD
             valueFrom:
               secretKeyRef:
@@ -115,6 +135,10 @@ spec:
             - "--vice-base-url={{ vice_operator_base_url }}"
             - "--public-url={{ vice_operator_public_base_url }}"
             - "--local-storage-class={{ vice_local_storage_class }}"
+{% if want_ca %}
+            - "--ca-bundle-configmap={{ vice_operator_ca_bundle_configmap }}"
+            - "--ca-bundle-key={{ de_ca_bundle_key }}"
+{% endif %}
             - "--status-listener-url=https://{{de_hostname}}/job"
 {% if vice_operator_skip_gateway_creation %}
             - "--gateway-skip-creation"
@@ -143,6 +167,9 @@ spec:
 {% endfor %}
 {% for egress_host_exception in vice_operator_egress_host_exceptions %}
             - "--egress-host-exception={{ egress_host_exception }}"
+{% endfor %}
+{% for egress_cidr_exception in vice_operator_egress_cidr_exceptions %}
+            - "--egress-cidr-exception={{ egress_cidr_exception }}"
 {% endfor %}
           ports:
             - containerPort: {{ vice_operator_port }}

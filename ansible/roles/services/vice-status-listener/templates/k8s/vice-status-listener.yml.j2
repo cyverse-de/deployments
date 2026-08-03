@@ -28,6 +28,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: vice-status-listener-configs
           secret:
             secretName: vice-status-listener-configs
@@ -52,6 +53,7 @@ spec:
             - --log-level
             - debug
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -64,6 +66,7 @@ spec:
             - name: CLUSTER
               value: "1"
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: vice-status-listener-configs
               mountPath: /etc/iplant/de
               readOnly: true

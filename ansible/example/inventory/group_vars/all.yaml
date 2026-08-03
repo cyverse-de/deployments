@@ -443,6 +443,24 @@
 # harbor_notary_signer_db_name: harbor_notary_signer
 
 
+# The names postgresql_init, db_staging and local-teardown connect to from
+# the control machine. Distinct from groups['dbms'][0] and
+# groups['keycloak_dbms'][0], which the service configs render into pod
+# connection strings: where the database is reached by different names from
+# inside and outside the cluster, one value cannot serve both. Under
+# local_db_provider: cnpg this is the database Service's pinned ClusterIP,
+# which is not a name cluster DNS can give the control machine.
+# Defaults: groups['dbms'][0] / groups['keycloak_dbms'][0]
+# db_login_host: 10.43.0.50
+# keycloak_db_login_host: 10.43.0.50
+
+# Where PostgreSQL runs for a local single-node deployment: "cnpg" to run it
+# in the cluster under CloudNativePG, or "host" for one already running on
+# the node, published as a Service by the local_db_endpoint role. Only
+# local.yml reads it. See wiki/playbooks/local-single-node-deployment.md.
+# Default: cnpg
+# local_db_provider: host
+
 # ---------------------------------------------------------------------
 # Keycloak database
 # ---------------------------------------------------------------------
@@ -804,6 +822,40 @@
 # Default: selfsigned (or letsencrypt if cert_manager_use_letsencrypt is true)
 # cert_manager_provider: external
 #
+# Orthogonal to the above: cluster_issuer_default_type decides what the
+# `selfsigned` chain's root actually is. `selfSigned` (the default) has
+# cert-manager generate a throwaway root, so clients must be told to trust
+# each per-endpoint CA. `ca` instead loads an existing CA keypair from the
+# control machine, so the same chain produces certificates that are already
+# trusted wherever that root is installed — useful for local development
+# with a tool like mkcert, and for an internal PKI.
+#
+# The CA private key is stored in a Secret in the cert-manager namespace,
+# which means read access to secrets there is equivalent to holding the CA.
+# Default: selfSigned
+# The root must permit at least one intermediate (pathlen >= 1). The
+# 'selfsigned' provider puts a per-endpoint CA between the root and each leaf,
+# so a pathlen:0 root -- which is what mkcert generates -- produces certs that
+# cert-manager reports as Ready but clients reject with 'path length
+# constraint exceeded'.
+# cluster_issuer_default_type: ca
+# cluster_issuer_ca_cert_file: /path/to/rootCA.pem
+# cluster_issuer_ca_key_file: /path/to/rootCA-key.pem
+# cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+#
+# A container's trust store comes from its image, so a DE endpoint served by
+# a certificate the image has no reason to trust is rejected however well the
+# host and browser trust it — Go services fail with "x509: certificate signed
+# by unknown authority", JVM services with SunCertPathBuilderException, and
+# both surface as a 500 naming nothing about a certificate. Setting this
+# publishes the CA as a ConfigMap and mounts it into every DE service.
+#
+# Leave it empty wherever the DE is served by a publicly trusted certificate;
+# nothing about the rendered manifests changes until it is set.
+# Default: "" (and de_ca_bundle_file follows cluster_issuer_ca_cert_file)
+# de_ca_bundle_configmap: de-ca-bundle
+# de_ca_bundle_file: /path/to/rootCA.pem
+#
 # In `external` mode you must create these `kubernetes.io/tls` secrets
 # before HTTPS will serve — a Gateway listener whose secret is missing
 # simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
@@ -1051,6 +1103,22 @@
 # CIDR/host list allowed to relay mail through exim.
 # Default: "172.17.0.0/24:127.0.0.1"
 # exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
+
+# Whether openebs-hostpath becomes the cluster's default StorageClass. Needed
+# when OpenEBS is the only storage provider, because openldap-docker's volume
+# claim template does not name a class and its PVC would pend forever. Off by
+# default so adding OpenEBS beside an existing provider cannot take the
+# default away from it.
+# Default: false
+# openebs_default_storage_class: true
+
+# The cluster's pod and service CIDRs. exim's relay allowlist is built from
+# these plus exim_allowed_senders, so if they do not match what the cluster
+# actually uses, local-exim rejects mail from every DE pod and all outbound
+# DE mail fails silently from the services' point of view.
+# Defaults: 10.42.0.0/16 / 10.43.0.0/16
+# k8s_pods_cidr: "10.42.0.0/16"
+# k8s_services_cidr: "10.43.0.0/16"
 
 # Replica count for the relay Deployment, and whether its pods carry a
 # required anti-affinity rule (one pod per node). Set 1/false on small
@@ -1415,6 +1483,21 @@
 # formation_keycloak_client_id: replace_me
 # formation_keycloak_client_secret: replace_me
 
+# How long a DE login lasts, applied to the realm by the keycloak_config role.
+# The idle timeout is what users notice: sonora holds a five-minute access
+# token and refreshes it against this session, so going idle for longer than
+# this ends it. The max lifespan caps a session however active it is. Both
+# default to Keycloak's own values, so leaving them alone changes nothing.
+# Defaults: 1800 / 36000 (seconds)
+# keycloak_config_sso_session_idle_timeout: 1800
+# keycloak_config_sso_session_max_lifespan: 36000
+
+# Set false only where the Keycloak endpoint serves a certificate the Ansible
+# control machine has no reason to trust. A deployment issuing from a root the
+# control machine already trusts should leave this alone.
+# Default: true
+# keycloak_config_validate_certs: false
+
 
 # =====================================================================
 # OpenSearch
@@ -1442,6 +1525,17 @@
 # and write. infosquito2/dewey create it on first index.
 # Default: replace_me
 # es_index: data
+
+# StorageClass and size for the in-cluster StatefulSet's data volume, and the
+# JVM heap / memory limit. The storage class default names Longhorn, so it has
+# to be overridden on clusters using OpenEBS or anything else — otherwise the
+# PVC pends indefinitely with no other symptom. Keep the heap at roughly half
+# the memory limit.
+# Defaults: longhorn / 20Gi / 1g / 4Gi
+# opensearch_storage_class: openebs-hostpath
+# opensearch_storage_size: 20Gi
+# opensearch_heap_size: 1g
+# opensearch_mem_limit: 4Gi
 
 
 # =====================================================================
@@ -1492,6 +1586,23 @@
 # =====================================================================
 # DE general settings
 # =====================================================================
+
+# How deploy_it.yml runs the service list. Both default to today's behaviour,
+# so leaving them alone changes nothing.
+#
+# deploy_wait false stops skaffold blocking on each service's rollout; the
+# playbook then waits once for every Deployment at the end, turning N
+# sequential waits into one concurrent one. Deploying a single service with
+# --tags wants the default.
+#
+# deploy_continue_on_error false lets one broken service abort the play, which
+# leaves every service after it in the list undeployed while reading as a
+# partial success. Setting it true collects the failures, deploys the rest,
+# and fails at the end naming all of them.
+# Defaults: true / false
+# deploy_wait: false
+# deploy_continue_on_error: true
+# deploy_wait_timeout: 900
 
 # Comma-separated groups whose members get DE admin rights.
 # Default: core-services,dev,staff
@@ -1582,9 +1693,18 @@
 # irods_perms_filter:
 #   - rodsadmin
 
-# Endpoint of the iRODS CSI driver pool server.
+# Endpoint of the iRODS CSI driver pool server. A host:port names an external
+# pool server; the unix socket form below is the chart default, where each
+# node's driver pod runs its own irods-pool sidecar. Pointing a deployment
+# without an external pool server at a host:port breaks every mount.
 # Default: rodsfs.example.org:12020
 # irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
+# irods_csi_driver_pool_server_endpoint: unix:///csi/pool.sock
+
+# Kubelet root the driver registers its plugin socket under. The default is
+# k0s's; other distributions use /var/lib/kubelet.
+# Default: /var/lib/k0s/kubelet
+# irods_csi_driver_kubelet_dir: /var/lib/kubelet
 
 # Cache timeout settings for the iRODS CSI driver, as a JSON string.
 # Default: per-zone paths derived from irods_zone (see roles/common/defaults/main.yml)
@@ -1702,6 +1822,21 @@
 # Entitlements granting access to the VICE admin API.
 # Default: replace_me
 # vice_operator_admin_entitlements: core-services,dev,staff
+
+# CIDRs analyses may reach, for destinations a hostname cannot express.
+# NetworkPolicies are evaluated after DNAT, so naming a Service by its
+# ClusterIP does nothing — the backing pods' CIDR is what has to be listed.
+# This only comes up where a DE hostname resolves inside the cluster.
+# Default: [] (no --egress-cidr-exception flags are rendered)
+# vice_operator_egress_cidr_exceptions:
+#   - 10.42.0.0/16
+
+# Private CA the vice-operator mounts for OIDC discovery against Keycloak, and
+# that it mounts into each analysis's vice-proxy sidecar for the back-channel
+# token exchange. Must live in vice_ns, and this role owns that copy.
+# Default: "{{ de_ca_bundle_configmap }}" — set that instead unless the
+# vice-operator genuinely needs a different bundle from the other services.
+# vice_operator_ca_bundle_configmap: de-ca-bundle
 
 # Registry account the VICE operator pulls app images with.
 # Default: replace_me

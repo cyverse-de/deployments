@@ -1,0 +1,208 @@
+---
+# Stands the DE up on a pre-existing single-node cluster, for local
+# development. See wiki/playbooks/local-single-node-deployment.md for the
+# manual host preparation this assumes and the order to run the tags in.
+#
+# This is deliberately not kubernetes.yml with things switched off. Everything
+# here runs against the API server from the control machine; nothing needs SSH
+# or sudo on the node. Relative to kubernetes.yml it drops:
+#
+#   k8s_cluster       the cluster already exists and is not managed by k0sctl
+#   k8s_nodes         reconfigures the host (swap, fstab, SELinux, reboots)
+#   k8s_firewalld     same
+#   postgresql        the host's PostgreSQL is not ours to reconfigure
+#   postgresql_access  "
+#   nvidia_drivers    host package management
+#   haproxy           the edge proxy is a hand-managed systemd unit
+#   ui_haproxy         "
+#   longhorn          storage is openebs-hostpath; one node has nothing to
+#                     replicate to
+#   harbor            images pull from an external registry
+#   ingress_nginx     only Harbor uses it
+#   kubernetes_node_feature_discovery  installs a device plugin that crashloops
+#                                      without the nvidia container toolkit
+#
+# and adds local_node_prep, rabbitmq_k8s, and — depending on
+# local_db_provider — either local_db_endpoint or cnpg.
+#
+# Everything else a bare k0s node lacks is installed here, so this is a
+# from-scratch deployment: point it at a freshly installed single node and it
+# brings up storage, certificates, the gateway, the broker and the DE.
+
+- name: Set up cluster-level prerequisites
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: local_node_prep
+      tags:
+        - node-prep
+        - de-reqs
+
+    # Storage comes first: OpenSearch, RabbitMQ and the VICE working
+    # directories all need a StorageClass to exist before they are created.
+    - role: openebs
+      tags:
+        - openebs
+        - de-reqs
+
+    - role: cert-manager
+      tags: cert-manager
+
+    - role: cluster_issuers
+      tags:
+        - cert-issuers
+        - de-reqs
+
+    - role: argo
+      tags:
+        - argo
+        - de-reqs
+
+    - role: traefik
+      tags:
+        - traefik
+        - de-reqs
+      when: gateway_provider == "traefik"
+
+# Everything the database needs before it can be created or initialized: the
+# namespace to live in, and whichever of the two providers is in use.
+- name: Set up the database
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: k8s_de_reqs
+      tags: de-reqs
+
+    # local_db_provider picks where PostgreSQL runs. "cnpg", the default, runs
+    # it in the cluster, which costs an operator but takes the host's
+    # PostgreSQL configuration — and the ways it can silently drift — out of
+    # the picture. "host" publishes one already running on the node as a
+    # Service, standing in for the dedicated database server other
+    # environments have.
+    - role: local_db_endpoint
+      tags:
+        - local-db
+        - de-reqs
+      when: local_db_provider == "host"
+
+    - role: cnpg
+      tags:
+        - cnpg
+        - local-db
+        - de-reqs
+      when: local_db_provider == "cnpg"
+
+# Split from the play above so the database server exists before this runs, and
+# from the one below so the databases exist before Keycloak and Grouper start.
+- name: Initialize dbs
+  hosts: dbms
+  become: false
+  connection: local
+  gather_facts: false
+  roles:
+    - role: postgresql_init
+  tags:
+    - setup-databases
+    - databases
+
+- name: Add third-party software and DE prerequisites
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Stands in for a broker on its own host, as the rabbitmq role expects.
+    - role: rabbitmq_k8s
+      tags:
+        - rabbitmq
+        - de-reqs
+
+    - role: services/openldap-docker
+      tags: openldap-docker
+
+    # Guarded rather than unconditional because re-running the install against
+    # a live Keycloak recreates its admin user. An untagged run means a full
+    # bring-up, so 'all' counts: without it the DE would come up complete
+    # except that nothing could authenticate.
+    - role: keycloak_install
+      tags: keycloak
+      when: ansible_run_tags | intersect(['all', 'keycloak']) | length > 0
+
+    # Configures the realm keycloak_install leaves empty. Runs on a full
+    # bring-up, and on its own under keycloak-config against a Keycloak that
+    # is already serving.
+    - role: keycloak_config
+      tags:
+        - keycloak
+        - keycloak-config
+      when: >-
+        ansible_run_tags
+        | intersect(['all', 'keycloak', 'keycloak-config'])
+        | length > 0
+
+    - role: service_configurations
+      tags: configure-services
+
+    - role: secret_loader
+      tags:
+        - configure-services
+        - secrets
+
+    - role: kubernetes_ingress
+      tags: ingress
+
+    - role: kubernetes_networking
+      tags:
+        - networking
+        - nodeports
+
+    - role: opensearch
+      tags: opensearch
+
+    - role: grouper_init
+      tags: grouper
+
+    # Pre-pulls every image in vice_image_cache onto the node's disk, so it is
+    # opt-in rather than part of a full run.
+    - role: image_cache
+      tags: image-cache
+      when: "'image-cache' in ansible_run_tags"
+
+- name: Set up irods-csi-driver
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: kubernetes_irods_csi_driver
+  tags: irods-csi-driver
+
+# The service list lives in one place; deploy_it.yml already targets
+# k8s_controllers[0] over a local connection and tags each service by name.
+- ansible.builtin.import_playbook: deploy_it.yml
+  tags: deploy-all-services
+
+- name: Deploy additional services
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - role: cronjobs
+      tags: cronjobs
+
+    # The per-tool secrets an Argo workflow mounts. Not optional here despite
+    # looking it: de_apps imports DE Word Count by default, and that tool
+    # mounts wc-data, so without this a freshly built DE accepts the analysis
+    # and fails it with `secrets "wc-data-latest" not found` — an error that
+    # names neither the tool nor the missing role. Which secrets get created is
+    # argo_resources_secrets; all but wc-data read files only the QA and prod
+    # inventories ship, so a local inventory lists just the ones it has.
+    - role: argo_resources
+      tags:
+        - argo-resources
+        - argo

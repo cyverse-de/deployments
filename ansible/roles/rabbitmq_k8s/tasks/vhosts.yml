@@ -1,0 +1,139 @@
+---
+# The rabbitmq-configure role drives rabbitmqctl over SSH against a host in the
+# amqp-brokers group, so it cannot provision a broker running as a pod. These
+# tasks run the same commands through the API server instead. add_vhost and
+# add_user are driven off a listing of what already exists rather than off
+# their exit status; the rest are idempotent as they stand.
+- name: Provision the vhosts and their users
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: Wait for the rabbitmq deployment to finish rolling out
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        name: rabbitmq
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+
+    # A pod being deleted keeps status.phase Running until it actually goes, so
+    # the field selector on its own can hand back the outgoing pod during a
+    # rollout — and every exec below then fails with "container not found".
+    - name: Find the running rabbitmq pod
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        label_selectors:
+          - de-app=rabbitmq
+        field_selectors:
+          - status.phase=Running
+      register: rabbitmq_k8s_pods
+      until: (rabbitmq_k8s_pods.resources | default([])
+              | rejectattr('metadata.deletionTimestamp', 'defined')
+              | list) | length > 0
+      retries: 30
+      delay: 10
+
+    - name: Record the rabbitmq pod name
+      ansible.builtin.set_fact:
+        rabbitmq_k8s_pod_name: "{{ (rabbitmq_k8s_pods.resources
+          | rejectattr('metadata.deletionTimestamp', 'defined')
+          | list)[0].metadata.name }}"
+
+    # add_vhost is idempotent from RabbitMQ 4 onwards: it exits 0 with the same
+    # output whether or not the vhost was there, so nothing in its result can
+    # distinguish a create from a no-op. Ask the broker instead, and only add
+    # what is missing — otherwise every run reports a change it did not make.
+    - name: List the existing vhosts
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: rabbitmqctl -q list_vhosts --no-table-headers
+      register: rabbitmq_k8s_existing_vhosts
+      changed_when: false
+
+    - name: Create the vhosts
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: "rabbitmqctl add_vhost {{ item.vhost | quote }}"
+      loop: "{{ rabbitmq_k8s_vhosts
+                | rejectattr('vhost', 'in', rabbitmq_k8s_existing_vhosts.stdout_lines)
+                | list }}"
+      loop_control:
+        label: "{{ item.vhost }}"
+
+    # Existing users are listed for the same reason the vhosts are, and for one
+    # more: pre-filtering means any non-zero exit from add_user is a real
+    # failure, so it needs no stderr match to tell "already exists" apart. That
+    # matters because the task is no_log — a censored failure with a fragile
+    # string test behind it is close to undiagnosable.
+    - name: List the existing users
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: rabbitmqctl -q list_users --no-table-headers
+      register: rabbitmq_k8s_existing_users
+      changed_when: false
+
+    - name: Record the existing user names
+      ansible.builtin.set_fact:
+        # list_users prints "<name>\t[<tags>]"; only the name is wanted.
+        rabbitmq_k8s_user_names: "{{ rabbitmq_k8s_existing_users.stdout_lines
+          | map('regex_replace', '\\t.*$', '') | list }}"
+
+    # k8s_exec takes one string and shlex-splits it, so the password has to be
+    # quoted: an unquoted one containing a space or a quote is either split
+    # into the wrong arguments or rejected outright with "No closing
+    # quotation", which under no_log surfaces as a censored module failure.
+    - name: Create the vhost users
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: "rabbitmqctl add_user {{ item.user | quote }} {{ item.password | quote }}"
+      no_log: true
+      loop: "{{ rabbitmq_k8s_vhosts
+                | rejectattr('user', 'in', rabbitmq_k8s_user_names)
+                | list }}"
+      loop_control:
+        label: "{{ item.user }}"
+
+    # add_user is skipped once the user exists, so the password is set
+    # separately to keep the broker in step with the inventory.
+    - name: Set the vhost user passwords
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: "rabbitmqctl change_password {{ item.user | quote }} {{ item.password | quote }}"
+      # Convergent, and a password cannot be read back to compare, so this has
+      # to run every time and can never report meaningfully. Reporting it as
+      # changed on every run is what makes a deploy's changed count useless.
+      changed_when: false
+      no_log: true
+      loop: "{{ rabbitmq_k8s_vhosts }}"
+      loop_control:
+        label: "{{ item.user }}"
+
+    - name: Tag the vhost users as administrators
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: "rabbitmqctl set_user_tags {{ item.user | quote }} administrator"
+      changed_when: false
+      loop: "{{ rabbitmq_k8s_vhosts }}"
+      loop_control:
+        label: "{{ item.user }}"
+
+    - name: Grant the vhost users full permissions on their vhost
+      kubernetes.core.k8s_exec:
+        namespace: "{{ rabbitmq_k8s_namespace }}"
+        pod: "{{ rabbitmq_k8s_pod_name }}"
+        command: "rabbitmqctl set_permissions -p {{ item.vhost | quote }} {{ item.user | quote }} .* .* .*"
+      changed_when: false
+      loop: "{{ rabbitmq_k8s_vhosts }}"
+      loop_control:
+        label: "{{ item.user }}@{{ item.vhost }}"

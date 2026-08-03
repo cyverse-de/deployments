@@ -14,7 +14,14 @@
             name: portal-conductor-configs
             namespace: "{{ ns }}"
           data:
-            portal-conductor.json: "{{ lookup('template', 'portal-conductor.json.j2') | to_json(ensure_ascii=False) | b64encode }}"
+            # convert_data=False keeps the lookup from parsing the rendered
+            # JSON into a Python object, which is what to_json used to be
+            # compensating for. Where the lookup already returns a string —
+            # ansible-core 2.19 onwards — that to_json re-encoded it as a JSON
+            # string, and portal-conductor rejected the result with "cannot
+            # unmarshal string into Go value of type config.Config". Asking for
+            # a string outright works on both sides of that change.
+            portal-conductor.json: "{{ lookup('template', 'portal-conductor.json.j2', convert_data=False) | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:
