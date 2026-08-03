@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/portal2","tag":"harbor.cyverse.org/de/portal2:fix-vice-service-page-404@sha256:e0256526af9a2425af7c0fbc50417b919143e3beee4e35578854f4f3d332cda8"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/portal2","tag":"harbor.cyverse.org/de/portal2:configurable-de-admin-vice-url@sha256:8e271985107735eedc052cdd5d6d1fa4a91827843e37f906f3bd7c246f43c202"}]}
