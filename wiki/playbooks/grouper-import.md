@@ -66,6 +66,48 @@ Sonora have cut over.
 - **An unparsable group name aborts the run**, rather than being skipped into a
   clean-looking import with groups missing.
 
+## Testing it against a local cluster
+
+A freshly deployed local DE has one DE group (`users:de-users`) and two LDAP
+subjects. That is enough to prove the importer runs and nothing about whether it
+is correct — no nesting, one group type, no privileges worth mapping.
+
+`ansible/scripts/seed-local-grouper.py` creates a dataset shaped like
+production's: every group type with owners, a **two-level nesting chain**, a
+member reachable by two paths, and the privilege vocabulary including
+`GrouperAll`. It goes through iplant-groups rather than the Grouper database, so
+the groups are formed exactly the way the DE forms them, and it is idempotent.
+
+```bash
+export LDAP_ROOT_PW=...        # ldap_root_pw from the local inventory
+KUBECONFIG=~/.kube/local-admin.conf ansible/scripts/seed-local-grouper.py
+kubectl -n de create job --from=cronjob/grouper-import gi-1
+kubectl -n de logs job/gi-1
+```
+
+The two structures that matter are easy to lose and hard to notice missing:
+
+- **`Field Team` → `Genomics Lab` → `msmith:default`** puts `lchen` in Field
+  Team at *depth 2*. An expansion that follows only one hop drops that member
+  and still produces a plausible-looking result.
+- **`lchen` reaches `Imaging` both directly and through a nested group**, so
+  `grouper_memberships_v` returns that pair twice. The view is not a set, and an
+  importer that assumes it is will double-count.
+
+What to look for in the report: `effective membership vs Grouper: N expected, 0
+missing, 0 unexpected` is the closure check, and it is the single most
+informative line. Then re-run it — a second run must report zeros across
+created/updated/added/removed. To check it is *convergent* rather than merely
+idempotent, change something in Grouper (remove a member, revoke a privilege,
+rename a group) and re-run: the changes must be reflected, not accumulated. A
+rename in particular must come back as `1 updated` with nothing reported under
+"groups in the database but no longer in Grouper", which is what shows the
+importer matches on the Grouper UUID rather than the name.
+
+Note the seeder asserts its own dataset, so running it after such an experiment
+puts the removed member and revoked privilege back; re-import afterwards to
+bring the permissions database into line.
+
 ## Configuration
 
 Credentials come from the `grouper-import-configs` secret as `GROUPS_IMPORT_*`
@@ -80,3 +122,4 @@ the importer writes membership through the service's own store.
 [2] `ansible/roles/services/groups/tasks/import.yml` — credentials secret and CronJob deploy.
 [3] `ansible/roles/services/groups/templates/k8s/grouper-import.yml.j2` — the suspended CronJob.
 [4] `ansible/roles/services/groups/defaults/main.yml` — schedule and suspend defaults.
+[5] `ansible/scripts/seed-local-grouper.py` — the local test dataset.
