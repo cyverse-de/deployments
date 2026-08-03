@@ -13,6 +13,8 @@
 
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/k0s-api-address.sh"
+
 # Where the OpenEBS hostpath provisioner keeps its volumes. Outside
 # /var/lib/k0s, so k0s reset leaves it behind.
 openebs_dir=/var/openebs/local
@@ -34,6 +36,12 @@ iRODS CSI driver's kubelet directories, and writes an admin kubeconfig to
             To keep the cluster and its ~11 GiB image cache, use
             local-teardown.yml instead.
   -h        Show this help
+
+Environment:
+  K0S_API_ADDRESS  The address the API server advertises. Defaults to this
+                   host's Tailscale address, falling back to the default
+                   route's source address. Set it when neither is the one the
+                   cluster should be reached on.
 EOF
 }
 
@@ -83,11 +91,31 @@ if [[ "${reset}" == true ]]; then
     exit 0
 fi
 
+# Written before the install so the address is pinned from the very first
+# start; k0s bakes it into the component kubeconfigs, and correcting it
+# afterwards means a controller restart.
+echo "== writing ${k0s_config}"
+detect_stable_api_address
+api_address="${k0s_api_address}"
+if [[ -z "${api_address}" ]]; then
+    echo "Could not determine an address for the API server to advertise." >&2
+    echo "Set K0S_API_ADDRESS and re-run." >&2
+    exit 1
+fi
+echo "   API address: ${api_address} (${k0s_api_address_source})"
+if [[ "${k0s_api_address_source}" == *"NOT stable"* ]]; then
+    echo "   WARNING: this host has no Tailscale address, so the API server is"
+    echo "   pinned to a DHCP lease. When it changes, kube-proxy and CoreDNS"
+    echo "   will lose the API server; repair with"
+    echo "   scripts/repair-local-k0s-api-address.sh --fix."
+fi
+write_k0s_config "${api_address}"
+
 # --single gives a combined controller/worker with no taint, which is what a
 # one-machine deployment wants. --enable-worker would add a master NoSchedule
 # taint instead, and nothing would schedule until node-prep stripped it.
 echo "== installing the k0s controller"
-k0s install controller --single
+k0s install controller --single --config "${k0s_config}"
 
 echo "== starting k0s"
 k0s start
@@ -133,7 +161,7 @@ echo -n "  serviceCIDR: "
 k0s kubectl -n kube-system get pod -l component=kube-apiserver \
     -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null |
     grep -o 'service-cluster-ip-range=[^"]*' | cut -d= -f2 ||
-    echo "(check /etc/k0s/k0s.yaml; k0s defaults to 10.96.0.0/12)"
+    echo "(see network.serviceCIDR in ${k0s_config})"
 
 echo
 echo "Done. Next: export KUBECONFIG=${kubeconfig} and run local.yml."

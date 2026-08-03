@@ -76,13 +76,49 @@ the iRODS CSI driver's kubelet directories (otherwise made by a play needing
 root on each worker), and writes `~/.kube/local-admin.conf` owned by the
 invoking user. Pass `--reset` to tear an existing cluster down first.
 
-Two details it handles that are easy to get wrong by hand. It uses `--single`,
+Three details it handles that are easy to get wrong by hand. It uses `--single`,
 giving a combined controller/worker with no taint — `--enable-worker` would add
 `node-role.kubernetes.io/master:NoSchedule` instead, and nothing would schedule
-until the `node-prep` tag stripped it. And it rewrites the kubeconfig's
-`server:` to `127.0.0.1`, because k0s records whatever address the node had at
-install time and keeps it, so a DHCP lease or a VPN interface appearing later
-breaks every `kubectl` call.
+until the `node-prep` tag stripped it. It rewrites the kubeconfig's `server:` to
+`127.0.0.1`, because k0s records whatever address the node had at install time
+and keeps it, so a DHCP lease or a VPN interface appearing later breaks every
+`kubectl` call. And it writes `/etc/k0s/k0s.yaml` before installing, pinning
+`spec.api.address` — the same problem on the server side, and a worse one; see
+below.
+
+### The advertised API address, and why it is pinned
+
+Left to itself k0s re-detects `spec.api.address` at every start from the default
+route's source address, and bakes it into the component kubeconfigs and the
+`kubernetes` Service endpoint. On a workstation that is a DHCP lease.
+
+When it moves, the cluster does not go down — it goes half-down. kube-proxy and
+CoreDNS lose their watches and keep serving what they already programmed, so
+everything that existed beforehand keeps working while anything created or
+redeployed afterwards is silently never programmed. A new Service does not
+resolve; a redeployed pod is healthy but its ClusterIP does not route. Nothing
+reports an outage, and the failures look like bugs in whatever you were working
+on. This is not hypothetical: it happened on 2026-08-03, and an older instance
+of the same drift left QA's liqo replicator pointed at a dead address for
+months.
+
+The script pins the address to the host's Tailscale address when it has one —
+stable across reboots and lease changes, unlike the LAN address, and already in
+the API server's certificate SANs. `K0S_API_ADDRESS` overrides it. A host with
+no Tailscale address gets the default route's source address and a warning.
+
+For a cluster that has already drifted, or one built before this was pinned:
+
+```bash
+# read-only; safe any time
+KUBECONFIG=~/.kube/local-admin.conf ansible/scripts/repair-local-k0s-api-address.sh
+# rewrite the address, restart k0scontroller, verify
+sudo KUBECONFIG=~/.kube/local-admin.conf ansible/scripts/repair-local-k0s-api-address.sh --fix
+```
+
+It edits the address in place when `/etc/k0s/k0s.yaml` exists rather than
+regenerating it, because that file's network block is load-bearing and writing
+defaults over customised CIDRs would renumber the cluster.
 
 The script prints the pod and service CIDRs at the end. The inventory's
 `k8s_pods_cidr` and `k8s_services_cidr` must match them: those values become
@@ -700,6 +736,8 @@ proceed without it.
 * `ansible/import_apps.yml`
 * `ansible/roles/de_apps/`
 * `ansible/scripts/bootstrap-local-k0s.sh`
+* `ansible/scripts/repair-local-k0s-api-address.sh`
+* `ansible/scripts/lib/k0s-api-address.sh`
 * `ansible/scripts/generate-local-ca.sh`
 * `ansible/scripts/generate-secrets.sh`
 * [mkcert](https://github.com/FiloSottile/mkcert)
