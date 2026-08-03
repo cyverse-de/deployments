@@ -19,6 +19,7 @@
 * [formation](/services/formation.md) - Keycloak-authenticated HTTP API (with MCP support) fronting apps, app-exposer, and permissions for launching and managing analyses, including VICE URL readiness checks.
 * [get-analysis-id](/services/get-analysis-id.md) - Build-only role for the get-analysis-id lookup service; it has a static manifest but no deploy tasks and is not wired into deploy_it.yml.
 * [group-propagator](/services/group-propagator.md) - AMQP worker that propagates Grouper group-membership changes to the data store, using iplant-groups and data-info.
+* [groups](/services/groups.md) - Group and membership API backed by the permissions schema of the DE database, replacing iplant-groups and Grouper.
 * [info-typer](/services/info-typer.md) - JVM worker that consumes iRODS change messages from the irods AMQP exchange and stamps files with an ipc-filetype metadata attribute.
 * [infosquito2](/services/infosquito2.md) - Periodic indexer that reconciles the iRODS ICAT and metadata database into the OpenSearch/Elasticsearch index used by DE search.
 * [iplant-groups](/services/iplant-groups.md) - HTTP facade over the Grouper Web Services API that the rest of the DE uses for group and subject management.
@@ -30,7 +31,7 @@
 * [metadata](/services/metadata.md) - DE metadata service backed by its own metadata database on PostgreSQL.
 * [notifications](/services/notifications.md) - User notifications service backed by its own notifications database, reached by other services at http://notifications/v1.
 * [openldap-docker](/services/openldap-docker.md) - In-cluster OpenLDAP directory for DE deployments without an external LDAP server, deployed as a StatefulSet with config and seed data rendered from templates.
-* [permissions](/services/permissions.md) - DE permissions service backed by its own PostgreSQL database, with read access to the Grouper database for group information.
+* [permissions](/services/permissions.md) - DE permissions service backed by the permissions schema of the DE database, reading group membership from the same schema.
 * [portal-conductor](/services/portal-conductor.md) - Account-provisioning API used by the user portal, acting on LDAP, iRODS, terrain, Mailman, and formation, with an exim sidecar for outbound mail.
 * [portal2](/services/portal2.md) - The CyVerse user portal web application, handling account self-registration, sessions, and service access via Keycloak, portal-conductor, and terrain.
 * [qms](/services/qms.md) - The Quota Management Service, tracking subscription plans and resource usage in its own PostgreSQL database.

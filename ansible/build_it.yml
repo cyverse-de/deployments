@@ -183,6 +183,12 @@
           tags: openldap-docker
       tags: openldap-docker
     - ansible.builtin.include_role:
+        name: services/groups
+        tasks_from: build
+        apply:
+          tags: groups
+      tags: groups
+    - ansible.builtin.include_role:
         name: services/permissions
         tasks_from: build
         apply:

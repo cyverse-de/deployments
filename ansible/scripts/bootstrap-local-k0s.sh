@@ -13,6 +13,8 @@
 
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/k0s-api-address.sh"
+
 # Where the OpenEBS hostpath provisioner keeps its volumes. Outside
 # /var/lib/k0s, so k0s reset leaves it behind.
 openebs_dir=/var/openebs/local
@@ -34,6 +36,13 @@ iRODS CSI driver's kubelet directories, and writes an admin kubeconfig to
             To keep the cluster and its ~11 GiB image cache, use
             local-teardown.yml instead.
   -h        Show this help
+
+Environment:
+  K0S_API_ADDRESS  The address the API server advertises, carried on a dummy
+                   interface this script creates. Defaults to 10.255.255.1 and
+                   should rarely need changing — the point of it is that it is
+                   the same on every workstation and belongs to no physical
+                   network, so it cannot drift.
 EOF
 }
 
@@ -83,11 +92,25 @@ if [[ "${reset}" == true ]]; then
     exit 0
 fi
 
+# Both before the install: k0s bakes the advertised address into the component
+# kubeconfigs at first start, so the interface has to exist by then and
+# correcting it afterwards means a controller restart.
+echo "== creating ${k0s_api_interface} (${k0s_api_address}) via ${k0s_api_unit}"
+ensure_api_address_interface
+if ! api_address_interface_up; then
+    echo "${k0s_api_address} did not come up on ${k0s_api_interface}." >&2
+    echo "Check 'systemctl status ${k0s_api_unit}'." >&2
+    exit 1
+fi
+
+echo "== writing ${k0s_config}"
+write_k0s_config "${k0s_api_address}"
+
 # --single gives a combined controller/worker with no taint, which is what a
 # one-machine deployment wants. --enable-worker would add a master NoSchedule
 # taint instead, and nothing would schedule until node-prep stripped it.
 echo "== installing the k0s controller"
-k0s install controller --single
+k0s install controller --single --config "${k0s_config}"
 
 echo "== starting k0s"
 k0s start
@@ -133,7 +156,7 @@ echo -n "  serviceCIDR: "
 k0s kubectl -n kube-system get pod -l component=kube-apiserver \
     -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null |
     grep -o 'service-cluster-ip-range=[^"]*' | cut -d= -f2 ||
-    echo "(check /etc/k0s/k0s.yaml; k0s defaults to 10.96.0.0/12)"
+    echo "(see network.serviceCIDR in ${k0s_config})"
 
 echo
 echo "Done. Next: export KUBECONFIG=${kubeconfig} and run local.yml."

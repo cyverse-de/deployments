@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: groups
+spec:
+  replicas: {{ groups_replicas }}
+  selector:
+    matchLabels:
+      de-app: groups
+  template:
+    metadata:
+      labels:
+        de-app: groups
+    spec:
+{% if groups_pod_anti_affinity %}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - groups
+              topologyKey: kubernetes.io/hostname
+{% endif %}
+      restartPolicy: Always
+      volumes:
+{% include 'partials/de_ca_volume.j2' %}
+        - name: groups-configs
+          secret:
+            secretName: groups-configs
+            items:
+              - key: groups.yml
+                path: groups.yml
+      containers:
+        - name: groups
+          image: harbor.cyverse.org/de/groups
+          volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+            - name: groups-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          resources:
+            requests:
+              cpu: "26m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "160m"
+              memory: "512Mi"
+              ephemeral-storage: "1Gi"
+          args:
+            - --config
+            - /etc/iplant/de/groups.yml
+            - --port
+            - "60000"
+          env:
+{% include 'partials/de_ca_env.j2' %}
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configs
+                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
+          ports:
+            - name: listen-port
+              containerPort: 60000
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: groups
+spec:
+  selector:
+    de-app: groups
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: listen-port

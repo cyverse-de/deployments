@@ -1,0 +1,12 @@
+---
+groups_replicas: 2
+groups_pod_anti_affinity: true
+
+# The Grouper importer runs as a CronJob. It is created suspended: until the
+# permissions service reads group data from this database there is nothing to
+# keep in sync. Resume it when that service is deployed, and suspend it again
+# once terrain, apps, group-propagator, and Sonora have cut over and Grouper is
+# no longer being written to.
+grouper_import_suspended: true
+grouper_import_schedule: "*/15 * * * *"
+grouper_import_phase: all
