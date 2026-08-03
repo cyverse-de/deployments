@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-08-03
+
+* **Update**: [vice-operator](/services/vice-operator.md) — `vice_operator_ca_bundle_configmap` now records which images can honour it. Merging `main` took the app-exposer and vice-operator build descriptors back to the `v2026.08.04` release, which predates the CA-bundle merge (app-exposer PR #164), so the flag the role renders does not exist in the image it pins: the operator exits at startup on an unknown flag and crash-loops. Nothing here is wrong for QA or production, where `de_ca_bundle_configmap` is empty and the flag is never rendered, but a deployment with a private CA sets it and gets a failure whose message names neither the release nor the variable. The page previously described the flag as unconditionally available.
+
 ## 2026-07-31
 
 * **Update**: [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) and [VICE Troubleshooting](/playbooks/vice-troubleshooting.md) — from a second rebuild. The teardown's grace period was time-based and so could not tell a slow namespace from a wedged one: the DE namespace takes minutes on its own, because the database's volumes go with it, so the period expired on every run, printed twenty `FAILED - RETRYING` lines and an `[ERROR]` for an outcome that was expected and already handled, and spent five minutes doing it. What distinguishes wedged from slow is whether anything still holds a finalizer, which the next task reads directly, so the wait is now only long enough for controllers to finish — the phase went from five minutes and an error to fifty-six seconds and none. Also recorded that polling `/loading/status` is what performs the VICE route swap: a browser does it because the loading page polls, and `curl` against `/` alone shows the loading page forever and looks exactly like a stuck launch.

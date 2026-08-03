@@ -4,7 +4,7 @@ title: vice-operator
 description: Operator that runs VICE analyses in a dedicated namespace, built from the app-exposer repo and deployed with its own RBAC instead of skaffold.
 resource: /ansible/roles/services/vice-operator
 tags: [vice, operator, app-exposer, rbac, gateway, gpu]
-timestamp: 2026-07-31T18:00:00Z
+timestamp: 2026-08-03T00:00:00Z
 ---
 
 The vice-operator manages VICE analyses inside the `vice_ns` namespace: its
@@ -48,6 +48,12 @@ ConfigMap must therefore live in `vice_ns` — analyses run there too, and a
 ConfigMap cannot be referenced across namespaces. Empty, the default, adds no
 volume, no mount, and no variable, so environments with publicly trusted
 certificates are unaffected.
+
+Setting it requires an app-exposer image that understands the flag. Support
+landed in app-exposer PR #164, after the `v2026.08.04` release the build
+descriptor currently pins, so an older image exits at startup on an unknown
+flag and the operator crash-loops. Leave the variable empty until the pinned
+image is built from app-exposer `main` or later.
 
 This role owns the `vice_ns` copy; `k8s_de_reqs` publishes the DE namespace's
 under `de_ca_bundle_configmap`. They are separate because the two names can
