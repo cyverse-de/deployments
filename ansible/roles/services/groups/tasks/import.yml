@@ -31,6 +31,17 @@
             GROUPS_IMPORT_PHASE: "{{ grouper_import_phase }}"
       when: load_configs is undefined or (load_configs | bool)
 
+    # The importer ships in the groups image, but this CronJob is applied
+    # directly rather than through skaffold, so nothing substitutes the digest
+    # the way it does for the Deployment. Read it from the same build descriptor
+    # deploy-service uses; without this the manifest's bare image name resolves
+    # to :latest, which is never pushed, and the job sits in ImagePullBackOff.
+    - name: read the groups build descriptor
+      run_once: true
+      ansible.builtin.set_fact:
+        grouper_import_image: >-
+          {{ (lookup('file', role_path ~ '/files/groups.json') | from_json).builds[0].tag }}
+
     - name: deploy the grouper-import cronjob
       run_once: true
       kubernetes.core.k8s:

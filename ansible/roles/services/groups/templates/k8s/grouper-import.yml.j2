@@ -37,7 +37,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: grouper-import
-              image: harbor.cyverse.org/de/groups
+              image: {{ grouper_import_image }}
               command:
                 - grouper-import
               envFrom:
