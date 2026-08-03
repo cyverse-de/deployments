@@ -141,24 +141,28 @@ if [[ "${drifted}" == false ]]; then
     echo
 fi
 
-echo "DRIFT DETECTED."
-if [[ -z "${configured}" ]]; then
-    echo "  The address is not pinned, so k0s re-detects it at every start and"
-    echo "  will drift again on the next lease change."
-fi
-if (( dns_errors > 0 )); then
-    echo "  CoreDNS cannot reach the API server, so any Service created since"
-    echo "  the drift does not resolve."
-fi
-if (( proxy_errors > 0 )); then
-    echo "  kube-proxy cannot reach the API server, so any endpoint changed"
-    echo "  since the drift is not programmed and those Services do not route."
-fi
-echo
+# Guarded: a migration from a healthy non-standard address reaches here too,
+# and announcing a fault it has already ruled out would contradict itself.
+if [[ "${drifted}" == true ]]; then
+    echo "DRIFT DETECTED."
+    if [[ -z "${configured}" ]]; then
+        echo "  The address is not pinned, so k0s re-detects it at every start and"
+        echo "  will drift again on the next lease change."
+    fi
+    if (( dns_errors > 0 )); then
+        echo "  CoreDNS cannot reach the API server, so any Service created since"
+        echo "  the drift does not resolve."
+    fi
+    if (( proxy_errors > 0 )); then
+        echo "  kube-proxy cannot reach the API server, so any endpoint changed"
+        echo "  since the drift is not programmed and those Services do not route."
+    fi
+    echo
 
-if [[ "${fix}" == false ]]; then
-    echo "Re-run with --fix (as root) to repair."
-    exit 1
+    if [[ "${fix}" == false ]]; then
+        echo "Re-run with --fix (as root) to repair."
+        exit 1
+    fi
 fi
 
 if [[ "$(id -u)" -ne 0 ]]; then
