@@ -26,6 +26,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: groups-configs
           secret:
             secretName: groups-configs
@@ -36,6 +37,7 @@ spec:
         - name: groups
           image: harbor.cyverse.org/de/groups
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: groups-configs
               mountPath: /etc/iplant/de
               readOnly: true
@@ -54,6 +56,7 @@ spec:
             - --port
             - "60000"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

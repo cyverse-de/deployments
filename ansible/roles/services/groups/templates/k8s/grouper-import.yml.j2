@@ -11,6 +11,11 @@
 # and apps still write group changes there, and those changes are invisible to
 # the permissions service until the next import. Suspend it again once terrain,
 # apps, group-propagator, and Sonora have cut over.
+#
+# Unlike the groups service, this carries no de_ca_* partials on purpose: the
+# importer reaches Grouper and the DE database over postgresql with sslmode
+# disabled and the permissions service over plain HTTP, so it makes no TLS
+# connection that a private CA would need to verify.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
