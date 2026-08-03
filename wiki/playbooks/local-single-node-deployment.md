@@ -102,10 +102,23 @@ on. This is not hypothetical: it happened on 2026-08-03, and an older instance
 of the same drift left QA's liqo replicator pointed at a dead address for
 months.
 
-The script pins the address to the host's Tailscale address when it has one —
-stable across reboots and lease changes, unlike the LAN address, and already in
-the API server's certificate SANs. `K0S_API_ADDRESS` overrides it. A host with
-no Tailscale address gets the default route's source address and a warning.
+The script pins it to `10.255.255.1`, carried on a dummy interface (`k0s-api`)
+that a systemd unit brings up before `k0scontroller` starts. The address belongs
+to no physical network, so nothing outside the host can move it, and it is the
+same on every workstation, so runbooks can name it. `K0S_API_ADDRESS` overrides
+it.
+
+Three alternatives that look reasonable and are not. The **LAN address** is the
+DHCP lease this exists to avoid. A **Tailscale or other VPN address** is stable
+but only exists on machines running that VPN, so it cannot be assumed across a
+team. The **kube-bridge address** (`10.244.0.1`) is reachable and stable once
+the cluster is up, but the CNI creates it and the CNI cannot start until the
+node has registered with the API server, so advertising it deadlocks a fresh
+install.
+
+Changing the address is safe with respect to TLS: k0s regenerates the API
+server certificate on start and includes every local interface address in its
+SANs.
 
 For a cluster that has already drifted, or one built before this was pinned:
 

@@ -46,9 +46,13 @@ KUBECONFIG=~/.kube/local-admin.conf ./repair-local-k0s-api-address.sh
 ```
 
 It reports the configured address and whether it is reachable, the `kubernetes`
-Service endpoint, the best address available now, and how many API errors
+Service endpoint, whether the dummy interface is up, and how many API errors
 kube-proxy and CoreDNS logged in the last five minutes. Exit `0` means no
 drift; `1` means drift; `2` means it refused (see the pitfalls below).
+
+A cluster built before the address was pinned exits `0` but notes that it is on
+a non-standard address — working, but on something that can still move.
+`--fix` migrates it; there is no hurry.
 
 Doing it by hand, the two facts that matter:
 
@@ -108,11 +112,23 @@ not retroactively apply them.
 
 ## Prevention
 
-`bootstrap-local-k0s.sh` now writes `/etc/k0s/k0s.yaml` before installing, with
-the address pinned to this host's Tailscale address when it has one — stable
-across reboots and lease changes, unlike the LAN address. Set `K0S_API_ADDRESS`
-to override. A host with no Tailscale address gets the default route's source
-address and a warning that it will drift again.
+`bootstrap-local-k0s.sh` writes `/etc/k0s/k0s.yaml` before installing, pinning
+the address to **`10.255.255.1` on a dummy interface** (`k0s-api`) that a
+systemd unit brings up before `k0scontroller` starts.
+
+The address belongs to no physical network, so nothing outside the host can
+move it, and it is the same on every workstation — which is why this skill can
+name it. `K0S_API_ADDRESS` overrides it, but should rarely need to.
+
+Three addresses that look reasonable and are not:
+
+- **The LAN address.** It is a DHCP lease; this is the whole problem.
+- **A Tailscale or other VPN address.** Stable, but only exists on machines
+  running that VPN, so it cannot be assumed across a team.
+- **The kube-bridge address (`10.244.0.1`).** Reachable and stable once the
+  cluster is up, but the CNI creates it, and the CNI cannot start until the
+  node has registered with the API server — so advertising it deadlocks a fresh
+  install.
 
 This is the server-side half of a problem the script already handled for
 clients: it rewrites the admin kubeconfig to `127.0.0.1` for the same reason.

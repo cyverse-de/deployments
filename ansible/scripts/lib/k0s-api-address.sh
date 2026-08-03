@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Shared by bootstrap-local-k0s.sh and repair-local-k0s-api-address.sh: picking
-# a stable address for the API server to advertise, and writing it into
-# /etc/k0s/k0s.yaml.
+# Shared by bootstrap-local-k0s.sh and repair-local-k0s-api-address.sh: the
+# stable address the API server advertises, the dummy interface that carries
+# it, and writing it into /etc/k0s/k0s.yaml.
 #
 # Why this exists at all. With no config file, k0s auto-detects
 # spec.api.address at every start from the default route's source address, and
@@ -11,44 +11,71 @@
 # moves, kube-proxy and CoreDNS lose the API server and the cluster fails in a
 # way that reads as healthy: everything programmed before the move keeps
 # working, and only things created afterwards are silently never programmed.
+#
+# The fix is to advertise an address that belongs to no physical network: a
+# dummy interface, brought up before k0s starts. It cannot drift because
+# nothing outside this host assigns it, and it is the same on every
+# workstation, so runbooks can name it.
+#
+# Deliberately not the node's LAN or VPN address. A LAN lease moves; a VPN
+# address only exists on machines running that VPN, which is not something a
+# team can be assumed to share. Deliberately not the kube-bridge address
+# (10.244.0.1) either, tempting though it is: that interface is created by the
+# CNI, which cannot start until the node has registered with the API server, so
+# advertising it would deadlock a fresh install.
 
 # Overridable so the diagnostic can be exercised against a fixture without root.
 k0s_config="${K0S_CONFIG:-/etc/k0s/k0s.yaml}"
 
-# Sets two globals rather than echoing: k0s_api_address, and
-# k0s_api_address_source describing where it came from so callers can warn when
-# the choice is not a stable one. Globals because a command substitution would
-# run this in a subshell and lose the second value.
-k0s_api_address=
-k0s_api_address_source=
+k0s_api_interface=k0s-api
+k0s_api_unit=k0s-api-address.service
+# Outside both the pod CIDR (10.244.0.0/16) and the service CIDR
+# (10.96.0.0/12), and unusual enough not to collide with a home or campus LAN.
+k0s_api_address_default=10.255.255.1
 
-detect_stable_api_address() {
-    if [[ -n "${K0S_API_ADDRESS:-}" ]]; then
-        k0s_api_address_source="K0S_API_ADDRESS override"
-        k0s_api_address="${K0S_API_ADDRESS}"
-        return 0
-    fi
+# The address this host should advertise. Fixed unless overridden -- there is
+# nothing to detect, which is the point.
+k0s_api_address="${K0S_API_ADDRESS:-${k0s_api_address_default}}"
 
-    # Tailscale hands out addresses from the CGNAT range 100.64.0.0/10 and
-    # keeps them across reboots and network changes, which is exactly the
-    # property the API address needs and the LAN lease lacks.
-    local tailscale
-    tailscale="$(ip -4 -o addr show 2>/dev/null |
-        awk '{print $4}' | cut -d/ -f1 |
-        awk -F. '$1 == 100 && $2 >= 64 && $2 <= 127' |
-        head -1)"
-    if [[ -n "${tailscale}" ]]; then
-        k0s_api_address_source="Tailscale address"
-        k0s_api_address="${tailscale}"
-        return 0
-    fi
+# Creates and enables the unit that carries the address, then starts it. Safe
+# to re-run: the unit ignores failures from the two `add` commands so that a
+# restart does not fail on an interface that already exists.
+ensure_api_address_interface() {
+    local ip_bin
+    ip_bin="$(command -v ip)"
 
-    # Nothing stable to point at. Still better than leaving it unpinned --
-    # pinned-but-wrong is one edit away from correct, whereas unpinned silently
-    # re-breaks on every restart -- but say so.
-    k0s_api_address_source="default route source address (NOT stable)"
-    k0s_api_address="$(ip route get 1.1.1.1 2>/dev/null |
-        awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i + 1); exit}}')"
+    cat >"/etc/systemd/system/${k0s_api_unit}" <<EOF
+[Unit]
+Description=Stable address for the k0s API server to advertise
+Documentation=file://$(dirname "${BASH_SOURCE[0]}")/k0s-api-address.sh
+# k0s bakes this address into the component kubeconfigs, so it has to exist
+# before the controller starts or they come up pointing at nothing.
+Before=k0scontroller.service
+After=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The leading '-' makes these non-fatal: on a restart the link and address are
+# already there, and that is success, not failure.
+ExecStart=-${ip_bin} link add ${k0s_api_interface} type dummy
+ExecStart=-${ip_bin} addr add ${k0s_api_address}/32 dev ${k0s_api_interface}
+ExecStart=${ip_bin} link set ${k0s_api_interface} up
+ExecStop=-${ip_bin} link del ${k0s_api_interface}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable --now "${k0s_api_unit}" >/dev/null
+}
+
+# True when the address is actually present on this host.
+api_address_interface_up() {
+    ip -4 -o addr show dev "${k0s_api_interface}" 2>/dev/null |
+        grep -q "inet ${k0s_api_address}/"
 }
 
 # Writes a complete k0s.yaml. Only for a cluster that does not exist yet: it
@@ -66,14 +93,17 @@ metadata:
   name: k0s
 spec:
   api:
-    # Pinned deliberately. Left unset, k0s re-detects this at every start from
-    # the default route and bakes a DHCP lease into the component kubeconfigs
-    # and the "kubernetes" Service endpoint; when the lease moves, kube-proxy
-    # and CoreDNS lose the API server while everything already programmed keeps
-    # working, so the cluster looks healthy and silently stops applying changes.
+    # A dummy interface (${k0s_api_interface}), brought up by
+    # ${k0s_api_unit} before the controller starts.
     #
-    # Repair with scripts/repair-local-k0s-api-address.sh if this address ever
-    # stops being reachable.
+    # Left unset, k0s re-detects this at every start from the default route and
+    # bakes a DHCP lease into the component kubeconfigs and the "kubernetes"
+    # Service endpoint; when the lease moves, kube-proxy and CoreDNS lose the
+    # API server while everything already programmed keeps working, so the
+    # cluster looks healthy and silently stops applying changes. An address
+    # that belongs to no physical network cannot move.
+    #
+    # Diagnose with scripts/repair-local-k0s-api-address.sh.
     address: ${address}
     sans:
       - ${address}

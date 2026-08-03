@@ -35,7 +35,9 @@ Environment:
   KUBECONFIG       Defaults to ~/.kube/local-admin.conf, NOT ~/.kube/config --
                    this script is only ever meant for the local cluster, and
                    the default kubeconfig on this workstation points at QA.
-  K0S_API_ADDRESS  Force the address to repair to, instead of autodetecting.
+  K0S_API_ADDRESS  The address to repair to. Defaults to 10.255.255.1, carried
+                   on a dummy interface; it should match whatever
+                   bootstrap-local-k0s.sh used.
 EOF
 }
 
@@ -80,9 +82,7 @@ assert_local_cluster
 configured="$(configured_api_address)"
 endpoint="$(kubectl get endpoints kubernetes -n default \
     -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || true)"
-detect_stable_api_address
 detected="${k0s_api_address}"
-detected_source="${k0s_api_address_source}"
 
 if [[ -n "${configured}" ]]; then
     api_address_reachable "${configured}" && configured_state=reachable || configured_state=UNREACHABLE
@@ -90,19 +90,25 @@ else
     configured_state="not pinned -- k0s re-detects at every start"
 fi
 
+api_address_interface_up && iface_state="up" || iface_state="ABSENT"
 proxy_errors="$(api_error_count ds/kube-proxy)"
 dns_errors="$(api_error_count deploy/coredns)"
 
 printf '  %-22s %s\n' "config file:" "${k0s_config}$([[ -f ${k0s_config} ]] || echo ' (absent)')"
 printf '  %-22s %s\n' "configured address:" "${configured:-<none>} (${configured_state})"
 printf '  %-22s %s\n' "kubernetes endpoint:" "${endpoint:-<unknown>}"
-printf '  %-22s %s\n' "best address now:" "${detected} (${detected_source})"
+printf '  %-22s %s\n' "standard address:" "${detected} on ${k0s_api_interface} (${iface_state})"
 printf '  %-22s %s\n' "kube-proxy errors/5m:" "${proxy_errors}"
 printf '  %-22s %s\n' "coredns errors/5m:" "${dns_errors}"
 echo
 
 # Written as an if rather than a run of `test && drifted=true`, where whether
 # set -e fires depends on a line's position in the list.
+#
+# Broken and non-standard are kept apart on purpose. A cluster pinned to a
+# reachable address that is not the dummy one works fine; it is only carrying
+# an address that could move later. Reporting that as a fault would cry wolf on
+# a healthy cluster, so it is advice, and only a real fault sets the exit code.
 drifted=false
 if [[ "${configured_state}" == UNREACHABLE ]] ||
    [[ -z "${configured}" ]] ||
@@ -112,10 +118,27 @@ if [[ "${configured_state}" == UNREACHABLE ]] ||
     drifted=true
 fi
 
+nonstandard=false
+if [[ "${drifted}" == false && "${configured}" != "${detected}" ]]; then
+    nonstandard=true
+fi
+
 if [[ "${drifted}" == false ]]; then
     echo "No drift. The advertised address reaches the API server and neither"
     echo "kube-proxy nor CoreDNS is reporting errors."
-    exit 0
+    if [[ "${nonstandard}" == false ]]; then
+        exit 0
+    fi
+    echo
+    echo "It is pinned to ${configured}, though, not the dummy address"
+    echo "${detected}. That works until ${configured} moves or the interface"
+    echo "carrying it goes away."
+    if [[ "${fix}" == false ]]; then
+        echo "Migrate with --fix when convenient; it restarts k0scontroller."
+        exit 0
+    fi
+    echo "Migrating, since --fix was given."
+    echo
 fi
 
 echo "DRIFT DETECTED."
@@ -140,6 +163,16 @@ fi
 
 if [[ "$(id -u)" -ne 0 ]]; then
     echo "--fix needs root; re-run it with sudo." >&2
+    exit 1
+fi
+
+# Before the config, so the controller never starts pointing at an address that
+# is not there yet.
+echo "== ensuring ${k0s_api_interface} (${detected}) via ${k0s_api_unit}"
+ensure_api_address_interface
+if ! api_address_interface_up; then
+    echo "${detected} did not come up on ${k0s_api_interface}." >&2
+    echo "Check 'systemctl status ${k0s_api_unit}'." >&2
     exit 1
 fi
 

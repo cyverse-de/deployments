@@ -38,10 +38,11 @@ iRODS CSI driver's kubelet directories, and writes an admin kubeconfig to
   -h        Show this help
 
 Environment:
-  K0S_API_ADDRESS  The address the API server advertises. Defaults to this
-                   host's Tailscale address, falling back to the default
-                   route's source address. Set it when neither is the one the
-                   cluster should be reached on.
+  K0S_API_ADDRESS  The address the API server advertises, carried on a dummy
+                   interface this script creates. Defaults to 10.255.255.1 and
+                   should rarely need changing — the point of it is that it is
+                   the same on every workstation and belongs to no physical
+                   network, so it cannot drift.
 EOF
 }
 
@@ -91,25 +92,19 @@ if [[ "${reset}" == true ]]; then
     exit 0
 fi
 
-# Written before the install so the address is pinned from the very first
-# start; k0s bakes it into the component kubeconfigs, and correcting it
-# afterwards means a controller restart.
-echo "== writing ${k0s_config}"
-detect_stable_api_address
-api_address="${k0s_api_address}"
-if [[ -z "${api_address}" ]]; then
-    echo "Could not determine an address for the API server to advertise." >&2
-    echo "Set K0S_API_ADDRESS and re-run." >&2
+# Both before the install: k0s bakes the advertised address into the component
+# kubeconfigs at first start, so the interface has to exist by then and
+# correcting it afterwards means a controller restart.
+echo "== creating ${k0s_api_interface} (${k0s_api_address}) via ${k0s_api_unit}"
+ensure_api_address_interface
+if ! api_address_interface_up; then
+    echo "${k0s_api_address} did not come up on ${k0s_api_interface}." >&2
+    echo "Check 'systemctl status ${k0s_api_unit}'." >&2
     exit 1
 fi
-echo "   API address: ${api_address} (${k0s_api_address_source})"
-if [[ "${k0s_api_address_source}" == *"NOT stable"* ]]; then
-    echo "   WARNING: this host has no Tailscale address, so the API server is"
-    echo "   pinned to a DHCP lease. When it changes, kube-proxy and CoreDNS"
-    echo "   will lose the API server; repair with"
-    echo "   scripts/repair-local-k0s-api-address.sh --fix."
-fi
-write_k0s_config "${api_address}"
+
+echo "== writing ${k0s_config}"
+write_k0s_config "${k0s_api_address}"
 
 # --single gives a combined controller/worker with no taint, which is what a
 # one-machine deployment wants. --enable-worker would add a master NoSchedule
