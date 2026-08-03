@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/resource-usage-api","tag":"harbor.cyverse.org/de/resource-usage-api:v2026.08.04-rc02@sha256:ffae1fc28039981bb963f0e914744540afd441d353cc27af24b5e0fe7bf0dad1"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/resource-usage-api","tag":"harbor.cyverse.org/de/resource-usage-api:v2026.08.04@sha256:ffae1fc28039981bb963f0e914744540afd441d353cc27af24b5e0fe7bf0dad1"}]}
