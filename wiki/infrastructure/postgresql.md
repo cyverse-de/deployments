@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-07-31T12:00:00Z
+timestamp: 2026-08-04T12:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -103,6 +103,19 @@ permissions or version problem rather than a stale database. `postgresql_init`
 checks `datlocprovider` up front and fails naming the offending databases. The
 check runs only when `create_dbs` is set, so an environment that does not
 create databases is unaffected by ones predating the switch.
+
+Its scope is the runs that create databases, and nothing more. The check
+carries no tags of its own, so it inherits the play's `setup-databases` and
+`databases` and is filtered out of a `--tags update-databases` run — which is
+correct, because every `postgresql_db` task it guards is untagged too and so
+is filtered out of that run as well. Tagging the check would abort a
+migrations-only pass over a locale mismatch that nothing in scope was going to
+try to reconcile. This matters on an environment with a long-lived database
+predating the switch: a `--tags update-databases` migration run against it
+succeeds, while a full `setup-databases` pass still stops on the mismatch.
+`grafana.yml` is the exception on the other side — its create task *is* tagged
+`update-databases`, and `grafana_db_name` is absent from
+`postgresql_init_managed_databases`, so it is neither checked nor deferred.
 
 The check runs once per database server rather than once overall. Keycloak's
 database is created against `keycloak_db_login_host`, which need not be

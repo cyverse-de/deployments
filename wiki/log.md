@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-08-04
+
+* **Update**: [PostgreSQL](/infrastructure/postgresql.md) — the locale pre-flight is scoped to runs that create databases again. It had been given `apply: tags: update-databases` on the reading that a dynamic include needs it for its children to run under `--tags`, which is true in general but wrong here: every `postgresql_db` task the check guards is untagged and so is filtered out of a `--tags update-databases` run anyway. The result was a migrations-only pass against production aborting on a `keycloak` database created before the switch to ICU — over a reconciliation no task in scope was going to attempt. The check now carries no tags of its own and inherits the play's. Also recorded that `grafana.yml` is the exception on the other side: its create task is tagged `update-databases` while `grafana_db_name` is absent from `postgresql_init_managed_databases`, so it is neither checked nor deferred.
+
 ## 2026-08-03
 
 * **Update**: [vice-operator](/services/vice-operator.md) — `vice_operator_ca_bundle_configmap` now records which images can honour it. Merging `main` took the app-exposer and vice-operator build descriptors back to the `v2026.08.04` release, which predates the CA-bundle merge (app-exposer PR #164), so the flag the role renders does not exist in the image it pins: the operator exits at startup on an unknown flag and crash-loops. Nothing here is wrong for QA or production, where `de_ca_bundle_configmap` is empty and the flag is never rendered, but a deployment with a private CA sets it and gets a failure whose message names neither the release nor the variable. The page previously described the flag as unconditionally available.
