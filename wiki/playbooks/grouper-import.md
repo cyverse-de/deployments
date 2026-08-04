@@ -4,7 +4,7 @@ title: Importing Groups from Grouper
 description: Running the grouper-import tool to copy DE group data out of Grouper into the permissions schema, and keeping it in step during the migration.
 resource: /ansible/grouper_import.yml
 tags: [grouper, groups, migration, import, cronjob]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-08-04T00:00:00Z
 ---
 
 `grouper-import` copies DE group data out of [Grouper](/infrastructure/grouper.md)
