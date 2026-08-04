@@ -18,7 +18,7 @@
 * [event-recorder](/services/event-recorder.md) - AMQP worker that consumes event messages from the de exchange and records them, sharing the jobservices.yml configuration with the other jobservices workers.
 * [formation](/services/formation.md) - Keycloak-authenticated HTTP API (with MCP support) fronting apps, app-exposer, and permissions for launching and managing analyses, including VICE URL readiness checks.
 * [get-analysis-id](/services/get-analysis-id.md) - Build-only role for the get-analysis-id lookup service; it has a static manifest but no deploy tasks and is not wired into deploy_it.yml.
-* [group-propagator](/services/group-propagator.md) - AMQP worker that propagates Grouper group-membership changes to the data store, using iplant-groups and data-info.
+* [group-propagator](/services/group-propagator.md) - AMQP worker that propagates group-membership changes to the data store, using the groups service and data-info.
 * [groups](/services/groups.md) - Group and membership API backed by the permissions schema of the DE database, replacing iplant-groups and Grouper.
 * [info-typer](/services/info-typer.md) - JVM worker that consumes iRODS change messages from the irods AMQP exchange and stamps files with an ipc-filetype metadata attribute.
 * [infosquito2](/services/infosquito2.md) - Periodic indexer that reconciles the iRODS ICAT and metadata database into the OpenSearch/Elasticsearch index used by DE search.

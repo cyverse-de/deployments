@@ -15,7 +15,7 @@ set of DE services: [app-exposer](/services/app-exposer.md) (JEX base URL,
 `{{ baseurls_app_exposer }}/batch`), [data-info](/services/data-info.md),
 [notifications](/services/notifications.md), [analyses](/services/analyses.md),
 [async-tasks](/services/async-tasks.md),
-[iplant-groups](/services/iplant-groups.md) (as `de_grouper`),
+[groups](/services/groups.md) (as `de_grouper`),
 [metadata](/services/metadata.md), [permissions](/services/permissions.md),
 [requests](/services/requests.md), and iplant-email. It also holds Tapis
 API credentials and feature flags (`tapis_enabled`, `tapis_jobs_enabled`) for
