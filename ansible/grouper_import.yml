@@ -25,6 +25,16 @@
     import_job_name: "grouper-import-manual"
     import_timeout: 1800
   tasks:
+    # Read from the build descriptor rather than naming the image: this Job is
+    # applied directly, so nothing substitutes a digest the way skaffold does for
+    # a Deployment, and a bare name resolves to :latest, which is never pushed.
+    - name: read the groups build descriptor
+      ansible.builtin.set_fact:
+        groups_image: >-
+          {{ (lookup('file', playbook_dir ~ '/roles/services/groups/files/groups.json')
+              | from_json).builds[0].tag }}
+      when: groups_image is not defined
+
     - name: remove any previous manual import job
       environment:
         KUBECONFIG: "{{ kubeconfig }}"
@@ -55,7 +65,7 @@
                 restartPolicy: Never
                 containers:
                   - name: grouper-import
-                    image: "{{ groups_image | default('harbor.cyverse.org/de/groups') }}"
+                    image: "{{ groups_image }}"
                     command:
                       - grouper-import
                     args: "{{ ['-dry-run'] if (dry_run | bool) else [] }}"

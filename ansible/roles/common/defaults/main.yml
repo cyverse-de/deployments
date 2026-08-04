@@ -121,6 +121,11 @@ agave_storage_system: replace_me
 agave_callback_base_uri: http://replace_me
 agave_read_timeout: 30000
 
+# The AVU attribute an app's community tag is stored under. The community-tag
+# migration must agree with apps on this, or it rewrites nothing and reports a
+# clean run, so both read it from here.
+apps_communities_attr: cyverse-community
+
 # Base URLS for services within the K3s cluster
 baseurls_analyses: http://analyses
 baseurls_apps: http://apps

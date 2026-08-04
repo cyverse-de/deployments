@@ -8,6 +8,7 @@
 * [Building and Deploying Services](/playbooks/build-and-deploy.md) - How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 * [Certificate Management](/playbooks/certificate-management.md) - TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 * [Continuous Integration to QA](/playbooks/ci-to-qa.md) - The tag-triggered CI path that builds service images on GitHub Actions, publishes build descriptors to de-releases, and deploys to QA via GoCD.
+* [Rewriting App Community Tags](/playbooks/community-tags.md) - Running the community-tags migration, which changes the community tag on an app from the community's name to its ID.
 * [Deploying TLS Certificates](/playbooks/deploy-tls-certs.md) - How the tls_certs_main.yml playbook copies the combined TLS certificate to the proxy nodes for HAProxy.
 * [Deploying a Full DE Environment](/playbooks/full-deployment.md) - How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
 * [Importing Groups from Grouper](/playbooks/grouper-import.md) - Running the grouper-import tool to copy DE group data out of Grouper into the permissions schema, and keeping it in step during the migration.
