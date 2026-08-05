@@ -60,13 +60,25 @@ this. That view is membership, and `GrouperAll` is never in it; the public
 marker lives in the privilege fields (`viewers`, `readers`, `optins`) in
 `grouper_memberships_all_v`.
 
-**One deliberate widening.** Grouper distinguished `viewers` (see the group)
-from `readers` (see its members), and gave public *teams* only `viewers` — so a
-non-member saw the team with an empty member list. The importer maps both to a
-single `read` grant, because the permissions service has no equivalent
-distinction, so a public team's membership is now visible to any user where
-Grouper hid it. Public communities are unaffected: they carried `readers`
-already.
+### Public does not mean the members are public
+
+Grouper separated `viewers` — the group is discoverable and joinable — from
+`readers`, which also exposes the member list, and gave public **teams** only
+`viewers` while public **communities** got `readers`. The permissions service
+has no level weaker than `read`, so both arrive as the same `GrouperAll` grant
+and the difference is carried by `groups.members_public` (migration `000055`).
+
+A non-member asking for a public team's members gets **200 with an empty list**,
+not a 403. That is what Grouper did, and the DE's team page renders from it — a
+403 breaks the page for every public team. Refusing is reserved for groups the
+caller may not see at all.
+
+The importer derives the flag from Grouper's `readers` privilege and replaces
+the whole set on each run, so a privilege revoked between runs reverts instead
+of accumulating. Groups created natively have no `legacy_name` and are left
+alone. terrain sets it at creation from `public_privileges`, which carries
+Grouper's vocabulary: communities send `["read","optin"]`, public teams send
+`["view"]`.
 
 Source repo: [cyverse-de/groups](https://github.com/cyverse-de/groups); image
 `harbor.cyverse.org/de/groups`, pinned in
