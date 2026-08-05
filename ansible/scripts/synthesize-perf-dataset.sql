@@ -81,6 +81,14 @@ DELETE FROM group_memberships
  WHERE group_id IN (SELECT subject_id FROM groups WHERE name LIKE 'perf-%')
     OR member_id IN (SELECT subject_id FROM groups WHERE name LIKE 'perf-%');
 
+-- Group resources are named by the group's external id, not by anything
+-- matching 'perf-%', so they have to be found through the group they belong to
+-- and dropped before the group itself goes.
+DELETE FROM resources r
+ USING groups g
+  JOIN subjects gs ON gs.id = g.subject_id
+ WHERE g.name LIKE 'perf-%' AND r.name = gs.subject_id;
+
 -- Deleting a subject cascades its groups row, closure, and any permissions
 -- held by it; deleting a resource cascades permissions on it.
 DELETE FROM subjects
@@ -288,18 +296,46 @@ SELECT pg.sid, pr.id, (SELECT id FROM permission_levels WHERE name = 'read')
  WHERE pg.n > 2
 ON CONFLICT DO NOTHING;
 
--- Every group is also a resource, so grants over groups themselves exist.
+-- Every group is also a resource, and the resource's name is the group's
+-- EXTERNAL id -- the 32-hex subject_id, not anything derived from its name.
+-- That is what the groups service passes to the permissions service when it
+-- authorizes a request, so a resource named any other way authorizes nothing:
+-- the group's own owner gets a 403 on it.
 INSERT INTO resources (name, resource_type_id)
-SELECT 'perf-grp-' || pg.n, (SELECT id FROM resource_types WHERE name = 'group')
+SELECT gs.subject_id, (SELECT id FROM resource_types WHERE name = 'group')
   FROM perf_groups pg
+       JOIN subjects gs ON gs.id = pg.sid
 ON CONFLICT DO NOTHING;
 
+-- The owner holds `own`, joined on the groups.owner value itself rather than
+-- recomputing the index, so the grant cannot drift from the column.
 INSERT INTO permissions (subject_id, resource_id, permission_level_id)
-SELECT pu.id, r.id, (SELECT id FROM permission_levels WHERE name = 'own')
+SELECT owner_s.id, r.id, (SELECT id FROM permission_levels WHERE name = 'own')
   FROM perf_groups pg
-       JOIN resources r ON r.name = 'perf-grp-' || pg.n
-       JOIN perf_users pu ON pu.n = ((pg.n * 7919) % 40000) + 1
+       JOIN subjects gs ON gs.id = pg.sid
+       JOIN resources r ON r.name = gs.subject_id
+       JOIN subjects owner_s ON owner_s.subject_id = pg.owner
+                            AND owner_s.subject_type = 'user'
  WHERE pg.owner IS NOT NULL
+ON CONFLICT DO NOTHING;
+
+-- Public teams and communities are marked by a read grant to GrouperAll, a
+-- group-typed subject with no group row and no members. Production carries 183
+-- public teams and 55 public communities; without them every group is private
+-- and the browse-then-open flow cannot be exercised at all.
+INSERT INTO subjects (subject_id, subject_type)
+SELECT 'GrouperAll', 'group'
+ WHERE NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = 'GrouperAll');
+
+INSERT INTO permissions (subject_id, resource_id, permission_level_id)
+SELECT (SELECT id FROM subjects WHERE subject_id = 'GrouperAll'),
+       r.id,
+       (SELECT id FROM permission_levels WHERE name = 'read')
+  FROM perf_groups pg
+       JOIN subjects gs ON gs.id = pg.sid
+       JOIN resources r ON r.name = gs.subject_id
+ WHERE (pg.group_type = 'team'      AND pg.n % 3 = 0)
+    OR (pg.group_type = 'community' AND pg.n % 1 = 0)
 ON CONFLICT DO NOTHING;
 
 \echo ''

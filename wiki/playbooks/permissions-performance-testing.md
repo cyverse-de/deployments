@@ -58,6 +58,27 @@ wrong would produce a reassuring but meaningless benchmark:
   closure of 102,082 against production's 54,467, nearly doubling the apparent
   cost of every lookup.
 
+## Group resources are named by the group's ID
+
+A group is also a resource, and that resource's name is the group's **external
+32-hex id** — not its name, and not anything derived from it. That is the value
+the [groups](/services/groups.md) service passes to the permissions service when
+it authorizes a request, so a resource named any other way authorizes nothing
+and the group's own owner gets a 403 on it. An early version of the generator
+named them `perf-grp-<n>` and every synthetic group was unadministrable.
+
+Public teams and communities carry a `read` grant to `GrouperAll`. That grant is
+a **marker only** — it does not confer read access, because `GrouperAll` is a
+group-typed subject with no members, so no user expands to it. This is not a
+change introduced by the migration: Grouper's own `grouper_memberships_v` never
+reported `GrouperAll` among a user's groups either, so the permissions service
+did not grant on it before the move. terrain reads the grant to decide whether
+to show a group as public and joinable, and nothing else does.
+
+The practical consequence, which is easy to mistake for a bug: browsing to a
+team you neither own nor belong to returns 403 even when it is marked public,
+and the listing that got you there shows every team regardless of access.
+
 ## What it measured
 
 | Path | Result |
