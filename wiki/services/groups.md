@@ -109,6 +109,20 @@ of accumulating. Groups created natively have no `legacy_name` and are left
 alone. terrain sets both at creation from `public_privileges`, which carries Grouper's
 vocabulary: communities send `["read","optin"]`, public teams send `["view"]`.
 
+## Groups are subjects
+
+`GET /subjects` returns matching groups alongside matching users, tagged
+`source_id: "g:gsa"`. Grouper did the same, and the DE's sharing dialog
+recognizes a group by exactly that tag — return only users and sharing data,
+apps, analyses, or tools with a team or collaborator list becomes unreachable
+from the UI, with nothing raised anywhere.
+
+The group half goes through the same access-filtered listing as `/groups`, so
+the search cannot surface a group the caller could not already see. The `name`
+is the group's short name, where Grouper returned the full colon-delimited path;
+callers that strip the path (`name.split(":").pop()`) get the same answer from
+both.
+
 ## Listings are access-filtered
 
 `GET /groups` returns only what the acting user may read: a group they hold a
