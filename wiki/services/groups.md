@@ -36,9 +36,21 @@ CA or credential problem from a database one.
 Group authorization is delegated to the permissions service, where each group is
 a resource of type `group`. **The resource's name is the group's external 32-hex
 id**, not its name — a grant recorded against anything else authorizes nothing,
-including for the group's own owner. Accounts listed in `groups_admin_users`
-bypass every per-group check and have full administrative control over all
-groups, so only trusted internal DE services belong there.
+including for the group's own owner.
+
+Group *management* — adding and removing members, granting and revoking
+privileges, renaming, deleting — requires the **`admin`** level, not `write` or
+`own`. The DE's precedence is `own=0, write=1, admin=2, read=3`, so `admin` sits
+*below* write: asking for write locks out every co-admin, who are exactly the
+subjects Grouper's `admins` privilege produced and whom terrain lists as team
+admins. `own` still passes, being stronger.
+
+**`groups_admin_users` must contain the account the DE services call this one
+as** (`de_grouper`). It defaults to that for a reason: without it terrain, apps,
+and [group-propagator](/services/group-propagator.md) see only what an ordinary
+user sees. apps 500s resolving a community, because a group a non-admin cannot
+see answers 403 rather than 404 and the client only catches 404; and the
+propagator receives withheld member lists and a truncated crawl.
 
 ## How a group is marked public
 
@@ -69,7 +81,12 @@ has no level weaker than `read`, so both arrive as the same `GrouperAll` grant
 and the difference is carried by `groups.members_public` (migration `000055`).
 
 A non-member asking for a public team's members gets **200 with an empty list**,
-not a 403. That is what Grouper did, and the DE's team page renders from it — a
+carrying `"redacted": true`. The marker matters: without it a withheld list is
+indistinguishable from an empty group, and the propagator's data-info update is
+a *replace*, so it would strip the iRODS group and log the result as an
+unremarkable "0 members". It refuses a redacted list instead.
+
+It is not a 403. That is what Grouper did, and the DE's team page renders from it — a
 403 breaks the page for every public team. Refusing is reserved for groups the
 caller may not see at all.
 
