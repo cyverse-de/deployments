@@ -4,7 +4,7 @@ title: groups
 description: Group and membership API backed by the permissions schema of the DE database, replacing iplant-groups and Grouper.
 resource: /ansible/roles/services/groups
 tags: [groups, membership, postgresql, keycloak, amqp, api]
-timestamp: 2026-07-27T00:00:00Z
+timestamp: 2026-08-05T00:00:00Z
 ---
 
 The groups service is the intended replacement for
@@ -64,6 +64,35 @@ broker for downstream re-indexing, matching the messages iplant-groups emitted.
 The role also deploys the Grouper importer that populates this schema — see
 [Importing Groups from Grouper](/playbooks/grouper-import.md).
 
+## Switching terrain over
+
+`terrain_groups_backend` selects which store
+[terrain](/services/terrain.md) reads groups from: `iplant-groups` (the default,
+via [Grouper](/infrastructure/grouper.md)) or `groups`. It is rendered as
+`terrain.groups.backend`, and it is terrain's rollback path — flipping it back
+needs no redeploy of anything else.
+
+**Do not set it to `groups` until the deployed [apps](/services/apps.md) image
+tags communities by ID.** On the new backend nothing blocks a community rename,
+so an older apps orphans every tag the first time a community is renamed, with
+nothing raised anywhere — see
+[Rewriting App Community Tags](/playbooks/community-tags.md).
+
+Two shapes change the moment it flips, both of which a caller can consume
+without erroring:
+
+- A group's `display_name` becomes its short name. Under Grouper it was the full
+  colon-delimited path.
+- `id_index` is empty; it was a Grouper-internal counter with no equivalent here.
+
+Group IDs do **not** change: an imported group keeps its Grouper UUID, so
+permission grants and iRODS `@grouper-<id>` names are unaffected.
+
+Flipping it is also the point at which group writes start landing in Postgres
+rather than Grouper, so `group_data_source` should already read `native` — see
+[Importing Groups from Grouper](/playbooks/grouper-import.md) for why running
+the importer after that point is destructive.
+
 Deploy with `ansible-playbook -i $INVENTORY deploy_it.yml --tags groups`; see
 [Building and Deploying Services](/playbooks/build-and-deploy.md).
 
@@ -72,4 +101,5 @@ Deploy with `ansible-playbook -i $INVENTORY deploy_it.yml --tags groups`; see
 [1] `ansible/roles/services/groups/templates/groups.yml.j2` — database, Keycloak, permissions, and AMQP settings.
 [2] `ansible/roles/services/groups/templates/k8s/groups.yml.j2` — Deployment, Service, ports, probes.
 [3] `ansible/roles/services/groups/tasks/main.yml` — config secret rendering and deploy.
-[4] `ansible/roles/common/defaults/main.yml` — `groups_*` group_vars.
+[4] `ansible/roles/common/defaults/main.yml` — `groups_*` group_vars and `terrain_groups_backend`.
+[5] `ansible/roles/services/terrain/templates/terrain.properties.j2` — `terrain.groups.backend` and `terrain.groups.base-url`.

@@ -126,6 +126,12 @@ agave_read_timeout: 30000
 # clean run, so both read it from here.
 apps_communities_attr: cyverse-community
 
+# Which store terrain reads groups from: "iplant-groups" (Grouper) or "groups".
+# Do not set this to "groups" until the apps image carries ID-based community
+# tags -- terrain's new backend does not block renames, so an older apps orphans
+# every tag on the first community rename, silently.
+terrain_groups_backend: iplant-groups
+
 # Base URLS for services within the K3s cluster
 baseurls_analyses: http://analyses
 baseurls_apps: http://apps
