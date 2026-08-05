@@ -90,12 +90,24 @@ It is not a 403. That is what Grouper did, and the DE's team page renders from i
 403 breaks the page for every public team. Refusing is reserved for groups the
 caller may not see at all.
 
-The importer derives the flag from Grouper's `readers` privilege and replaces
-the whole set on each run, so a privilege revoked between runs reverts instead
+### Joining is a third privilege again
+
+Grouper spent three privileges on the all-users subject and the DE used all
+three: `viewers` (discoverable), `readers` (members listable), and `optins` (a
+user may add themselves). Public communities got `read` + `optin`; public teams
+got `view` alone, so **Grouper refused a self-join on a public team** — those go
+through the join-request flow, where an administrator approves.
+
+`groups.joinable` (migration `000058`) carries `optins`, separately from
+`members_public`. The two coincide in current data and mean different things:
+gating a join on member visibility, or on the public marker alone, lets anyone
+add themselves to any public team and bypasses that approval step entirely.
+
+The importer derives both flags from Grouper's privileges and replaces the whole
+set on each run, so a privilege revoked between runs reverts instead
 of accumulating. Groups created natively have no `legacy_name` and are left
-alone. terrain sets it at creation from `public_privileges`, which carries
-Grouper's vocabulary: communities send `["read","optin"]`, public teams send
-`["view"]`.
+alone. terrain sets both at creation from `public_privileges`, which carries Grouper's
+vocabulary: communities send `["read","optin"]`, public teams send `["view"]`.
 
 ## Listings are access-filtered
 
