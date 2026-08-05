@@ -17,6 +17,7 @@
 * [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) - A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, app imports, and GoCD kubeconfig transfer.
 * [Node OS Updates and Rolling Reboots](/playbooks/node-maintenance.md) - OS package updates with update_nodes.yml and drained, rolling reboots of cluster nodes with reboot_nodes.yml.
 * [General Operations Runbook](/playbooks/ops-runbook.md) - Day-to-day DE cluster operations — health checks, restarts, scaling, rollbacks, config pushes, log access, and node maintenance.
+* [Permissions Performance Testing](/playbooks/permissions-performance-testing.md) - Building a synthetic production-scale dataset in the permissions schema and measuring the group-expansion query paths against it.
 * [Portal Exim Mail Relay](/playbooks/portal-exim.md) - How portal-exim.yml deploys an exim4 SMTP relay into the portal namespace for outbound portal mail.
 * [VICE Image Caching](/playbooks/vice-image-cache.md) - The two mechanisms for pre-pulling VICE images onto worker nodes - the kube-fledged image_cache role and the legacy vice-cache Job playbook.
 * [VICE Troubleshooting](/playbooks/vice-troubleshooting.md) - Diagnosing stuck or broken VICE interactive apps — loading-page stalls, scheduling and image pull failures, readiness problems, and orphaned resources.
