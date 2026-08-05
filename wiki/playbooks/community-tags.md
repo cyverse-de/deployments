@@ -4,7 +4,7 @@ title: Rewriting App Community Tags
 description: Running the community-tags migration, which changes the community tag on an app from the community's name to its ID.
 resource: /ansible/community_tags.yml
 tags: [communities, apps, metadata, migration, groups]
-timestamp: 2026-08-04T00:00:00Z
+timestamp: 2026-08-05T00:00:00Z
 ---
 
 An app's community tag is an AVU on the app, stored under
@@ -41,9 +41,14 @@ own.** The importer has to have run first, because the mapping comes from the
 
 - **`distinct tag values: N, of which M rewritten`** — how many values were
   found and how many resolved to a community.
-- **`tag rows: N rewritten, M removed as duplicates`** — a rewrite collides with
-  `avus_unique` when an app already carries both the old and new forms, so the
-  row being migrated is dropped. The tag it expresses is already present.
+- **`tag rows: N rewritten, M removed as duplicates, K units normalized`** — a
+  rewrite collides with `avus_unique` when an app already carries both the old
+  and new forms, so the row being migrated is dropped; the tag it expresses is
+  already present. Units are set to `''` on the rewritten rows, because apps
+  writes and deletes community tags with an empty unit and the metadata deleter
+  matches the exact triple — a row keeping any other unit would survive every
+  removal as a silent no-op. Production holds three such rows, hand-tagged with
+  file formats onto the Integrated Genome Browser community.
 - **`tag values naming no community`** — the orphans. **This is the list worth
   reading.** Those apps will not appear in any collection, and they did not
   before the migration either. They are reported and left exactly as they are:
