@@ -34,9 +34,39 @@ HTTP, so it opens no TLS connection at all. `GET /` reports both dependencies
 CA or credential problem from a database one.
 
 Group authorization is delegated to the permissions service, where each group is
-a resource of type `group`. Accounts listed in `groups_admin_users` bypass every
-per-group check and have full administrative control over all groups, so only
-trusted internal DE services belong there.
+a resource of type `group`. **The resource's name is the group's external 32-hex
+id**, not its name — a grant recorded against anything else authorizes nothing,
+including for the group's own owner. Accounts listed in `groups_admin_users`
+bypass every per-group check and have full administrative control over all
+groups, so only trusted internal DE services belong there.
+
+## How a group is marked public
+
+A public team or community carries a `read` grant held by **`GrouperAll`**, a
+group-typed subject with no members and no `groups` row. It is checked as
+itself, without group expansion: no user is ever a member of it, so the
+acting-user check — which expands a user to their groups — cannot see the grant.
+Reading a group succeeds if the user holds read, *or* the group is public, *or*
+the user is a member.
+
+That ordering is load-bearing. Checking only the acting user makes every public
+group unreadable to non-members, which is not how [Grouper](/infrastructure/grouper.md)
+behaved — its privilege engine resolved `GrouperAll` as everyone. Production has
+roughly 183 public teams and 55 public communities, so the difference is a
+browse-teams flow that works against Grouper and 403s against this service.
+
+Do not look for `GrouperAll` in `grouper_memberships_v` when reasoning about
+this. That view is membership, and `GrouperAll` is never in it; the public
+marker lives in the privilege fields (`viewers`, `readers`, `optins`) in
+`grouper_memberships_all_v`.
+
+**One deliberate widening.** Grouper distinguished `viewers` (see the group)
+from `readers` (see its members), and gave public *teams* only `viewers` — so a
+non-member saw the team with an empty member list. The importer maps both to a
+single `read` grant, because the permissions service has no equivalent
+distinction, so a public team's membership is now visible to any user where
+Grouper hid it. Public communities are unaffected: they carried `readers`
+already.
 
 Source repo: [cyverse-de/groups](https://github.com/cyverse-de/groups); image
 `harbor.cyverse.org/de/groups`, pinned in

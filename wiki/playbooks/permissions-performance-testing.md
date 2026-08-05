@@ -67,17 +67,17 @@ it authorizes a request, so a resource named any other way authorizes nothing
 and the group's own owner gets a 403 on it. An early version of the generator
 named them `perf-grp-<n>` and every synthetic group was unadministrable.
 
-Public teams and communities carry a `read` grant to `GrouperAll`. That grant is
-a **marker only** — it does not confer read access, because `GrouperAll` is a
-group-typed subject with no members, so no user expands to it. This is not a
-change introduced by the migration: Grouper's own `grouper_memberships_v` never
-reported `GrouperAll` among a user's groups either, so the permissions service
-did not grant on it before the move. terrain reads the grant to decide whether
-to show a group as public and joinable, and nothing else does.
+Public teams and communities carry a `read` grant to `GrouperAll`, and that
+grant **does** confer read access — see
+[how a group is marked public](/services/groups.md). Checking
+`grouper_memberships_v` is misleading here and briefly led this page to claim
+the opposite: `GrouperAll` never appears there because that view is *membership*,
+while `viewers`/`readers` are privilege fields in `grouper_memberships_all_v`,
+which Grouper's privilege engine resolves as everyone.
 
-The practical consequence, which is easy to mistake for a bug: browsing to a
-team you neither own nor belong to returns 403 even when it is marked public,
-and the listing that got you there shows every team regardless of access.
+A dataset without those grants makes every group private, so the browse-then-open
+flow cannot be exercised at all. The generator marks a third of teams and every
+community public, against production's ~183 and ~55.
 
 ## What it measured
 
