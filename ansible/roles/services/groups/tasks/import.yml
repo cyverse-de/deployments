@@ -33,8 +33,10 @@
 
     # The importer ships in the groups image, but this CronJob is applied
     # directly rather than through skaffold, so nothing substitutes the digest
-    # the way it does for the Deployment. Read it from the same build descriptor
-    # deploy-service uses; without this the manifest's bare image name resolves
+    # the way it does for the Deployment. Read it from the role's own build
+    # descriptor -- deploy-service reads {{ build_json_dir }}, which coincides
+    # with this path only at its default, so a build_json_dir override is not
+    # honored here. Without a digest the manifest's bare image name resolves
     # to :latest, which is never pushed, and the job sits in ImagePullBackOff.
     - name: read the groups build descriptor
       run_once: true

@@ -60,9 +60,9 @@
             namespace: "{{ ns }}"
           stringData:
             GROUPS_TAGS_DB_URI: >-
-              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
             GROUPS_TAGS_METADATA_URI: >-
-              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ metadata_db_name }}?sslmode=disable
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ metadata_db_name }}?sslmode=disable
             GROUPS_TAGS_ATTRIBUTE: "{{ apps_communities_attr }}"
 
     - name: start the community-tags job

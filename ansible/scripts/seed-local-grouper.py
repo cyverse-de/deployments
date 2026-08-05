@@ -87,13 +87,24 @@ def seed_ldap(ns, base_dn, root_pw):
     if applied.returncode:
         sys.exit(f"could not create the seed configmap: {applied.stderr}")
 
+    # The password goes through a Secret and secretKeyRef, piped over stdin,
+    # so it never appears on a workstation command line or in the pod spec.
+    secret = json.dumps({"apiVersion": "v1", "kind": "Secret",
+                         "metadata": {"name": "grouper-seed-ldap-pw", "namespace": ns},
+                         "stringData": {"password": root_pw}})
+    applied = subprocess.run(["kubectl", "apply", "-n", ns, "-f", "-"],
+                             input=secret, capture_output=True, text=True)
+    if applied.returncode:
+        sys.exit(f"could not create the seed secret: {applied.stderr}")
+
     overrides = json.dumps({"spec": {"containers": [{
         "name": "ldapload", "image": "alpine:3.20",
         "command": ["sh", "-c",
                     "apk add -q openldap-clients >/dev/null 2>&1 && "
                     f'ldapadd -c -x -H ldap://openldap:389 -D "cn=Manager,{base_dn}" '
                     '-w "$LDAP_ROOT_PW" -f /seed/users.ldif'],
-        "env": [{"name": "LDAP_ROOT_PW", "value": root_pw}],
+        "env": [{"name": "LDAP_ROOT_PW", "valueFrom": {
+            "secretKeyRef": {"name": "grouper-seed-ldap-pw", "key": "password"}}}],
         "volumeMounts": [{"name": "seed", "mountPath": "/seed"}]}],
         "volumes": [{"name": "seed", "configMap": {"name": "grouper-seed-users"}}]}})
     r = subprocess.run(
@@ -106,6 +117,9 @@ def seed_ldap(ns, base_dn, root_pw):
             print(f"  {line.strip()}")
     subprocess.run(["kubectl", "delete", "configmap", "-n", ns,
                     "grouper-seed-users", "--ignore-not-found"],
+                   capture_output=True)
+    subprocess.run(["kubectl", "delete", "secret", "-n", ns,
+                    "grouper-seed-ldap-pw", "--ignore-not-found"],
                    capture_output=True)
 
 
