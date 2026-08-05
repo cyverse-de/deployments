@@ -80,6 +80,27 @@ alone. terrain sets it at creation from `public_privileges`, which carries
 Grouper's vocabulary: communities send `["read","optin"]`, public teams send
 `["view"]`.
 
+## Listings are access-filtered
+
+`GET /groups` returns only what the acting user may read: a group they hold a
+grant on directly or through a group they belong to, one they are an effective
+member of, or a public one. Accounts in `groups_admin_users` see everything.
+
+**The filter mirrors the read check exactly**, and has to. A group that lists
+but cannot be opened is what produces "failed to get team details" in the DE; a
+group that opens but never lists is unreachable. Both halves are the same four
+conditions, one in SQL and one in the handler.
+
+It is one set of `EXISTS` clauses inside the listing query rather than a
+permission call per row, because production holds 2,583 groups and an N+1 would
+be unusable. Measured against a production-sized dataset it costs about 13 ms.
+
+Grouper's group search was privilege-filtered, so this is parity rather than a
+new restriction. Without it any user can enumerate every team and community —
+and every other user's personal collaborator lists — by name, description, and
+owner: on a production-sized dataset a single page exposed 1,000 collaborator
+lists belonging to 999 different users.
+
 Source repo: [cyverse-de/groups](https://github.com/cyverse-de/groups); image
 `harbor.cyverse.org/de/groups`, pinned in
 `ansible/roles/services/groups/files/groups.json`.
