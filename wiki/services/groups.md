@@ -31,7 +31,9 @@ deliberately carries none: it reaches Grouper and the DE database over
 `postgresql` with `sslmode` disabled and the permissions service over plain
 HTTP, so it opens no TLS connection at all. `GET /` reports both dependencies
 (`{"database":true,"keycloak":true}`), which is the quickest way to tell a
-CA or credential problem from a database one.
+CA or credential problem from a database one. It answers 503 when the database
+ping fails and 200 otherwise — a Keycloak outage degrades lookups but does not
+mark the pod unready.
 
 Group authorization is delegated to the permissions service, where each group is
 a resource of type `group`. **The resource's name is the group's external 32-hex
@@ -163,7 +165,8 @@ The permissions service reads the same variable.
 
 Runtime: a Deployment with `groups_replicas` (default 2) and optional pod
 anti-affinity, listening on port 60000 behind a `groups` Service on port 80.
-Health probes hit `/`. Group create, update, delete, and membership changes are
+Health probes hit `/`, which gates readiness on the database (503 when the
+ping fails). Group create, update, delete, and membership changes are
 published to the `de` exchange on the DE [RabbitMQ](/infrastructure/rabbitmq.md)
 broker for downstream re-indexing, matching the messages iplant-groups emitted.
 

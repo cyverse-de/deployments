@@ -4,7 +4,7 @@ title: Importing Groups from Grouper
 description: Running the grouper-import tool to copy DE group data out of Grouper into the permissions schema, and keeping it in step during the migration.
 resource: /ansible/grouper_import.yml
 tags: [grouper, groups, migration, import, cronjob]
-timestamp: 2026-08-04T00:00:00Z
+timestamp: 2026-08-05T00:00:00Z
 ---
 
 `grouper-import` copies DE group data out of [Grouper](/infrastructure/grouper.md)
@@ -34,7 +34,11 @@ go through the permissions HTTP API rather than SQL.
 disappeared from Grouper, the member identifiers it had to trim, the privileges
 it could not translate, and whether the effective-membership closure matches
 Grouper's own expansion. A clean run prints zeros; a run that reports nothing is
-a run that did nothing.
+a run that did nothing. The importer exits nonzero when its own verification
+fails — a closure mismatch or members that failed to migrate — so automation
+sees those as failures, but the *informational* lists (groups gone from
+Grouper, groups created natively) still change nothing about the exit status
+and are only visible in the report.
 
 ## Keeping it in step
 
