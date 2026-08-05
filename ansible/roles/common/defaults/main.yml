@@ -327,7 +327,13 @@ groups_user_suffix: "@iplantcollaborative.org"
 # Service accounts that bypass ALL per-group permission checks in the groups
 # service, granting full administrative control over every group. List only
 # trusted internal DE services.
-groups_admin_users: []
+# Service accounts that bypass every per-group permission check in the groups
+# service. This must contain the account terrain, apps, and group-propagator
+# call it as (de_grouper), or those services see only what an ordinary user
+# sees: apps 500s resolving communities, and group-propagator receives withheld
+# member lists and would erase iRODS group ACLs if it did not refuse them.
+groups_admin_users:
+  - de_grouper
 
 formation_keycloak_client_id: replace_me
 formation_keycloak_client_secret: replace_me
