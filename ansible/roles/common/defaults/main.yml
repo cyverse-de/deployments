@@ -1013,11 +1013,9 @@ cyverse_repo_base: "git@github.com:cyverse-de"
 source_repos:
   - analyses
   - app-exposer
-  - apply-labels
   - apps
   - async-tasks
   - bulk-typer
-  - check-resource-access
   - clockwork
   - dashboard-aggregator
   - data-info
@@ -1028,7 +1026,6 @@ source_repos:
   - email-requests
   - event-recorder
   - formation
-  - get-analysis-id
   - group-propagator
   - info-typer
   - infosquito2
