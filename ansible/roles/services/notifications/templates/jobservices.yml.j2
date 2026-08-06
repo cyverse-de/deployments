@@ -107,7 +107,7 @@ vice:
     image: "{{ vice_file_transfers_image }}"
     tag: "{{ vice_file_transfers_tag }}"
   job-status:
-    base: "{{ baseurls_job_status_listener|string|regex_replace("\/$","") }}"
+    base: "{{ baseurls_job_status|string|regex_replace("\/$","") }}"
   image-pull-secret: {{ vice_image_pull_secret }}
   backend-namespace: {{ ns }}
   gateway_provider: {{ gateway_provider }}

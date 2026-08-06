@@ -1981,17 +1981,9 @@
 # iplant_groups_replicas: 2
 # iplant_groups_pod_anti_affinity: true
 
-# job-status-listener
-# job_status_listener_replicas: 2
-# job_status_listener_pod_anti_affinity: true
-
-# job-status-recorder
-# job_status_recorder_replicas: 1
-# job_status_recorder_pod_anti_affinity: true
-
-# job-status-to-apps-adapter
-# job_status_to_apps_adapter_replicas: 1
-# job_status_to_apps_adapter_pod_anti_affinity: true
+# job-status
+# job_status_replicas: 2
+# job_status_pod_anti_affinity: true
 
 # kifshare
 # kifshare_replicas: 2
