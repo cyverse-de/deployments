@@ -45,12 +45,6 @@
           tags: app-exposer
       tags: app-exposer
     - ansible.builtin.include_role:
-        name: services/apply-labels
-        tasks_from: build
-        apply:
-          tags: apply-labels
-      tags: apply-labels
-    - ansible.builtin.include_role:
         name: services/apps
         tasks_from: build
         apply:
@@ -68,12 +62,6 @@
         apply:
           tags: bulk-typer
       tags: bulk-typer
-    - ansible.builtin.include_role:
-        name: services/check-resource-access
-        tasks_from: build
-        apply:
-          tags: check-resource-access
-      tags: check-resource-access
     - ansible.builtin.include_role:
         name: services/clockwork
         tasks_from: build
@@ -116,12 +104,6 @@
         apply:
           tags: event-recorder
       tags: event-recorder
-    - ansible.builtin.include_role:
-        name: services/get-analysis-id
-        tasks_from: build
-        apply:
-          tags: get-analysis-id
-      tags: get-analysis-id
     - ansible.builtin.include_role:
         name: services/info-typer
         tasks_from: build
