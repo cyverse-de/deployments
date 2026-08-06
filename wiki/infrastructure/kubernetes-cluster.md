@@ -4,7 +4,7 @@ title: Kubernetes Cluster
 description: How the k0s cluster is provisioned — node preparation, firewall, API load balancer, k0sctl apply, and the kubernetes.yml orchestration and tags.
 resource: /ansible/kubernetes.yml
 tags: [kubernetes, k0s, k0sctl, calico, firewall, nodes, provisioning, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 The DE runs on a k0s Kubernetes cluster provisioned by `k0sctl` and orchestrated end-to-end by
@@ -63,7 +63,7 @@ ConfigMap, local exim, and the Harbor image-pull secret), OpenLDAP,
 [Keycloak](/infrastructure/keycloak.md) (opt-in tag), service configuration and secrets
 (`configure-services`, `secrets`), `kubernetes_ingress` (tag `ingress`), `kubernetes_networking`
 (tags `networking`, `nodeports` — NodePort services for kifshare, terrain, and
-job-status-listener that [HAProxy](/infrastructure/haproxy.md) fronts),
+job-status that [HAProxy](/infrastructure/haproxy.md) fronts),
 [OpenSearch](/infrastructure/opensearch.md), node feature
 discovery (`feature-discovery`), [Grouper](/infrastructure/grouper.md) init, the VICE image
 cache, the iRODS CSI driver (tag `irods-csi-driver`, including plugin directories created on
@@ -85,6 +85,6 @@ the PostgreSQL plays at the top of the playbook. See
 [5] `ansible/roles/k8s_nodes/tasks/main.yml` — node preparation details.
 [6] `ansible/roles/k8s_firewalld/tasks/main.yml` — firewalld/ufw port openings.
 [7] `ansible/roles/k8s_haproxy/tasks/main.yml`, `ansible/roles/k8s_haproxy/templates/00_k8s.cfg.j2` — API load balancer configuration.
-[8] `ansible/roles/kubernetes_networking/tasks/main.yml` — kifshare/terrain/job-status-listener NodePorts.
+[8] `ansible/roles/kubernetes_networking/tasks/main.yml` — kifshare/terrain/job-status NodePorts.
 [9] `ansible/roles/k8s_de_reqs/tasks/main.yml` — DE prerequisite task files.
 [10] `ansible/roles/common/defaults/main.yml` — `k8s_api_port`, `k8s_version`, `helm_version`, `calico_version` defaults.

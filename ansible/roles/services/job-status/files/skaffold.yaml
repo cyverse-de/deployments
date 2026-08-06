@@ -1,10 +1,10 @@
 apiVersion: skaffold/v3
 kind: Config
 metadata:
-  name: job-status-to-apps-adapter
+  name: job-status
 build:
   artifacts:
-    - image: harbor.cyverse.org/de/job-status-to-apps-adapter
+    - image: harbor.cyverse.org/de/job-status
       custom:
         buildCommand: ./buildx-build.sh
         dependencies:
@@ -16,6 +16,6 @@ build:
   local: {}
 manifests:
   rawYaml:
-    - k8s/job-status-to-apps-adapter.yml
+    - k8s/job-status.yml
 deploy:
   kubectl: {}

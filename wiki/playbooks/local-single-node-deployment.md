@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, sslip.io, dns, cloudnativepg]
-timestamp: 2026-07-31T18:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -317,7 +317,7 @@ on a new machine — a failure is much easier to place:
 | `keycloak-config` | The realm configuration on its own, against a Keycloak that is already up |
 | `configure-services,secrets` | The shared `configs` Secret and the GPG/signing/accepted-key Secrets |
 | `ingress` | Endpoint certificates, Gateways, and HTTPRoutes |
-| `networking` | The kifshare, terrain, and job-status-listener NodePorts |
+| `networking` | The kifshare, terrain, and job-status NodePorts |
 | `opensearch` | Single-node [OpenSearch](/infrastructure/opensearch.md) |
 | `grouper` | [Grouper](/infrastructure/grouper.md) WS and loader |
 | `irods-csi-driver` | The [iRODS](/infrastructure/irods.md) CSI driver |

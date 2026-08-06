@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: job-status-listener
+  name: job-status
 spec:
-  replicas: {{ job_status_listener_replicas }}
+  replicas: {{ job_status_replicas }}
   selector:
     matchLabels:
-      de-app: job-status-listener
+      de-app: job-status
   template:
     metadata:
       labels:
-        de-app: job-status-listener
+        de-app: job-status
     spec:
-{% if job_status_listener_pod_anti_affinity %}
+{% if job_status_pod_anti_affinity %}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -21,24 +21,24 @@ spec:
                   - key: de-app
                     operator: In
                     values:
-                      - job-status-listener
+                      - job-status
               topologyKey: kubernetes.io/hostname
 {% endif %}
       restartPolicy: Always
       volumes:
 {% include 'partials/de_ca_volume.j2' %}
-        - name: job-status-listener-configs
+        - name: job-status-configs
           secret:
-            secretName: job-status-listener-configs
+            secretName: job-status-configs
             items:
-              - key: jobservices.yml
-                path: jobservices.yml
+              - key: job-status.yml
+                path: job-status.yml
       containers:
-        - name: job-status-listener
-          image: harbor.cyverse.org/de/job-status-listener
+        - name: job-status
+          image: harbor.cyverse.org/de/job-status
           volumeMounts:
 {% include 'partials/de_ca_volume_mount.j2' %}
-            - name: job-status-listener-configs
+            - name: job-status-configs
               mountPath: /etc/iplant/de
               readOnly: true
           resources:
@@ -57,19 +57,11 @@ spec:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: OTEL_TRACES_EXPORTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_TRACES_EXPORTER
-            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           args:
             - --config
-            - /etc/iplant/de/jobservices.yml
+            - /etc/iplant/de/job-status.yml
+            - --batch-size
+            - "20"
           ports:
             - name: listen-port
               containerPort: 60000
@@ -89,10 +81,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: job-status-listener
+  name: job-status
 spec:
   selector:
-    de-app: job-status-listener
+    de-app: job-status
   ports:
     - protocol: TCP
       port: 80

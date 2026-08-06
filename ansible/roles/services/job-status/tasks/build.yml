@@ -1,9 +1,9 @@
 ---
-- name: build the job-status-listener image
+- name: build the job-status image
   ansible.builtin.include_role:
     name: build-service
     tasks_from: main
   vars:
-    project_name: job-status-listener
+    project_name: job-status
   tags:
     - build

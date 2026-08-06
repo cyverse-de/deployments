@@ -141,23 +141,11 @@
           tags: iplant-groups
       tags: iplant-groups
     - ansible.builtin.include_role:
-        name: services/job-status-listener
+        name: services/job-status
         tasks_from: build
         apply:
-          tags: job-status-listener
-      tags: job-status-listener
-    - ansible.builtin.include_role:
-        name: services/job-status-recorder
-        tasks_from: build
-        apply:
-          tags: job-status-recorder
-      tags: job-status-recorder
-    - ansible.builtin.include_role:
-        name: services/job-status-to-apps-adapter
-        tasks_from: build
-        apply:
-          tags: job-status-to-apps-adapter
-      tags: job-status-to-apps-adapter
+          tags: job-status
+      tags: job-status
     - ansible.builtin.include_role:
         name: services/kifshare
         tasks_from: build

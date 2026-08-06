@@ -4,7 +4,7 @@ title: vice-status-listener
 description: Namespace-scoped worker that watches VICE analyses in Kubernetes and reports their status changes.
 resource: /ansible/roles/services/vice-status-listener
 tags: [vice, status, kubernetes-watch, jobservices, go]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 The vice-status-listener watches the cluster for VICE analysis status
@@ -14,7 +14,7 @@ is injected from the pod's own metadata, and sets `CLUSTER=1`. Its shared
 job-services configuration gives it the `de` exchange on
 [RabbitMQ](/infrastructure/rabbitmq.md), the DE database on
 [PostgreSQL](/infrastructure/postgresql.md), and the
-[job-status-listener](/services/job-status-listener.md) base URL, which is
+[job-status](/services/job-status.md) base URL, which is
 how analysis status updates flow into the rest of the DE.
 
 - **Source repo:** [cyverse-de/vice-status-listener](https://github.com/cyverse-de/vice-status-listener)

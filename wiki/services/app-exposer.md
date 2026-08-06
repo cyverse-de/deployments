@@ -4,7 +4,7 @@ title: app-exposer
 description: In-cluster API that launches and manages VICE and batch analyses, exposing them via Kubernetes resources.
 resource: /ansible/roles/services/app-exposer
 tags: [app-exposer, vice, batch, kubernetes, amqp]
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 app-exposer is the DE's job-orchestration API inside the cluster. Its config
@@ -17,7 +17,7 @@ client), [Harbor](/infrastructure/harbor.md) robot credentials, a
 [apps](/services/apps.md) (job callbacks), [metadata](/services/metadata.md),
 [notifications](/services/notifications.md),
 [iplant-groups](/services/iplant-groups.md),
-[job-status-listener](/services/job-status-listener.md),
+[job-status](/services/job-status.md),
 [qms](/services/qms.md), and iplant-email.
 The config also names the porklock data-transfer image, and its VICE section
 covers the gateway provider, base domain, file-transfers image, and the
