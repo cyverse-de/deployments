@@ -4,7 +4,7 @@ title: Argo Installation and Workflow Resources
 description: How the argo role installs Argo Workflows/Events and how argo_resources.yml loads the secrets that batch workflows mount.
 resource: /ansible/argo_resources.yml
 tags: [argo, workflows, argo-events, batch, secrets]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 Batch analyses run as Argo Workflows (managed by app-exposer). Two roles are
@@ -24,7 +24,7 @@ Beyond the base install it creates:
 * A `webhook` EventSource with `/batch`, `/batch/cleanup`, and `/vice`
   endpoints, plus sensors that log batch status, POST cleanup requests to
   `app-exposer`, and forward status updates to
-  [job-status-listener](/services/job-status-listener.md). See
+  [job-status](/services/job-status.md). See
   [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md).
 
 ## argo_resources.yml (standalone playbook)

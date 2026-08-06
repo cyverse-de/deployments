@@ -4,7 +4,7 @@ title: Ingress and Gateway Routing
 description: Traefik (Gateway API) is the primary edge for DE traffic, with ingress-nginx available for Ingress-based exposure; the kubernetes_ingress role defines the DE, portal, and VICE gateways and routes.
 resource: /ansible/roles/kubernetes_ingress
 tags: [ingress, traefik, gateway-api, ingress-nginx, routing, vice, kubernetes.yml]
-timestamp: 2026-07-28T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 The deployment's primary in-cluster edge is Traefik acting as a Kubernetes Gateway API provider:
@@ -49,7 +49,7 @@ cert-manager Certificates (self-signed CA chain or Let's Encrypt, per `cert_mana
 see [cert-manager](/infrastructure/cert-manager.md)) and Gateway API resources:
 
 - A `discoenv` Gateway for `de_hostname` plus an HTTPRoute sending `/anon-files` and `/dl` to
-  kifshare, `/terrain` to terrain, `/job` to job-status-listener (prefix rewritten to `/`),
+  kifshare, `/terrain` to terrain, `/job` to job-status (prefix rewritten to `/`),
   `/formation` and the root-form OAuth discovery paths (`/.well-known/...`) to formation, and
   everything else to sonora. When Traefik is the provider, a variant of the route attaches
   CORS-header Middlewares; a provider-neutral variant applies otherwise.
