@@ -55,6 +55,14 @@ The role also removes the retired job-status-listener/recorder/adapter
 Deployments, Service, and config secrets from existing clusters; those cleanup
 tasks can be dropped once every deployment has rolled past the merge release.
 
+When cutting an existing cluster over, also redeploy
+[app-exposer](/services/app-exposer.md),
+[vice-status-listener](/services/vice-status-listener.md), and
+[timelord](/services/timelord.md) (plus the `networking`, `ingress`, and
+`argo` tags of `kubernetes.yml`): their rendered configs embed
+`vice.job-status.base`, which still names the deleted `job-status-listener`
+Service until the secrets re-render and the pods restart.
+
 ## Deploying
 
 ```
