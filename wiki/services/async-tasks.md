@@ -19,7 +19,8 @@ notifications databases on [PostgreSQL](/infrastructure/postgresql.md),
 [Condor](/infrastructure/condor.md) section, and base URLs for
 [apps](/services/apps.md), [metadata](/services/metadata.md),
 [notifications](/services/notifications.md),
-[iplant-groups](/services/iplant-groups.md), [qms](/services/qms.md),
+[iplant-groups](/services/iplant-groups.md),
+[subscriptions](/services/subscriptions.md),
 [job-status](/services/job-status.md), and VICE settings.
 The same template content appears in the app-exposer role; async-tasks reads
 whichever subsections it needs from the shared shape.

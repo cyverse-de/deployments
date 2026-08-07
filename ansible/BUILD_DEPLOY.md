@@ -85,8 +85,8 @@ ansible-playbook clone_sources.yml
 
 - Already-cloned repos are left untouched, but their tags/branches are refreshed
   (`git fetch --tags`) since releases build from tags.
-- Most repos live under the `cyverse-de` org; per-repo exceptions (e.g. `qms`,
-  which lives in the `cyverse` org) are handled by `source_repo_urls`.
+- All repos live under the `cyverse-de` org. `source_repo_urls` exists for
+  per-repo exceptions and is currently empty.
 - Clones default to SSH (`git@github.com:cyverse-de`), so a GitHub SSH key must
   be configured. To clone over HTTPS instead, set
   `-e cyverse_repo_base=https://github.com/cyverse-de` (and a credential helper
@@ -230,7 +230,7 @@ digest recorded in the descriptor.
 | `services` | all | `build_release` | comma-separated subset to rebuild |
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | clone | default org base URL for clone URLs (SSH; override for HTTPS) |
 | `source_repos` | list in `common` | clone | repos to clone into `source_repo_dir` |
-| `source_repo_urls` | `{qms: cyverse/qms}` | clone | per-repo clone-URL overrides |
+| `source_repo_urls` | `{}` | clone | per-repo clone-URL overrides |
 | `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; inventories may override it (QA points at a `de-releases/builds` checkout) |
 
 ## Notes and troubleshooting

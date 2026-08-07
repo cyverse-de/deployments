@@ -172,7 +172,7 @@ typically reachable directly from operator workstations (or via VPN). Connect wi
 | `de`            | Main DE database: analyses, apps, tools, users, subscriptions |
 | `notifications` | Notification records                                       |
 | `metadata`      | Metadata templates and AVUs                                |
-| `qms`           | Quota/subscription management (if QMS enabled)             |
+| `qms`           | Quota/subscription management (if QMS enabled); migrations come from the `subscriptions` repo |
 | `keycloak`      | Keycloak user and realm data                               |
 | `grafana`       | Grafana's own state: accounts, API keys, dashboard edits (if Grafana enabled) |
 

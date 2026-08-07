@@ -159,12 +159,6 @@
           tags: permissions
       tags: permissions
     - ansible.builtin.include_role:
-        name: services/qms
-        tasks_from: build
-        apply:
-          tags: qms
-      tags: qms
-    - ansible.builtin.include_role:
         name: services/requests
         tasks_from: build
         apply:

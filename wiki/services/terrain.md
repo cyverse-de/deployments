@@ -18,7 +18,9 @@ each at a backend service: [apps](/services/apps.md),
 [user-info](/services/user-info.md) (preferences/sessions/saved searches),
 [dashboard-aggregator](/services/dashboard-aggregator.md),
 [app-exposer](/services/app-exposer.md) (batch job submission via `/batch`),
-[subscriptions](/services/subscriptions.md) (QMS add-ons over HTTP), and
+[subscriptions](/services/subscriptions.md) (QMS add-ons and the QMS `/v1`
+API over HTTP, via `terrain.subscriptions.base-uri` and
+`terrain.qms.base-uri` respectively), and
 [portal-conductor](/services/portal-conductor.md). It also connects directly
 to [iRODS](/infrastructure/irods.md) and the ICAT database,
 [Keycloak](/infrastructure/keycloak.md) (including the admin API), the

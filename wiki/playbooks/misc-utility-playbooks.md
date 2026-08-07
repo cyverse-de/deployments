@@ -109,6 +109,17 @@ endpoint, and apps and terrain now point their JEX base URL there. Removes the
 `jex-adapter-configs` secret from the DE namespace. Idempotent — deleting
 already-absent resources succeeds silently.
 
+## qms_cleanup.yml
+
+Deletes a running `qms` deployment after the service's merge into
+[subscriptions](/services/subscriptions.md), which now serves the QMS `/v1`
+API. Removes the `qms` Deployment, its `qms` Service, and the `qms-configs`
+secret from the DE namespace. Idempotent.
+
+Order matters: terrain resolves the QMS API through `terrain.qms.base-uri`,
+whose compiled-in default is `http://qms`, so deploy subscriptions and
+redeploy terrain with the config that repoints it *before* running this.
+
 ## qms_adapter_cleanup.yml
 
 Deletes a running qms-adapter deployment after the service's retirement from
@@ -172,3 +183,4 @@ authenticates as `portal_bootstrap_user`. Idempotent.
 [10] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
 [11] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
 [12] `ansible/import_apps.yml`, `ansible/roles/de_apps/` — default app set import.
+[13] `ansible/qms_cleanup.yml` — QMS Deployment, Service, and config secret teardown.

@@ -49,8 +49,6 @@
       tags: openldap-docker
     - role: services/permissions
       tags: permissions
-    - role: services/qms
-      tags: qms
     - role: services/requests
       tags: requests
     - role: services/resource-usage-api

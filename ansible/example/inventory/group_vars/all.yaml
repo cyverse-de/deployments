@@ -405,7 +405,7 @@
 
 # Git ref of the qms migrations repo.
 # Default: main
-# qms_version: main
+# subscriptions_version: main
 
 
 
