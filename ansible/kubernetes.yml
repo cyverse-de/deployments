@@ -279,7 +279,6 @@
     - role: services/metadata
     - role: services/notifications
     - role: services/permissions
-    - role: services/qms
     - role: services/requests
     - role: services/resource-usage-api
     - role: services/data-usage-api

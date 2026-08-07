@@ -1,5 +1,18 @@
 # Wiki Update Log
 
+## 2026-08-07
+
+- Removed `services/qms.md`: the QMS service has been merged into
+  [subscriptions](/services/subscriptions.md), and its role is gone from this
+  repo. Updated `services/subscriptions.md` to cover the merged `/v1` API, the
+  `terrain.qms.base-uri` wiring, and the migrations that now live in the
+  subscriptions repo.
+- Documented `qms_cleanup.yml` in `playbooks/misc-utility-playbooks.md`.
+- Repointed QMS links in `services/app-exposer.md` and `services/async-tasks.md`
+  at subscriptions; noted the dropped `baseurls_qms` in
+  `services/resource-usage-api.md`; named the new migration source in
+  `infrastructure/postgresql.md`.
+
 ## 2026-08-06
 
 * **Remove**: apply-labels, check-resource-access, and get-analysis-id — the three build-only service roles are retired from the deployments repo (never wired into `deploy_it.yml`; nothing consumes their images). Their `build_it.yml` blocks, `source_repos` entries, role directories, and wiki pages are gone, and deleting the role directories also drops them from `build_release.yml`'s auto-discovery.
@@ -77,7 +90,7 @@
 
 ## 2026-07-23
 
-* **Removal**: Deleted the qms-adapter service page — the service was retired from the repo. Nothing publishes to the `qms.usages` AMQP routing key it consumed; usage updates moved to NATS and the [subscriptions](/services/subscriptions.md) service in 2022. Dropped the cross-reference and the stale "exchanging updates over AMQP" description from [qms](/services/qms.md), and documented the new `qms_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+* **Removal**: Deleted the qms-adapter service page — the service was retired from the repo. Nothing publishes to the `qms.usages` AMQP routing key it consumed; usage updates moved to NATS and the [subscriptions](/services/subscriptions.md) service in 2022. Dropped the cross-reference and the stale "exchanging updates over AMQP" description from the since-deleted `qms` page, and documented the new `qms_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Update**: [terrain](/services/terrain.md) — terrain now reaches the QMS add-on operations on the [subscriptions](/services/subscriptions.md) service over HTTP instead of NATS, so removed its three NATS secret mounts and the `terrain.nats.urls` property from the deployment, added a `baseurls_subscriptions` default and the `terrain.subscriptions.base-uri` config line, and dropped the now-consumerless `nats-client-tls-pkcs8` generation from the `nats` role. Removed terrain from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists. NATS clients are now data-usage-api, resource-usage-api, and subscriptions.
 * **Removal**: Deleted the jex-adapter service page — the service was retired from the repo. Its HTTP job-submission role was folded into app-exposer's `/batch` endpoint, and apps and terrain now point their JEX base URL there. Dropped jex-adapter from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists and from the [Keycloak](/infrastructure/keycloak.md) VICE-client list, trimmed the stale `(jex-adapter)` attribution in the [Ops Runbook](/playbooks/ops-runbook.md), and documented the new `jex_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Update**: [app-exposer](/services/app-exposer.md) — removed the NATS client TLS/creds mounts and `NATS_URLS` env wiring from the deployment; the app-exposer source no longer connects to NATS. Also dropped app-exposer from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists.

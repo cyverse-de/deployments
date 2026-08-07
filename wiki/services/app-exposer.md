@@ -18,7 +18,7 @@ client), [Harbor](/infrastructure/harbor.md) robot credentials, a
 [notifications](/services/notifications.md),
 [iplant-groups](/services/iplant-groups.md),
 [job-status](/services/job-status.md),
-[qms](/services/qms.md), and iplant-email.
+[subscriptions](/services/subscriptions.md), and iplant-email.
 The config also names the porklock data-transfer image, and its VICE section
 covers the gateway provider, base domain, file-transfers image, and the
 default backend loading page.

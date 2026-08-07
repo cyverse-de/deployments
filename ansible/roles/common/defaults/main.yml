@@ -135,7 +135,6 @@ baseurls_job_status: http://job-status
 baseurls_metadata: http://metadata
 baseurls_notifications: http://notifications/v1
 baseurls_permissions: http://permissions
-baseurls_qms: http://qms
 baseurls_requests: http://requests
 baseurls_search: http://search
 baseurls_subscriptions: http://subscriptions
@@ -486,15 +485,13 @@ de_db_version: main
 notifications_db_version: main
 metadata_db_version: main
 mgmt_version: main
-qms_version: main
+subscriptions_version: main
 portal_version: main
 de_db_name: de
 notifications_db_name: notifications
 metadata_db_name: metadata
 permissions_db_name: de
 qms_db_name: qms
-qms_automigrate: false
-qms_reinitialize: false
 pg_login_user: postgres
 pg_login_host: localhost
 pg_login_password: Chang3m3
@@ -1039,7 +1036,6 @@ source_repos:
   - permissions
   - portal-conductor
   - portal2
-  - qms
   - requests
   - resource-usage-api
   - search
@@ -1051,5 +1047,4 @@ source_repos:
   - vice-default-backend
   - vice-status-listener
 # Per-repo clone URL overrides for repos not under cyverse_repo_base.
-source_repo_urls:
-  qms: "git@github.com:cyverse/qms"
+source_repo_urls: {}

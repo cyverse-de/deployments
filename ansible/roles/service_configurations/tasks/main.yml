@@ -33,8 +33,6 @@
             METADATA_DATABASE_URI: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass |
               urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{
               metadata_db_name }}?sslmode=disable"
-            QMS_DATABASE_REINIT: "{{ qms_reinitialize | string }}"
-            QMS_DATABASE_MIGRATE: "{{ qms_automigrate | string }}"
             USERNAME_SUFFIX: "@{{ uid_domain }}"
             OTEL_TRACES_EXPORTER: "{% if jaeger_enabled == True %}jaeger{% else %}none{% endif %}"
             OTEL_EXPORTER_JAEGER_ENDPOINT: "{{ jaeger_endpoint }}"

@@ -26,8 +26,9 @@ include the DE and notifications database URIs on
 [PostgreSQL](/infrastructure/postgresql.md)
 (`dbms_connection_user`/`dbms_connection_pass`, `de_db_name`,
 `notifications_db_name`), the [RabbitMQ](/infrastructure/rabbitmq.md) `de`
-exchange URI (`de_amqp_*`), the `qms` section (`baseurls_qms`,
-`qms_enabled`), and `users.domain` (`uid_domain`).
+exchange URI (`de_amqp_*`), the `qms` section (just `qms_enabled`, which
+despite the name selects between two subscriptions-backed summarizers), and
+`users.domain` (`uid_domain`).
 
 Runtime: a Deployment with `resource_usage_api_replicas` (default 2), optional
 pod anti-affinity, and the `configurator` service account, run with

@@ -177,6 +177,11 @@ terrain.dashboard-aggregator.base-uri = {{ baseurls_dashboard_aggregator|string|
 # Subscriptions Settings
 terrain.subscriptions.base-uri = {{ baseurls_subscriptions|string|regex_replace("\/$","") }}
 
+# The QMS /v1 API is served by the subscriptions service. Terrain's compiled-in
+# default for this is http://qms, so it must be set here or terrain keeps
+# calling a service that no longer exists.
+terrain.qms.base-uri = {{ baseurls_subscriptions|string|regex_replace("\/$","") }}
+
 # Portal Conductor Settings
 terrain.portal-conductor.base-url = {{ portal_conductor_url }}
 terrain.portal-conductor.username = {{ portal_conductor_auth_username }}
