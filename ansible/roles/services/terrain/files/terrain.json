@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/terrain","tag":"harbor.cyverse.org/de/terrain:v2026.08.04@sha256:d547565f1dfe29585354c1360b6c9c805e10c9ca3b83ba2ea91ead0cd9db61a8"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/terrain","tag":"harbor.cyverse.org/de/terrain:v2026.09.01-rc01@sha256:2f22dbba579862016a254d25f1599b6c01e3a4432047479c98b7e9bbd1b3e681"}]}
