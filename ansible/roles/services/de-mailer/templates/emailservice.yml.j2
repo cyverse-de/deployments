@@ -1,3 +1,8 @@
+amqp:
+  uri: amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('/', '%2F') }}
+  exchange:
+    name: de
+    type: topic
 de:
   base: {{ de_base_uri|string|regex_replace("\/$","") }}
   admin: /admin

@@ -1,5 +1,16 @@
 # Wiki Update Log
 
+## 2026-08-10
+
+- Removed `services/email-requests.md`: the email-requests service has been
+  merged into [de-mailer](/services/de-mailer.md), which now consumes the
+  `email_requests` AMQP queue directly, and its role is gone from this repo.
+  Rewrote `services/de-mailer.md` to cover the absorbed consumer, the new
+  `amqp:` config block, the dropped OpenTelemetry wiring, and the role's
+  cleanup tasks for the retired Deployment and Secret. Noted in
+  `services/event-recorder.md` that it is the sole publisher of
+  `email.requests` and now feeds de-mailer directly.
+
 ## 2026-08-07
 
 - Removed `services/qms.md`: the QMS service has been merged into
