@@ -23,7 +23,7 @@ how analysis status updates flow into the rest of the DE.
 ## Configuration
 
 The role renders the shared job-services template
-(`templates/jobservices.yml.j2`, identical to the user-info/timelord copy)
+(`templates/jobservices.yml.j2`, identical to the user-info copy)
 into the `vice-status-listener-configs` secret, mounted at
 `/etc/iplant/de/jobservices.yml`. The Deployment
 (`templates/k8s/vice-status-listener.yml.j2`) is a pure background worker:

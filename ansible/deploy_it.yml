@@ -57,8 +57,6 @@
       tags: data-usage-api
     - role: services/subscriptions
       tags: subscriptions
-    - role: services/timelord
-      tags: timelord
     - role: services/user-info
       tags: user-info
     - role: services/vice-default-backend

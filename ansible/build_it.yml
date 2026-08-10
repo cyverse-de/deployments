@@ -183,12 +183,6 @@
           tags: subscriptions
       tags: subscriptions
     - ansible.builtin.include_role:
-        name: services/timelord
-        tasks_from: build
-        apply:
-          tags: timelord
-      tags: timelord
-    - ansible.builtin.include_role:
         name: services/user-info
         tasks_from: build
         apply:
