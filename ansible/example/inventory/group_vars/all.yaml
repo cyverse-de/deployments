@@ -1954,9 +1954,6 @@
 # dewey
 # dewey_replicas: 2
 
-# email-requests
-# email_requests_replicas: 2
-
 # event-recorder
 # event_recorder_replicas: 2
 

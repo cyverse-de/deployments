@@ -17,6 +17,27 @@
             emailservice.yml: "{{ lookup('template', 'emailservice.yml.j2') | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
+    # de-mailer absorbed the email-requests AMQP consumer; clean up its
+    # leftovers in existing clusters. Removable once all deployments have
+    # rolled past the merge release. (email-requests had no Service object.)
+    - name: Remove the retired email-requests deployment
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: email-requests
+
+    - name: Remove the retired email-requests config secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: email-requests-configs
+
     - ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main

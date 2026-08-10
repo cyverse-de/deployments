@@ -4,7 +4,7 @@ title: event-recorder
 description: AMQP worker that consumes event messages from the de exchange and records them, sharing the jobservices.yml configuration with the other jobservices workers.
 resource: /ansible/roles/services/event-recorder
 tags: [event-recorder, amqp, rabbitmq, jobservices, events]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 ---
 
 event-recorder is another of the Go "jobservices" workers: a headless consumer
@@ -12,7 +12,10 @@ event-recorder is another of the Go "jobservices" workers: a headless consumer
 [RabbitMQ](/infrastructure/rabbitmq.md) broker. Its configuration gives it
 connections to the `de` and `notifications`
 [PostgreSQL](/infrastructure/postgresql.md) databases, which is where events it
-picks up off the exchange end up being recorded.
+picks up off the exchange end up being recorded. It is also the only publisher
+on the `email.requests` routing key, which
+[de-mailer](/services/de-mailer.md) consumes directly to send notification
+emails.
 
 Source repo: [cyverse-de/event-recorder](https://github.com/cyverse-de/event-recorder);
 image `harbor.cyverse.org/de/event-recorder` (`v2026.06.02` pinned by digest in
@@ -20,7 +23,7 @@ the build descriptor) on [Harbor](/infrastructure/harbor.md).
 
 ## Configuration
 
-Like [email-requests](/services/email-requests.md), the role renders the shared
+Like the other jobservices workers, the role renders the shared
 `jobservices.yml.j2` template into a Secret (`event-recorder-configs`) mounted
 at `/etc/iplant/de/jobservices.yml` and passed with `--config`. The template is
 the family-wide config — AMQP URI and prefetch settings, database URIs

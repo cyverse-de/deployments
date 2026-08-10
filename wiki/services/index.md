@@ -9,10 +9,9 @@
 * [dashboard-aggregator](/services/dashboard-aggregator.md) - Aggregates the data shown on the DE dashboard — news/event feeds, videos, and app information such as favorites and featured apps.
 * [data-info](/services/data-info.md) - HTTP API for data-store operations — file and folder metadata, permissions, path lists, and anonymous-access URLs backed by iRODS.
 * [data-usage-api](/services/data-usage-api.md) - Reports per-user data-store usage by querying the ICAT database, serving results over HTTP.
-* [de-mailer](/services/de-mailer.md) - Sends DE email notifications, building links from the DE base URL and relaying through an in-cluster Exim SMTP host.
+* [de-mailer](/services/de-mailer.md) - Sends DE email notifications over HTTP and by consuming the email_requests AMQP queue, building links from the DE base URL and relaying through an in-cluster Exim SMTP host.
 * [de-webhooks](/services/de-webhooks.md) - Consumes DE notification messages from RabbitMQ and forwards them to users' configured webhook endpoints.
 * [dewey](/services/dewey.md) - Indexes data-store changes into OpenSearch by consuming iRODS change messages from the irods AMQP exchange.
-* [email-requests](/services/email-requests.md) - AMQP worker that consumes email request messages from the de exchange and hands them to iplant-email for delivery, configured from the shared jobservices.yml template.
 * [event-recorder](/services/event-recorder.md) - AMQP worker that consumes event messages from the de exchange and records them, sharing the jobservices.yml configuration with the other jobservices workers.
 * [formation](/services/formation.md) - Keycloak-authenticated HTTP API (with MCP support) fronting apps, app-exposer, and permissions for launching and managing analyses, including VICE URL readiness checks.
 * [group-propagator](/services/group-propagator.md) - AMQP worker that propagates Grouper group-membership changes to the data store, using iplant-groups and data-info.
