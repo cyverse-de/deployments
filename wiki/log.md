@@ -2,6 +2,14 @@
 
 ## 2026-08-10
 
+- Removed `services/email-requests.md`: the email-requests service has been
+  merged into [de-mailer](/services/de-mailer.md), which now consumes the
+  `email_requests` AMQP queue directly, and its role is gone from this repo.
+  Rewrote `services/de-mailer.md` to cover the absorbed consumer, the new
+  `amqp:` config block, the dropped OpenTelemetry wiring, and the role's
+  cleanup tasks for the retired Deployment and Secret. Noted in
+  `services/event-recorder.md` that it is the sole publisher of
+  `email.requests` and now feeds de-mailer directly.
 * **Remove**: `services/timelord.md` — timelord has been merged into
   [app-exposer](/services/app-exposer.md), which now enforces VICE analysis
   time limits from a background worker in its own process, and the role is gone

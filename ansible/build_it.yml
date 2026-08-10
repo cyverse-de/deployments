@@ -93,12 +93,6 @@
           tags: dewey
       tags: dewey
     - ansible.builtin.include_role:
-        name: services/email-requests
-        tasks_from: build
-        apply:
-          tags: email-requests
-      tags: email-requests
-    - ansible.builtin.include_role:
         name: services/event-recorder
         tasks_from: build
         apply:
