@@ -56,12 +56,10 @@ Deployments, Service, and config secrets from existing clusters; those cleanup
 tasks can be dropped once every deployment has rolled past the merge release.
 
 When cutting an existing cluster over, also redeploy
-[app-exposer](/services/app-exposer.md) and
-[vice-status-listener](/services/vice-status-listener.md) (plus the
-`networking`, `ingress`, and `argo` tags of `kubernetes.yml`): their rendered
-configs embed
+[app-exposer](/services/app-exposer.md) (plus the `networking`, `ingress`, and
+`argo` tags of `kubernetes.yml`): its rendered config embeds
 `vice.job-status.base`, which still names the deleted `job-status-listener`
-Service until the secrets re-render and the pods restart.
+Service until the secret re-renders and the pods restart.
 
 ## Deploying
 

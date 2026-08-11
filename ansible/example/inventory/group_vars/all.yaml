@@ -2046,7 +2046,3 @@
 
 # vice-operator
 # vice_operator_replicas: 1
-
-# vice-status-listener
-# vice_status_listener_replicas: 1
-# vice_status_listener_pod_anti_affinity: true

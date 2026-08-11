@@ -189,12 +189,6 @@
           tags: vice-default-backend
       tags: vice-default-backend
     - ansible.builtin.include_role:
-        name: services/vice-status-listener
-        tasks_from: build
-        apply:
-          tags: vice-status-listener
-      tags: vice-status-listener
-    - ansible.builtin.include_role:
         name: services/search
         tasks_from: build
         apply:

@@ -17,6 +17,17 @@ proxy and API, the gateway provider, the porklock and vice-proxy images,
 registry credentials, the iRODS CSI driver toggle, and a
 `--status-listener-url` pointing at `https://<de_hostname>/job`.
 
+That last flag makes the operator the sole publisher of VICE analysis status
+for its own cluster, a job the retired vice-status-listener used to do for the
+local cluster only. A leader-elected Deployment informer inside the operator
+watches `app-type=interactive` and POSTs to
+[job-status](/services/job-status.md) — `Running` once a Deployment reports an
+available replica, `Succeeded` when it is deleted. Only the replica holding the
+`vice-operator-status-publisher` lease publishes, so scaling the operator out
+does not duplicate updates. [app-exposer](/services/app-exposer.md)'s
+reconciler still polls every operator every five minutes as a backstop for
+missed pushes and for analyses that fail before ever becoming available.
+
 This role is unusual in two ways. First, the binary is built from the
 [cyverse-de/app-exposer](https://github.com/cyverse-de/app-exposer) repo
 (`tasks/build.yml` sets `source_service: app-exposer`; the image is
