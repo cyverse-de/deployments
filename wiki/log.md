@@ -1,5 +1,14 @@
 # Wiki Update Log
 
+## 2026-08-11
+
+- Recorded in [vice-operator](/services/vice-operator.md) why
+  `vice_operator_replicas` has to stay at 1: the operator's save-and-exit
+  deduplication is an in-memory map, and duplicate requests arrive through its
+  Service, so a second replica can delete an analysis's resources while the
+  first is still uploading its outputs. Names what app-exposer would need (a
+  cluster-wide claim in its `operator` package) before the count can be raised.
+
 ## 2026-08-10
 
 - Removed `services/email-requests.md`: the email-requests service has been

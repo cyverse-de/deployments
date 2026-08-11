@@ -4,7 +4,7 @@ title: vice-operator
 description: Operator that runs VICE analyses in a dedicated namespace, built from the app-exposer repo and deployed with its own RBAC instead of skaffold.
 resource: /ansible/roles/services/vice-operator
 tags: [vice, operator, app-exposer, rbac, gateway, gpu]
-timestamp: 2026-08-03T00:00:00Z
+timestamp: 2026-08-11T00:00:00Z
 ---
 
 The vice-operator manages VICE analyses inside the `vice_ns` namespace: its
@@ -36,6 +36,31 @@ vars, plus `image_cache_mode` (`daemonset`, `cron`, or `manual-mirror` — the
 latter mounts `files/repos.json` as a ConfigMap; see
 [VICE Image Cache](/playbooks/vice-image-cache.md)). Default
 `vice_operator_replicas` is 1.
+
+## Why replicas stays at 1
+
+`vice_operator_replicas: 1` is a correctness requirement today, not a capacity
+choice. Save-and-exit uploads an analysis's outputs to iRODS and then deletes
+its Kubernetes resources, and duplicate requests for the same analysis are
+routine — app-exposer's expiration worker re-sends one on every sweep, from
+every app-exposer replica, until the analysis leaves the cluster. The operator
+drops the duplicates using an in-memory map of the analyses whose save-and-exit
+is already running.
+
+That map is per process, while the duplicates arrive over HTTP through the
+operator's Service. With two replicas, the second request lands on a replica
+whose map is empty, so it starts its own run and deletes the analysis's
+Deployment — including the file-transfer sidecar — while the first replica is
+still streaming files to iRODS. The user loses part or all of their outputs,
+silently.
+
+Raising the count needs a cluster-wide claim in app-exposer's `operator`
+package first: a coordination Lease, or a marker written on the analysis's own
+Deployment, in place of the in-memory map. Until that lands, treat any value
+above 1 as a data-loss risk rather than as scaling. Note that this bounds only
+the operator; app-exposer itself runs multiple replicas safely, because
+everything of its own that must happen once per analysis claims a
+`notif_statuses` row with `FOR UPDATE SKIP LOCKED`.
 
 `vice_operator_ca_bundle_configmap` does double duty. It mounts the named
 ConfigMap into the operator itself, so OIDC discovery against a Keycloak
@@ -107,3 +132,4 @@ See [Building and Deploying Services](/playbooks/build-and-deploy.md) and
 4. `ansible/roles/services/vice-operator/templates/vice_operator.yml.j2` — secret, optional repos ConfigMap, and the flag-driven Deployment.
 5. `ansible/roles/services/vice-operator/files/repos.json` — image mirror list for `manual-mirror` cache mode.
 6. `ansible/roles/common/defaults/main.yml` — `vice_operator_ca_bundle_configmap` and the shared `de_ca_bundle_*` settings it defaults from.
+7. [cyverse-de/app-exposer `operator/handlers.go`](https://github.com/cyverse-de/app-exposer/blob/main/operator/handlers.go) — the in-process `saveAndExitInFlight` map behind the single-replica requirement.
