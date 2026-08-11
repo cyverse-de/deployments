@@ -1041,7 +1041,6 @@ source_repos:
   - sonora
   - subscriptions
   - terrain
-  - timelord
   - user-info
   - vice-default-backend
   - vice-status-listener

@@ -2036,10 +2036,6 @@
 # terrain_replicas: 2
 # terrain_pod_anti_affinity: true
 
-# timelord
-# timelord_replicas: 2
-# timelord_pod_anti_affinity: true
-
 # user-info
 # user_info_replicas: 2
 # user_info_pod_anti_affinity: true

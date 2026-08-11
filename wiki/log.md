@@ -10,6 +10,27 @@
   cleanup tasks for the retired Deployment and Secret. Noted in
   `services/event-recorder.md` that it is the sole publisher of
   `email.requests` and now feeds de-mailer directly.
+* **Remove**: `services/timelord.md` — timelord has been merged into
+  [app-exposer](/services/app-exposer.md), which now enforces VICE analysis
+  time limits from a background worker in its own process, and the role is gone
+  from this repo. timelord was already an app-exposer satellite: it held no
+  Kubernetes client of its own, ran under the `app-exposer` service account,
+  and called back into app-exposer over HTTP to terminate anything. Its Service
+  existed only for expvar probes and nothing in the DE called it.
+* **Update**: [app-exposer](/services/app-exposer.md) — added the analysis
+  time-limit section covering the expiry warnings, the periodic reminder, the
+  save-and-exit termination path, and marking vanished analyses Completed. The
+  config template needed no change: it already carried the `amqp`,
+  `iplant_groups`, and `notification_agent` sections, since every job-services
+  config in this repo renders from the same shared template. The role now also
+  deletes the retired `timelord` Deployment, Service, and `timelord-configs`
+  secret; those cleanup tasks can be dropped once every deployment has rolled
+  past the merge release. The `timelord` AMQP queue name is deliberately kept so
+  the existing queue and its bindings carry over.
+* Repointed the timelord references in [job-status](/services/job-status.md)
+  (both the caller list and the cut-over redeploy list) at app-exposer, and
+  dropped the stale "identical to the user-info/timelord copy" note from
+  [vice-status-listener](/services/vice-status-listener.md).
 
 ## 2026-08-07
 

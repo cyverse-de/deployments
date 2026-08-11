@@ -18,10 +18,10 @@ in a single process:
   ingress route). `POST /{uuid}/status` and `POST /status/batch` publish
   updates to the [RabbitMQ](/infrastructure/rabbitmq.md) `de` topic exchange
   with the `jobs.updates` routing key. Callers include
-  [app-exposer](/services/app-exposer.md),
-  [vice-operator](/services/vice-operator.md),
-  [timelord](/services/timelord.md), the Argo webhook sensor, and batch jobs
-  posting from outside the cluster. Other roles point at it via
+  [app-exposer](/services/app-exposer.md) (both its VICE handlers and its
+  analysis-expiration worker, formerly timelord),
+  [vice-operator](/services/vice-operator.md), the Argo webhook sensor, and
+  batch jobs posting from outside the cluster. Other roles point at it via
   `baseurls_job_status`, which the shared job-services config template exposes
   as `vice.job-status.base`.
 - **recorder** — consumes `jobs.updates` from the durable
@@ -56,10 +56,10 @@ Deployments, Service, and config secrets from existing clusters; those cleanup
 tasks can be dropped once every deployment has rolled past the merge release.
 
 When cutting an existing cluster over, also redeploy
-[app-exposer](/services/app-exposer.md),
-[vice-status-listener](/services/vice-status-listener.md), and
-[timelord](/services/timelord.md) (plus the `networking`, `ingress`, and
-`argo` tags of `kubernetes.yml`): their rendered configs embed
+[app-exposer](/services/app-exposer.md) and
+[vice-status-listener](/services/vice-status-listener.md) (plus the
+`networking`, `ingress`, and `argo` tags of `kubernetes.yml`): their rendered
+configs embed
 `vice.job-status.base`, which still names the deleted `job-status-listener`
 Service until the secrets re-render and the pods restart.
 

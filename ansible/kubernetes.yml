@@ -282,7 +282,6 @@
     - role: services/resource-usage-api
     - role: services/data-usage-api
     - role: services/subscriptions
-    - role: services/timelord
     - role: services/user-info
     - role: services/vice-default-backend
     - role: services/vice-status-listener

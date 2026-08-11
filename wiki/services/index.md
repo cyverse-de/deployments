@@ -1,7 +1,7 @@
 # services
 
 * [analyses](/services/analyses.md) - HTTP API over the DE database that serves analysis (job) records to other DE services.
-* [app-exposer](/services/app-exposer.md) - In-cluster API that launches and manages VICE and batch analyses, exposing them via Kubernetes resources.
+* [app-exposer](/services/app-exposer.md) - In-cluster API that launches and manages VICE and batch analyses, exposing them via Kubernetes resources and enforcing their time limits.
 * [apps](/services/apps.md) - Clojure service managing DE app definitions, categories, and job submission, backed by the DE database.
 * [async-tasks](/services/async-tasks.md) - HTTP API for tracking asynchronous DE tasks, configured with the shared jobservices.yml config.
 * [bulk-typer](/services/bulk-typer.md) - Assigns file types in bulk by reading files from iRODS and recording the ipc-filetype attribute, driven by AMQP.
@@ -33,7 +33,6 @@
 * [sonora](/services/sonora.md) - The Discovery Environment web user interface, a Node.js app that fronts terrain and Keycloak.
 * [subscriptions](/services/subscriptions.md) - Subscription service that answers subscription requests over HTTP and serves the merged QMS /v1 API, backed by the QMS database.
 * [terrain](/services/terrain.md) - The DE's public API gateway, routing UI requests to the backend services and talking to iRODS and Keycloak directly.
-* [timelord](/services/timelord.md) - Background worker that tracks VICE analysis time limits, using the shared job-services configuration and Kubernetes API access.
 * [user-info](/services/user-info.md) - HTTP service backing user preferences, sessions, and saved searches, stored in the DE database.
 * [vice-default-backend](/services/vice-default-backend.md) - Fallback backend for VICE wildcard traffic that serves a loading page or 302-redirects unrecognized subdomains to the owning cluster.
 * [vice-operator](/services/vice-operator.md) - Operator that runs VICE analyses in a dedicated namespace, built from the app-exposer repo and deployed with its own RBAC instead of skaffold.
