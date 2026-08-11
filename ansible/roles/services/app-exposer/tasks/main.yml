@@ -201,6 +201,29 @@
         namespace: "{{ ns }}"
         name: timelord-configs
 
+    # vice-status-listener's Deployment informer moved into vice-operator, so
+    # each cluster now publishes its own VICE status updates and the standalone
+    # service is gone. Clean up its leftovers in existing clusters; removable
+    # once all deployments have rolled past the merge release. It was a pure
+    # worker, so there is no Service to remove.
+    - name: Remove the retired vice-status-listener deployment
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: vice-status-listener
+
+    - name: Remove the retired vice-status-listener config secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: vice-status-listener-configs
+
     - ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main

@@ -1,5 +1,34 @@
 # Wiki Update Log
 
+## 2026-08-11
+
+* **Remove**: `services/vice-status-listener.md` — the service has been retired
+  and its role is gone from this repo. Its Deployment informer moved into
+  [vice-operator](/services/vice-operator.md) in May, so every cluster now
+  publishes its own VICE status updates instead of one worker covering only the
+  local cluster — which is what multi-cluster required. The two ran side by side
+  in QA for about three months; the standalone listener was emitting four or
+  five duplicate `Running` updates per analysis against the operator's one.
+* **Update**: [vice-operator](/services/vice-operator.md) — documented the
+  status publisher behind `--status-listener-url`: a leader-elected informer on
+  `app-type=interactive` that POSTs `Running` once a Deployment has an available
+  replica and `Succeeded` when it is deleted, gated on the
+  `vice-operator-status-publisher` lease so extra replicas don't duplicate
+  updates. One behavior change came with the retirement: the old listener
+  published `Running` the moment the Deployment object appeared, so analyses now
+  stay in `Submitted` through image pull and report `Running` when the pod is
+  actually ready. [app-exposer](/services/app-exposer.md)'s reconciler remains
+  the five-minute backstop.
+* **Update**: [app-exposer](/services/app-exposer.md) — the role now deletes the
+  retired `vice-status-listener` Deployment and `vice-status-listener-configs`
+  secret; those cleanup tasks can be dropped once every deployment has rolled
+  past the merge release. There was no Service to remove.
+* Dropped vice-status-listener from the cut-over redeploy list in
+  [job-status](/services/job-status.md) — only app-exposer's config embeds
+  `vice.job-status.base` now — and swapped it for vice-operator as the
+  `replicas: 1` example in the
+  [Operations Runbook](/playbooks/ops-runbook.md).
+
 ## 2026-08-10
 
 - Removed `services/email-requests.md`: the email-requests service has been
@@ -29,8 +58,8 @@
   the existing queue and its bindings carry over.
 * Repointed the timelord references in [job-status](/services/job-status.md)
   (both the caller list and the cut-over redeploy list) at app-exposer, and
-  dropped the stale "identical to the user-info/timelord copy" note from
-  [vice-status-listener](/services/vice-status-listener.md).
+  dropped the stale "identical to the user-info/timelord copy" note from the
+  since-deleted `vice-status-listener` page.
 
 ## 2026-08-07
 
@@ -48,7 +77,7 @@
 ## 2026-08-06
 
 * **Remove**: apply-labels, check-resource-access, and get-analysis-id — the three build-only service roles are retired from the deployments repo (never wired into `deploy_it.yml`; nothing consumes their images). Their `build_it.yml` blocks, `source_repos` entries, role directories, and wiki pages are gone, and deleting the role directories also drops them from `build_release.yml`'s auto-discovery.
-* **Add**: [job-status](/services/job-status.md) — the job-status-listener, job-status-recorder, and job-status-to-apps-adapter services were merged into a single `job-status` service (new `cyverse-de/job-status` repo, one deployment running api/recorder/propagator components). The three per-service pages are retired. The new role renders a trimmed `job-status.yml` config instead of the shared jobservices template, and the propagator now claims rows with `FOR UPDATE SKIP LOCKED`, so `replicas: 2` is safe for the whole pipeline. Cross-references updated in [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), [vice-status-listener](/services/vice-status-listener.md), [Ingress](/infrastructure/ingress.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Keycloak](/infrastructure/keycloak.md), [Argo Resources](/playbooks/argo-resources.md), [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md), [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md), and [Operations Runbook](/playbooks/ops-runbook.md); `baseurls_job_status_listener` is now `baseurls_job_status` and the NodePort variable is `job_status_nodeport` (still 31342).
+* **Add**: [job-status](/services/job-status.md) — the job-status-listener, job-status-recorder, and job-status-to-apps-adapter services were merged into a single `job-status` service (new `cyverse-de/job-status` repo, one deployment running api/recorder/propagator components). The three per-service pages are retired. The new role renders a trimmed `job-status.yml` config instead of the shared jobservices template, and the propagator now claims rows with `FOR UPDATE SKIP LOCKED`, so `replicas: 2` is safe for the whole pipeline. Cross-references updated in [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), the since-deleted `vice-status-listener` page, [Ingress](/infrastructure/ingress.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Keycloak](/infrastructure/keycloak.md), [Argo Resources](/playbooks/argo-resources.md), [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md), [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md), and [Operations Runbook](/playbooks/ops-runbook.md); `baseurls_job_status_listener` is now `baseurls_job_status` and the NodePort variable is `job_status_nodeport` (still 31342).
 
 ## 2026-08-04
 
@@ -143,7 +172,7 @@
 ## 2026-07-20
 
 * **Creation**: Added [Copying Apps Between DE Instances](/playbooks/app-export-import.md) documenting the rebuilt uv-managed `scripts/appei` tool for exporting/importing apps and tools via the Terrain API.
-* **Creation**: Populated the services section with a page per DE microservice role under `ansible/roles/services/` (49 pages, from [analyses](/services/analyses.md) to [vice-status-listener](/services/vice-status-listener.md)).
+* **Creation**: Populated the services section with a page per DE microservice role under `ansible/roles/services/` (49 pages, from [analyses](/services/analyses.md) to the since-deleted `vice-status-listener` page).
 * **Creation**: Added infrastructure pages for [cert-manager](/infrastructure/cert-manager.md), [HTCondor](/infrastructure/condor.md), [GoCD](/infrastructure/gocd.md), [GPU Workers](/infrastructure/gpu-workers.md), [Grouper](/infrastructure/grouper.md), [Harbor](/infrastructure/harbor.md), [Ingress](/infrastructure/ingress.md), [Jaeger](/infrastructure/jaeger.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Longhorn](/infrastructure/longhorn.md), and [OpenSearch](/infrastructure/opensearch.md).
 * **Creation**: Added playbook pages for [Full Deployment](/playbooks/full-deployment.md), [CI to QA](/playbooks/ci-to-qa.md), [Bootstrap Portal Admin](/playbooks/bootstrap-portal-admin.md), [Node Maintenance](/playbooks/node-maintenance.md), [portal-exim](/playbooks/portal-exim.md), [VICE Image Cache](/playbooks/vice-image-cache.md), [Argo Resources](/playbooks/argo-resources.md), and [Misc Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Migration**: Migrated the top-level ops guides: [Ops Runbook](/playbooks/ops-runbook.md), [Admin Procedures](/playbooks/admin-procedures.md), [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md), [VICE Troubleshooting](/playbooks/vice-troubleshooting.md), and [Certificate Management](/playbooks/certificate-management.md) from docs/; [Keycloak](/infrastructure/keycloak.md) and [iRODS](/infrastructure/irods.md) migrated as infrastructure pages.

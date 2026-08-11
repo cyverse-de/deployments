@@ -284,7 +284,6 @@
     - role: services/subscriptions
     - role: services/user-info
     - role: services/vice-default-backend
-    - role: services/vice-status-listener
     - role: services/search
     - role: services/dashboard-aggregator
     - role: services/terrain

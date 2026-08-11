@@ -59,8 +59,6 @@
       tags: user-info
     - role: services/vice-default-backend
       tags: vice-default-backend
-    - role: services/vice-status-listener
-      tags: vice-status-listener
     - role: services/search
       tags: search
     - role: services/dashboard-aggregator

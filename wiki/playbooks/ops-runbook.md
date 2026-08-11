@@ -101,7 +101,7 @@ To restart all DE services at once (e.g., after a config push):
 kubectl -n $NS rollout restart deployment --all
 ```
 
-> **Note:** Services with `replicas: 1` (e.g., `vice-status-listener`) will have a brief
+> **Note:** Services with `replicas: 1` (e.g., `vice-operator`) will have a brief
 > downtime during the restart. Any AMQP messages delivered during that window are safe —
 > they will be requeued by RabbitMQ and consumed when the service comes back up, assuming
 > the queue's `x-dead-letter-exchange` is configured.

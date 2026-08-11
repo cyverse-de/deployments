@@ -1043,6 +1043,5 @@ source_repos:
   - terrain
   - user-info
   - vice-default-backend
-  - vice-status-listener
 # Per-repo clone URL overrides for repos not under cyverse_repo_base.
 source_repo_urls: {}

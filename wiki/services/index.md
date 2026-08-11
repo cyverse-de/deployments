@@ -36,4 +36,3 @@
 * [user-info](/services/user-info.md) - HTTP service backing user preferences, sessions, and saved searches, stored in the DE database.
 * [vice-default-backend](/services/vice-default-backend.md) - Fallback backend for VICE wildcard traffic that serves a loading page or 302-redirects unrecognized subdomains to the owning cluster.
 * [vice-operator](/services/vice-operator.md) - Operator that runs VICE analyses in a dedicated namespace, built from the app-exposer repo and deployed with its own RBAC instead of skaffold.
-* [vice-status-listener](/services/vice-status-listener.md) - Namespace-scoped worker that watches VICE analyses in Kubernetes and reports their status changes.
