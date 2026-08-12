@@ -2,6 +2,12 @@
 
 ## 2026-08-12
 
+* **Update**: [resource-usage-api](/services/resource-usage-api.md) — the role
+  now deletes the retired data-usage-api Deployment, Service, and config secret
+  on deploy, matching the cleanup the other service merges do. Without it a
+  leftover data-usage-api keeps competing for the data usage queues, whose
+  names carried over, and nothing else would ever remove it now that its role
+  is gone.
 * **Remove**: `services/data-usage-api.md` — the service has been merged into
   [resource-usage-api](/services/resource-usage-api.md) and its role is gone
   from this repo. The two had converged on the same framework, the same DE
@@ -200,7 +206,7 @@
 ## 2026-07-24
 
 * **Removal**: Deleted the NATS infrastructure page — NATS has been retired from the DE. It carried the QMS request/reply traffic between terrain, data-usage-api, resource-usage-api, and [subscriptions](/services/subscriptions.md), and all four now use the subscriptions HTTP API, so the `nats` role, the `nats_urls`/`NATS_URLS` config plumbing, and subscriptions' NATS mounts are gone. Dropped the NATS section from [Certificate Management](/playbooks/certificate-management.md) and the NATS check from the [Ops Runbook](/playbooks/ops-runbook.md), removed the NATS references from [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Building and Deploying Services](/playbooks/build-and-deploy.md), and [Full Deployment](/playbooks/full-deployment.md), and documented the new `nats_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md). The argo-events EventBus is a separate NATS instance and is untouched.
-* **Update**: [data-usage-api](/services/data-usage-api.md) and [resource-usage-api](/services/resource-usage-api.md) — both now reach [subscriptions](/services/subscriptions.md) over HTTP instead of NATS, so removed their NATS secret mounts, the `nats-configuration` volume, and the `DISCOENV_NATS_CLUSTER` env from the deployments, passing `--subscriptions-base-uri` (from `baseurls_subscriptions`) instead. Rewrote [Certificate Management](/playbooks/certificate-management.md)'s NATS section: subscriptions is now the only NATS consumer, and since every caller uses its HTTP API, an expired NATS certificate no longer breaks QMS operations.
+* **Update**: `services/data-usage-api.md` and [resource-usage-api](/services/resource-usage-api.md) — both now reach [subscriptions](/services/subscriptions.md) over HTTP instead of NATS, so removed their NATS secret mounts, the `nats-configuration` volume, and the `DISCOENV_NATS_CLUSTER` env from the deployments, passing `--subscriptions-base-uri` (from `baseurls_subscriptions`) instead. Rewrote [Certificate Management](/playbooks/certificate-management.md)'s NATS section: subscriptions is now the only NATS consumer, and since every caller uses its HTTP API, an expired NATS certificate no longer breaks QMS operations.
 
 ## 2026-07-23
 

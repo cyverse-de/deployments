@@ -70,6 +70,12 @@ service drains in-flight work on `SIGTERM`, so
 `resource_usage_api_termination_grace_period` (default 330s) gives it room to
 finish.
 
+The role also removes the retired data-usage-api Deployment, Service, and
+config secret from existing clusters — without that, a leftover data-usage-api
+would keep competing for the data usage queues, since the queue names carried
+over. Those cleanup tasks can be dropped once every deployment has rolled past
+the merge release.
+
 Build and deploy with
 `ansible-playbook -i $INVENTORY deploy_it.yml --tags resource-usage-api`; see
 [Building and Deploying Services](/playbooks/build-and-deploy.md).
@@ -78,6 +84,6 @@ Build and deploy with
 
 [1] `ansible/roles/services/resource-usage-api/templates/k8s/resource-usage-api.yml.j2` — `--subscriptions-base-uri` arg, env, ports, service account, resource limits, grace period.
 [2] `ansible/roles/services/resource-usage-api/templates/jobservices.yml.j2` — shared config: DB and ICAT URIs, AMQP, data usage settings, qms section.
-[3] `ansible/roles/services/resource-usage-api/tasks/main.yml` — config secret rendering and deploy.
+[3] `ansible/roles/services/resource-usage-api/tasks/main.yml` — config secret rendering, retired data-usage-api cleanup, and deploy.
 [4] `ansible/roles/services/resource-usage-api/files/resource-usage-api.json` — pinned image.
 [5] `ansible/roles/services/resource-usage-api/defaults/main.yml` — replicas, anti-affinity, data usage settings, grace period.
