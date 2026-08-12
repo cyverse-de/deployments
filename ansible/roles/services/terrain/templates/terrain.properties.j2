@@ -182,6 +182,12 @@ terrain.subscriptions.base-uri = {{ baseurls_subscriptions|string|regex_replace(
 # calling a service that no longer exists.
 terrain.qms.base-uri = {{ baseurls_subscriptions|string|regex_replace("\/$","") }}
 
+# The data usage endpoints are served by resource-usage-api, which absorbed the
+# data-usage-api service. Terrain's compiled-in default for this is
+# http://data-usage-api, so it must be set here or terrain keeps calling a service
+# that no longer exists. The routes themselves are unchanged.
+terrain.data-usage-api.base-uri = {{ baseurls_resource_usage_api|string|regex_replace("\/$","") }}
+
 # Portal Conductor Settings
 terrain.portal-conductor.base-url = {{ portal_conductor_url }}
 terrain.portal-conductor.username = {{ portal_conductor_auth_username }}

@@ -279,7 +279,6 @@
     - role: services/permissions
     - role: services/requests
     - role: services/resource-usage-api
-    - role: services/data-usage-api
     - role: services/subscriptions
     - role: services/user-info
     - role: services/vice-default-backend

@@ -8,7 +8,6 @@
 * [clockwork](/services/clockwork.md) - Scheduler that triggers recurring DE jobs, notably infosquito indexing, publishing over AMQP and reading iRODS.
 * [dashboard-aggregator](/services/dashboard-aggregator.md) - Aggregates the data shown on the DE dashboard — news/event feeds, videos, and app information such as favorites and featured apps.
 * [data-info](/services/data-info.md) - HTTP API for data-store operations — file and folder metadata, permissions, path lists, and anonymous-access URLs backed by iRODS.
-* [data-usage-api](/services/data-usage-api.md) - Reports per-user data-store usage by querying the ICAT database, serving results over HTTP.
 * [de-mailer](/services/de-mailer.md) - Sends DE email notifications over HTTP and by consuming the email_requests AMQP queue, building links from the DE base URL and relaying through an in-cluster Exim SMTP host.
 * [de-webhooks](/services/de-webhooks.md) - Consumes DE notification messages from RabbitMQ and forwards them to users' configured webhook endpoints.
 * [dewey](/services/dewey.md) - Indexes data-store changes into OpenSearch by consuming iRODS change messages from the irods AMQP exchange.
@@ -28,7 +27,7 @@
 * [portal-conductor](/services/portal-conductor.md) - Account-provisioning API used by the user portal, acting on LDAP, iRODS, terrain, Mailman, and formation, with an exim sidecar for outbound mail.
 * [portal2](/services/portal2.md) - The CyVerse user portal web application, handling account self-registration, sessions, and service access via Keycloak, portal-conductor, and terrain.
 * [requests](/services/requests.md) - HTTP service for administrative requests in the DE, backed by the DE database via the shared jobservices configuration.
-* [resource-usage-api](/services/resource-usage-api.md) - HTTP API for DE resource usage data, backed by the DE database and the subscriptions service.
+* [resource-usage-api](/services/resource-usage-api.md) - HTTP API for DE resource usage data: CPU hours from the DE database and data-store usage from the ICAT database, recorded against the subscriptions service.
 * [search](/services/search.md) - Search API that queries the data-store Elasticsearch/OpenSearch index and consults data-info for path information.
 * [sonora](/services/sonora.md) - The Discovery Environment web user interface, a Node.js app that fronts terrain and Keycloak.
 * [subscriptions](/services/subscriptions.md) - Subscription service that answers subscription requests over HTTP and serves the merged QMS /v1 API, backed by the QMS database.

@@ -2,8 +2,8 @@
 # Remove the DE's NATS installation from the cluster.
 #
 # NATS has been retired: it carried the QMS request/reply traffic between
-# terrain, data-usage-api, resource-usage-api, and subscriptions, and all four
-# now use the subscriptions HTTP API instead. The nats role has been removed
+# terrain, the former data-usage-api, resource-usage-api, and subscriptions, and
+# all of them now use the subscriptions HTTP API instead. The nats role has been removed
 # from this repo, so kubernetes.yml no longer manages it. This playbook deletes
 # what an earlier deploy left behind: the nats Helm release, the cert-manager
 # Certificates and Issuer that backed its TLS, and the services.creds secret.

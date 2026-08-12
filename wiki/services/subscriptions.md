@@ -11,8 +11,7 @@ The subscriptions service manages QMS subscriptions. Its primary wiring is
 through environment variables from the shared `configs` secret:
 `QMS_DATABASE_URI` (the QMS database on
 [PostgreSQL](/infrastructure/postgresql.md)) and `QMS_USERNAME_SUFFIX`. It
-serves its whole API over HTTP; [terrain](/services/terrain.md),
-[data-usage-api](/services/data-usage-api.md), and
+serves its whole API over HTTP; [terrain](/services/terrain.md) and
 [resource-usage-api](/services/resource-usage-api.md) are its callers.
 [sonora](/services/sonora.md) links users to its checkout URL for plan
 purchases.
