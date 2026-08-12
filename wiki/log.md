@@ -32,6 +32,26 @@
   caller list and from the [service index](/services/index.md), and reworded the
   historical NATS reference in
   [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+* **Remove**: `services/event-recorder.md` — the service has been retired and
+  its role is gone from this repo. Its consumer moved into
+  [notifications](/services/notifications.md), which already published the
+  events it was recording, so the queue hop between the two is now in-process.
+  The role was removed separately; this catches the wiki up with it.
+* **Update**: [notifications](/services/notifications.md) — documented the
+  absorbed recording half: the v1 API publishes to the `de` exchange on
+  `events.notification.update.<type>`, and an in-process consumer reads the
+  durable `event_listener` queue, writes to the notifications database, and
+  publishes both the `email.requests` message [de-mailer](/services/de-mailer.md)
+  consumes and the `notification.<user>` message the UI listens for. The queue
+  name and binding still match the retired service, so the two are competing
+  consumers during a rollout — deploy notifications and confirm it is recording
+  before scaling event-recorder down. Also noted `email.request`
+  (`email_support_dest`), now a required setting the service validates at
+  startup. The role additionally deletes the orphaned `event-recorder`
+  Deployment and `event-recorder-configs` secret, which the role removal left
+  behind in running clusters.
+* **Update**: [de-mailer](/services/de-mailer.md) — the sole publisher on the
+  `email.requests` routing key is now notifications rather than event-recorder.
 
 ## 2026-08-11
 
