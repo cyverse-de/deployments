@@ -75,12 +75,6 @@
           tags: data-info
       tags: data-info
     - ansible.builtin.include_role:
-        name: services/de-mailer
-        tasks_from: build
-        apply:
-          tags: de-mailer
-      tags: de-mailer
-    - ansible.builtin.include_role:
         name: services/de-webhooks
         tasks_from: build
         apply:

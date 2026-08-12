@@ -1,7 +1,7 @@
 ---
 # Deploy just the local-exim mail relay, without the rest of k8s_de_reqs.
 #
-# de-mailer relays all outbound DE mail through local-exim, but the relay is normally
+# notifications relays all outbound DE mail through local-exim, but the relay is normally
 # applied as one step of the de-reqs tag, which also re-runs the namespace, cert-issuer,
 # timezone, and Harbor pull-secret tasks. This playbook reuses the same task file so the
 # relay can be fixed or rolled out on its own.

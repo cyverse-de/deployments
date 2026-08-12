@@ -2,6 +2,25 @@
 
 ## 2026-08-12
 
+* **Remove**: `services/de-mailer.md` — de-mailer has been merged into
+  [notifications](/services/notifications.md) and its role is gone from this
+  repo. notifications was already the only publisher on `email.requests` and
+  de-mailer the only consumer, so the pair was a closed loop across two
+  deployments; de-mailer also had no database of its own, so absorbing it
+  leaves notifications talking to just the notifications database.
+* **Update**: [notifications](/services/notifications.md) — added an
+  `## Email delivery` section covering the absorbed HTTP intake (now `POST
+  /mail`, with `baseurls_iplant_email` repointed at
+  `http://notifications/mail` so terrain, apps, and requests needed no
+  change), the retained `email_requests` queue and why the broker hop was kept
+  rather than short-circuited, the templates now shipped in the image, the
+  three new required settings, and the `SIGTERM` drain that keeps a rolling
+  deploy from re-sending mail that already went out. Carried over de-mailer's
+  local-exim guidance, which has no other home: the placeholder `exim_*`
+  defaults, the `host::port` host-list gotcha, and the SNAT/allowlist note.
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md)
+  — `local-exim.yml`'s description now names notifications as the service
+  relaying through the deployment.
 * **Update**: [resource-usage-api](/services/resource-usage-api.md) — the role
   now deletes the retired data-usage-api Deployment, Service, and config secret
   on deploy, matching the cleanup the other service merges do. Without it a
@@ -47,8 +66,8 @@
   absorbed recording half: the v1 API publishes to the `de` exchange on
   `events.notification.update.<type>`, and an in-process consumer reads the
   durable `event_listener` queue, writes to the notifications database, and
-  publishes both the `email.requests` message [de-mailer](/services/de-mailer.md)
-  consumes and the `notification.<user>` message the UI listens for. The queue
+  publishes both the `email.requests` message `de-mailer` consumes and the
+  `notification.<user>` message the UI listens for. The queue
   name and binding still match the retired service, so the two are competing
   consumers during a rollout — deploy notifications and confirm it is recording
   before scaling event-recorder down. Also noted `email.request`
@@ -56,8 +75,8 @@
   startup. The role additionally deletes the orphaned `event-recorder`
   Deployment and `event-recorder-configs` secret, which the role removal left
   behind in running clusters.
-* **Update**: [de-mailer](/services/de-mailer.md) — the sole publisher on the
-  `email.requests` routing key is now notifications rather than event-recorder.
+* **Update**: `de-mailer` — the sole publisher on the `email.requests` routing
+  key is now notifications rather than event-recorder.
 
 ## 2026-08-11
 
@@ -91,8 +110,8 @@
 ## 2026-08-10
 
 - Removed `services/email-requests.md`: the email-requests service has been
-  merged into [de-mailer](/services/de-mailer.md), which now consumes the
-  `email_requests` AMQP queue directly, and its role is gone from this repo.
+  merged into `de-mailer`, which now consumes the `email_requests` AMQP queue
+  directly, and its role is gone from this repo.
   Rewrote `services/de-mailer.md` to cover the absorbed consumer, the new
   `amqp:` config block, the dropped OpenTelemetry wiring, and the role's
   cleanup tasks for the retired Deployment and Secret. Noted in
@@ -186,8 +205,8 @@
 ## 2026-07-28
 
 * **Addition**: [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) — a runbook for the new `local.yml` playbook, which stands up a full DE on a pre-existing single-node k0s cluster. Covers why it is a separate playbook rather than `kubernetes.yml` with things switched off (several of that playbook's plays build the cluster, reconfigure nodes over SSH, or need sudo), the three new roles that stand in for out-of-cluster infrastructure (`local_node_prep`, `local_db_endpoint`, `rabbitmq_k8s`), the host preparation that can't be automated, the tag-by-tag bring-up order, and the two consequences worth knowing up front: data search stays empty because no iRODS instance publishes to the local broker, and analyses write into whatever zone is reused.
-* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [de-mailer](/services/de-mailer.md) — documented the new `local-exim.yml` playbook, which deploys the local-exim mail relay on its own instead of through `--tags de-reqs` (which also re-runs the namespace, cert-issuer, timezone, and Harbor pull-secret tasks). It imports the same task file the `k8s_de_reqs` role uses, so the two paths can't drift. Recorded the hazard that prompted it on the de-mailer page: the `exim_*` role defaults are non-functional placeholders, and `exim_smarthost`'s `127.0.0.1:25` default points exim at itself, so an environment that never set it accepts mail from de-mailer and then fails to route it. The playbook asserts a non-loopback smarthost before applying.
-* **Update**: [de-mailer](/services/de-mailer.md) and [Portal Exim Mail Relay](/playbooks/portal-exim.md) — corrected the documented `exim_smarthost` format. It feeds exim's `route_list ... byname`, so it is a host list in which a single colon separates hosts and a port needs a second one (`host::port`); the previously documented `host:port` form silently appends a bogus second host that exim resolves to `0.0.0.25` and tries on failover. Fixed the same guidance in the `exim_smarthost` role default and the example inventory. Also recorded on the de-mailer page that the relay pods reach the smarthost SNAT'd as their node IP, so the upstream allowlist must cover the cluster nodes.
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and `de-mailer` — documented the new `local-exim.yml` playbook, which deploys the local-exim mail relay on its own instead of through `--tags de-reqs` (which also re-runs the namespace, cert-issuer, timezone, and Harbor pull-secret tasks). It imports the same task file the `k8s_de_reqs` role uses, so the two paths can't drift. Recorded the hazard that prompted it on the de-mailer page: the `exim_*` role defaults are non-functional placeholders, and `exim_smarthost`'s `127.0.0.1:25` default points exim at itself, so an environment that never set it accepts mail from de-mailer and then fails to route it. The playbook asserts a non-loopback smarthost before applying.
+* **Update**: `de-mailer` and [Portal Exim Mail Relay](/playbooks/portal-exim.md) — corrected the documented `exim_smarthost` format. It feeds exim's `route_list ... byname`, so it is a host list in which a single colon separates hosts and a port needs a second one (`host::port`); the previously documented `host:port` form silently appends a bogus second host that exim resolves to `0.0.0.25` and tries on failover. Fixed the same guidance in the `exim_smarthost` role default and the example inventory. Also recorded on the de-mailer page that the relay pods reach the smarthost SNAT'd as their node IP, so the upstream allowlist must cover the cluster nodes.
 * **Update**: [cert-manager](/infrastructure/cert-manager.md) — documented the new `cluster_issuer_default_type` variable (`selfSigned` default, or `ca`). With `ca`, `default-cluster-issuer` is backed by an existing CA keypair loaded from the control machine instead of a generated root, so the ordinary `selfsigned` chain issues certificates that chain to a root the clients already trust. It is orthogonal to `cert_manager_provider`, and it puts the CA private key in a Secret in the `cert-manager` namespace.
 * **Update**: [RabbitMQ](/infrastructure/rabbitmq.md) — noted that `rabbitmq.yml` and `rabbitmq_configure.yml` both act on a host (packages plus `rabbitmqctl` over SSH under become) and so cannot target a broker running as a pod, and documented the new `rabbitmq_k8s` role as the in-cluster alternative, including what happens to [dewey](/services/dewey.md)/[infosquito2](/services/infosquito2.md)/info-typer when `irods_amqp_host` points at a broker no iRODS instance publishes to.
 * **Update**: [OpenEBS](/infrastructure/openebs.md) — the `openebs-hostpath` StorageClass is not annotated as the cluster default, and [openldap-docker](/services/openldap-docker.md)'s volume claim template omits `storageClassName`, so its PVC pends forever on a cluster with no default class. [Longhorn](/infrastructure/longhorn.md) sets `persistence.defaultClass`, which is why it only shows up after switching.

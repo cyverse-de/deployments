@@ -1940,9 +1940,6 @@
 # data_info_replicas: 2
 # data_info_pod_anti_affinity: true
 
-# de-mailer
-# de_mailer_replicas: 2
-
 # de-webhooks
 # de_webhooks_replicas: 2
 # de_webhooks_pod_anti_affinity: true

@@ -8,7 +8,6 @@
 * [clockwork](/services/clockwork.md) - Scheduler that triggers recurring DE jobs, notably infosquito indexing, publishing over AMQP and reading iRODS.
 * [dashboard-aggregator](/services/dashboard-aggregator.md) - Aggregates the data shown on the DE dashboard — news/event feeds, videos, and app information such as favorites and featured apps.
 * [data-info](/services/data-info.md) - HTTP API for data-store operations — file and folder metadata, permissions, path lists, and anonymous-access URLs backed by iRODS.
-* [de-mailer](/services/de-mailer.md) - Sends DE email notifications over HTTP and by consuming the email_requests AMQP queue, building links from the DE base URL and relaying through an in-cluster Exim SMTP host.
 * [de-webhooks](/services/de-webhooks.md) - Consumes DE notification messages from RabbitMQ and forwards them to users' configured webhook endpoints.
 * [dewey](/services/dewey.md) - Indexes data-store changes into OpenSearch by consuming iRODS change messages from the irods AMQP exchange.
 * [formation](/services/formation.md) - Keycloak-authenticated HTTP API (with MCP support) fronting apps, app-exposer, and permissions for launching and managing analyses, including VICE URL readiness checks.
@@ -20,7 +19,7 @@
 * [kifshare](/services/kifshare.md) - Public download page for files shared from the data store via iRODS tickets.
 * [maintenance-page](/services/maintenance-page.md) - Maintenance-mode page that redirects DE traffic to itself by rewriting the environment's Gateway API HTTPRoutes.
 * [metadata](/services/metadata.md) - DE metadata service backed by its own metadata database on PostgreSQL.
-* [notifications](/services/notifications.md) - User notifications service backed by its own notifications database, reached by other services at http://notifications/v1; also records the notification events it publishes, a role absorbed from the retired event-recorder.
+* [notifications](/services/notifications.md) - User notifications service backed by its own notifications database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
 * [openldap-docker](/services/openldap-docker.md) - In-cluster OpenLDAP directory for DE deployments without an external LDAP server, deployed as a StatefulSet with config and seed data rendered from templates.
 * [permissions](/services/permissions.md) - DE permissions service backed by its own PostgreSQL database, with read access to the Grouper database for group information.
 * [portal-conductor](/services/portal-conductor.md) - Account-provisioning API used by the user portal, acting on LDAP, iRODS, terrain, Mailman, and formation, with an exim sidecar for outbound mail.

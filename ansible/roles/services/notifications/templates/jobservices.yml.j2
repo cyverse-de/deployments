@@ -22,8 +22,22 @@ condor:
 db:
   uri: postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
 
+de:
+  base: {{ de_base_uri|string|regex_replace("\/$","") }}
+  admin: /admin
+  analyses: /analyses
+  apps: /apps
+  collections: /collections
+  data: /data/ds
+  doi: /doi
+  teams: /teams
+  tools: /tools
+  vice: /vice
+
 email:
   request: {{ email_support_dest }}
+  fromAddress: {{ email_src }}
+  smtpHost: local-exim
 
 external_irods:
   host: "{{ irods_external_host }}"
