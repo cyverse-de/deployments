@@ -27,8 +27,6 @@
       tags: de-webhooks
     - role: services/dewey
       tags: dewey
-    - role: services/event-recorder
-      tags: event-recorder
     - role: services/info-typer
       tags: info-typer
     - role: services/infosquito2

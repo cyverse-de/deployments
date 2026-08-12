@@ -93,12 +93,6 @@
           tags: dewey
       tags: dewey
     - ansible.builtin.include_role:
-        name: services/event-recorder
-        tasks_from: build
-        apply:
-          tags: event-recorder
-      tags: event-recorder
-    - ansible.builtin.include_role:
         name: services/info-typer
         tasks_from: build
         apply:
