@@ -1940,10 +1940,6 @@
 # data_info_replicas: 2
 # data_info_pod_anti_affinity: true
 
-# data-usage-api
-# data_usage_api_replicas: 2
-# data_usage_api_pod_anti_affinity: true
-
 # de-mailer
 # de_mailer_replicas: 2
 
@@ -2019,6 +2015,12 @@
 # resource-usage-api
 # resource_usage_api_replicas: 2
 # resource_usage_api_pod_anti_affinity: true
+# How long to let an in-flight data usage batch finish on shutdown, in seconds.
+# resource_usage_api_termination_grace_period: 330
+# Data usage settings, inherited from the retired data-usage-api service.
+# resource_usage_api_refresh_interval: 3h
+# resource_usage_api_batch_size: 100
+# resource_usage_api_queue_prefix: ""
 
 # search
 # search_replicas: 2

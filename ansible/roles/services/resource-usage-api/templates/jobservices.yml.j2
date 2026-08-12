@@ -7,6 +7,8 @@ amqp:
     stops: 32
     launches: 32
     events: 0
+  queueprefix: "{{ resource_usage_api_queue_prefix }}"
+  batchsize: {{ resource_usage_api_batch_size }}
 
 apps:
   base: "{{ baseurls_apps|string|regex_replace("\/$","") }}"
@@ -19,8 +21,12 @@ condor:
   request_disk: 0
   filter_files: .job.ad,.machine.ad,_condor_stderr,_condor_stdout,condor_exec.exe,.chirp_config,.chirp.config,logs/logs-stderr-output,logs/logs-stdout-output,config,job,iplant.cmd
 
+datausage:
+  refreshinterval: "{{ resource_usage_api_refresh_interval }}"
+
 db:
   uri: postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
+  schema: public
 
 email:
   request: {{ email_support_dest }}
@@ -36,6 +42,14 @@ graphql:
 harbor:
   user: {{ harbor_robot_name }}
   pass: {{ harbor_robot_secret }}
+
+icat:
+  zone: {{ irods_zone }}
+  uri: postgresql://{{ icat_user }}:{{ icat_password | urlencode }}@{{ icat_host }}:{{ icat_port }}/ICAT?sslmode=disable
+  rootresources:
+  {% for resc in irods_quota_root_resources | split(",") %}
+  - {{ resc }}
+  {% endfor %}
 
 interapps:
   proxy:

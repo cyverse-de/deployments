@@ -51,8 +51,6 @@
       tags: requests
     - role: services/resource-usage-api
       tags: resource-usage-api
-    - role: services/data-usage-api
-      tags: data-usage-api
     - role: services/subscriptions
       tags: subscriptions
     - role: services/user-info

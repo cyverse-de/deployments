@@ -133,7 +133,7 @@ Idempotent — deleting already-absent resources succeeds silently.
 
 Removes the DE's NATS installation after its retirement from this repo. NATS
 carried the QMS request/reply traffic between
-[terrain](/services/terrain.md), [data-usage-api](/services/data-usage-api.md),
+[terrain](/services/terrain.md), the former data-usage-api,
 [resource-usage-api](/services/resource-usage-api.md), and
 [subscriptions](/services/subscriptions.md); all four now use the subscriptions
 HTTP API. Uninstalls the `nats` Helm release and deletes the `nats-server-tls`,

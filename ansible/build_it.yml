@@ -165,12 +165,6 @@
           tags: resource-usage-api
       tags: resource-usage-api
     - ansible.builtin.include_role:
-        name: services/data-usage-api
-        tasks_from: build
-        apply:
-          tags: data-usage-api
-      tags: data-usage-api
-    - ansible.builtin.include_role:
         name: services/subscriptions
         tasks_from: build
         apply:

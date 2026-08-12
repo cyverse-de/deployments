@@ -1,5 +1,38 @@
 # Wiki Update Log
 
+## 2026-08-12
+
+* **Remove**: `services/data-usage-api.md` — the service has been merged into
+  [resource-usage-api](/services/resource-usage-api.md) and its role is gone
+  from this repo. The two had converged on the same framework, the same DE
+  database, and the same [subscriptions](/services/subscriptions.md) client
+  written twice, and resource-usage-api already called data-usage-api over HTTP
+  to build its `/summary` response — a round trip that is now an in-process
+  call.
+* **Update**: [resource-usage-api](/services/resource-usage-api.md) — documented
+  the absorbed data usage endpoints, which kept their paths, and the two data
+  usage queues, which kept their names so the existing durable queues carry
+  over. Its config gains the ICAT database URI, zone, and root resources, so the
+  `resource-usage-api-configs` secret now holds the ICAT password; the service
+  validates at startup and exits on a missing setting, so the secret has to land
+  before the pod rolls. Both services can run at once during cut-over: they act
+  as competing consumers on the shared queues and the usage write is an
+  idempotent `SET`. CPU limit raised from 100m to 500m and a 330s termination
+  grace period added, since the pod now holds two database pools and runs data
+  usage batches — which can occupy ICAT for minutes — alongside the
+  latency-sensitive `/summary` endpoint. The OpenTelemetry env vars are gone;
+  the service never installed a tracer provider, so they did nothing.
+* **Update**: [terrain](/services/terrain.md) — added a
+  `terrain.data-usage-api.base-uri` config line pointing at
+  `baseurls_resource_usage_api`. Terrain's compiled-in default is
+  `http://data-usage-api`, so without it terrain would keep calling a service
+  that no longer exists. Its data usage routes are otherwise unchanged and stay
+  gated on `data_usage_api_enabled`.
+* Dropped data-usage-api from [subscriptions](/services/subscriptions.md)'s
+  caller list and from the [service index](/services/index.md), and reworded the
+  historical NATS reference in
+  [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+
 ## 2026-08-11
 
 * **Remove**: `services/vice-status-listener.md` — the service has been retired

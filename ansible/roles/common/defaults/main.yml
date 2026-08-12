@@ -108,6 +108,8 @@ settings_enabled: true
 coge_enabled: true
 resource_usage_api_enabled: true
 qms_api_enabled: true
+# Terrain still exposes the data usage routes; they are served by
+# resource-usage-api now that it has absorbed the data-usage-api service.
 data_usage_api_enabled: true
 
 # Agave Variables
@@ -136,6 +138,7 @@ baseurls_metadata: http://metadata
 baseurls_notifications: http://notifications/v1
 baseurls_permissions: http://permissions
 baseurls_requests: http://requests
+baseurls_resource_usage_api: http://resource-usage-api
 baseurls_search: http://search
 baseurls_subscriptions: http://subscriptions
 baseurls_terrain: http://terrain
@@ -1016,7 +1019,6 @@ source_repos:
   - clockwork
   - dashboard-aggregator
   - data-info
-  - data-usage-api
   - de-mailer
   - de-webhooks
   - dewey
