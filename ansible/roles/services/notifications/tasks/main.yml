@@ -41,6 +41,38 @@
         namespace: "{{ ns }}"
         name: event-recorder-configs
 
+    # de-mailer's HTTP API and its email_requests consumer both moved into
+    # notifications. Deleting its role left the running objects behind, so a
+    # retired de-mailer would keep competing for the email_requests queue and
+    # would keep answering on its own Service name. Removable once all
+    # deployments have rolled past this release.
+    - name: Remove the retired de-mailer deployment
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: de-mailer
+
+    - name: Remove the retired de-mailer service
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        namespace: "{{ ns }}"
+        name: de-mailer
+
+    - name: Remove the retired de-mailer config secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: de-mailer-configs
+
     - ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main

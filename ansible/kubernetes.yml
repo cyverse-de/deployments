@@ -266,7 +266,6 @@
     - role: services/bulk-typer
     - role: services/clockwork
     - role: services/data-info
-    - role: services/de-mailer
     - role: services/de-webhooks
     - role: services/dewey
     - role: services/info-typer

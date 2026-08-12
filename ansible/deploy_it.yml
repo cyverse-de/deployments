@@ -21,8 +21,6 @@
       tags: clockwork
     - role: services/data-info
       tags: data-info
-    - role: services/de-mailer
-      tags: de-mailer
     - role: services/de-webhooks
       tags: de-webhooks
     - role: services/dewey

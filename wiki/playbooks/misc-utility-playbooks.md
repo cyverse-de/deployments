@@ -67,8 +67,8 @@ Deploys the `local-exim` mail relay on its own — the standalone equivalent of
 the local-exim slice of `--tags de-reqs`, which otherwise also re-runs the
 namespace, cert-issuer, timezone, and Harbor pull-secret tasks. It imports the
 same task file the `k8s_de_reqs` role uses, so the two paths cannot drift.
-[de-mailer](/services/de-mailer.md) relays all outbound DE mail through this
-deployment. The play first asserts that `exim_smarthost` is set and does not
+[notifications](/services/notifications.md) relays all outbound DE mail through
+this deployment. The play first asserts that `exim_smarthost` is set and does not
 point at loopback: the role default does, which makes exim smarthost to itself
 and silently drops every message. Note that the value is an exim host list, so
 a port needs a second colon (`host::port`).
