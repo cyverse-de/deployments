@@ -4,7 +4,7 @@ title: de-mailer
 description: Sends DE email notifications over HTTP and by consuming the email_requests AMQP queue, building links from the DE base URL and relaying through an in-cluster Exim SMTP host.
 resource: /ansible/roles/services/de-mailer
 tags: [email, smtp, amqp, rabbitmq, notifications, de]
-timestamp: 2026-08-10T00:00:00Z
+timestamp: 2026-08-12T00:00:00Z
 ---
 
 de-mailer is the DE's outbound email service. Requests reach it two ways:
@@ -14,8 +14,9 @@ consumes email-request messages directly from the durable `email_requests`
 queue (routing key `email.requests`) on the `de` topic exchange of the DE
 [RabbitMQ](/infrastructure/rabbitmq.md) broker. The AMQP role was absorbed
 from the retired email-requests service, which used to forward those messages
-to de-mailer over HTTP; event-recorder is the only publisher on that routing
-key. Failed AMQP deliveries are logged with their cause and acked (dropped),
+to de-mailer over HTTP; [notifications](/services/notifications.md) is the only
+publisher on that routing key, having absorbed it along with the rest of the
+retired event-recorder. Failed AMQP deliveries are logged with their cause and acked (dropped),
 matching the old chain's behavior.
 
 Its config file is `emailservice.yml`: the DE base URL plus the UI path
