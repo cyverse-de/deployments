@@ -269,7 +269,6 @@
     - role: services/de-mailer
     - role: services/de-webhooks
     - role: services/dewey
-    - role: services/event-recorder
     - role: services/info-typer
     - role: services/infosquito2
     - role: services/iplant-groups
