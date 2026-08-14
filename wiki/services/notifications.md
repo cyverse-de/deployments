@@ -23,7 +23,11 @@ and `000056` create `public.notifications` in the DE database, and
 [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
 moves the rows.
 
-The service change that has to land first is username qualification. Callers
+The service change that goes with it is username qualification, and it ships
+in the same deploy as the repoint rather than ahead of it — against the
+standalone database, whose `users` rows are bare, a qualifying service would
+create a second row per person and their existing notifications would drop out
+of their list. Callers
 send bare usernames — apps and terrain both pass `shortUsername` — while the DE
 identifies users by the qualified form, so the service now appends
 `notifications.uid.domain` (rendered from `uid_domain`) before any user lookup.

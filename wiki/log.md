@@ -23,7 +23,8 @@
   dedicated database is being retired, and documented the new required
   `notifications.uid.domain` setting the service qualifies usernames with
   before any database lookup, along with the reason `outgoing_json` keeps the
-  bare username the caller sent.
+  bare username the caller sent and why the change ships in the same deploy as
+  the repoint rather than ahead of it.
 * **Update**: [PostgreSQL](/infrastructure/postgresql.md) — flagged the
   `notifications` database as being folded into `de` in the database table.
 

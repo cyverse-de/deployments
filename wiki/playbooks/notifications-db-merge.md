@@ -23,18 +23,32 @@ neither `dblink` nor `postgres_fdw` is installed on the
 ansible-playbook -i <inventory> notifications_db_merge.yml
 ```
 
-## Precondition: the service must qualify usernames first
+## Ordering: qualification ships with the repoint, not before it
 
-**Run this only after the notifications service has been changed to append
-`uid_domain` to usernames.** The standalone database stores bare usernames
-(`jdoe`); `public.users` stores qualified ones (`jdoe@iplantcollaborative.org`).
-The service writes table names unqualified and normalizes nothing, and its user
-upsert is `INSERT INTO users (username) ... ON CONFLICT (username) DO UPDATE`.
-Pointed at the DE database while still writing bare usernames, it will insert
-them into the `users` table that apps, analyses, and requests all key off.
+Run this playbook while the service is still pointed at the standalone
+database, then repoint it. The username-qualification change and the repointing
+must land in the **same deploy**:
 
-The playbook cannot check this — it is a property of the running service, not
-of the database. It is the one step that has to be sequenced by hand.
+1. Apply `de-database` migrations `000055` and `000056`.
+2. Run this playbook. The service keeps serving from the standalone database,
+   which is left untouched.
+3. Deploy notifications with username qualification **and**
+   `notifications.db.uri` pointed at the DE database, together.
+4. Run this playbook again to sweep up anything recorded between 2 and 3. It is
+   idempotent, so only the gap rows are added.
+
+Qualification cannot ship earlier than the repoint. The standalone database's
+`users` rows are bare, so a qualifying service looks up a username that isn't
+there, creates a second row for the same person, and every listing joins
+through it — their existing notifications vanish from their list.
+
+It cannot ship later either. The service writes every table name unqualified
+and upserts users with `ON CONFLICT (username) DO UPDATE`, so once it is
+pointed at the DE database while still sending bare usernames, it inserts them
+into the `users` table that apps, analyses, and requests all key off.
+
+The playbook cannot check either half — both are properties of the running
+service rather than of the database.
 
 ## What the two identifiers do
 
