@@ -41,9 +41,22 @@ of the database. It is the one step that has to be sequenced by hand.
 Both keys have to be rewritten, because neither survives the move:
 
 - **Users.** No account shares an id between the two databases, so every
-  `user_id` is remapped by username. Where both `name@domain` and the
-  malformed `name@@domain` spellings exist in `public.users`, the single-`@`
-  row wins — that is the row the rest of the DE references.
+  `user_id` is remapped by username, qualified the way every other DE service
+  qualifies one — `apps.user/append-username-suffix`, which **truncates at the
+  first `@` before appending** rather than appending outright:
+
+  ```clojure
+  (str (string/replace username #"@.*$" "") "@" (uid-domain))
+  ```
+
+  That distinction matters for the handful of notification accounts whose name
+  is already an address. `stephen.wright@utoronto.ca` resolves to
+  `stephen.wright@iplantcollaborative.org` — their real DE account — and not to
+  `stephen.wright@utoronto.ca@iplantcollaborative.org`, which also exists in
+  `public.users` but is a stray nothing else references.
+
+  Where both `name@domain` and the malformed `name@@domain` spellings exist,
+  the single-`@` row wins; that is the row the rest of the DE references.
 - **Notification types.** The standalone database keys notifications to its own
   `notification_types` rows. Migration `000055` replaced the DE's
   `notification_types` enum with a table seeded by name, so the mapping is by
@@ -70,7 +83,11 @@ Each is separately tagged (`dump`, `stage`, `load`, `verify`, `cleanup`).
    accounts the DE has never seen, resolves the two mappings into temporary
    tables, and inserts. It is idempotent; a second run inserts nothing.
 4. **Verify** — runs `files/verify.sql` and fails the play unless every staged
-   account and type resolved and the loaded count matches the expected count.
+   account and type resolved, no two staged accounts qualify to the same DE
+   username, and the loaded count matches the expected count. The collision
+   check is there because two accounts merging under one DE user would
+   otherwise reconcile perfectly while silently combining two people's
+   notification histories; neither environment has one today.
 5. **Cleanup** — drops the staging schema unless
    `notifications_db_merge_keep_staging` is set.
 

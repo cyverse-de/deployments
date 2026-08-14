@@ -15,15 +15,36 @@ BEGIN;
 SET search_path = public, pg_catalog;
 
 --
+-- Qualify each staged username the same way the DE does. This truncates at the
+-- first '@' before appending rather than appending outright, matching
+-- apps.user/append-username-suffix -- the rule every DE service resolves
+-- usernames by:
+--
+--     (str (string/replace username #"@.*$" "") "@" (uid-domain))
+--
+-- So "stephen.wright@utoronto.ca" resolves to
+-- "stephen.wright@iplantcollaborative.org", which is the account the DE will
+-- use for them, and not a third spelling that exists nowhere else.
+--
+-- Junk subject IDs are excluded here; their notifications are dropped below.
+--
+CREATE TEMPORARY TABLE staged_user ON COMMIT DROP AS
+SELECT su.id,
+       su.username,
+       regexp_replace(su.username, '@.*$', '') || '@'  || :'uid_domain' AS de_username,
+       regexp_replace(su.username, '@.*$', '') || '@@' || :'uid_domain' AS de_username_malformed
+FROM :"staging".users su
+WHERE su.username NOT LIKE :'junk_pattern';
+
+CREATE UNIQUE INDEX ON staged_user (id);
+
+--
 -- Create DE users for staged accounts that have never been seen by the rest of
 -- the DE. These are real people who received a notification without ever
--- launching an analysis. Junk subject IDs are excluded here and their
--- notifications are dropped below.
+-- launching an analysis.
 --
 INSERT INTO users (username)
-SELECT su.username || '@' || :'uid_domain'
-FROM :"staging".users su
-WHERE su.username NOT LIKE :'junk_pattern'
+SELECT DISTINCT de_username FROM staged_user
 ON CONFLICT (username) DO NOTHING;
 
 --
@@ -35,16 +56,12 @@ ON CONFLICT (username) DO NOTHING;
 -- deterministically even where both spellings exist.
 --
 CREATE TEMPORARY TABLE user_map ON COMMIT DROP AS
-SELECT DISTINCT ON (su.id)
-       su.id AS staged_id,
+SELECT DISTINCT ON (sc.id)
+       sc.id AS staged_id,
        u.id  AS de_id
-FROM :"staging".users su
-JOIN users u ON u.username IN (
-        su.username || '@' || :'uid_domain',
-        su.username || '@@' || :'uid_domain'
-     )
-WHERE su.username NOT LIKE :'junk_pattern'
-ORDER BY su.id, (u.username LIKE '%@@%');
+FROM staged_user sc
+JOIN users u ON u.username IN (sc.de_username, sc.de_username_malformed)
+ORDER BY sc.id, (u.username LIKE '%@@%');
 
 CREATE UNIQUE INDEX ON user_map (staged_id);
 

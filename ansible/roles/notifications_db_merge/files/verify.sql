@@ -6,17 +6,22 @@
 
 SET search_path = public, pg_catalog;
 
-WITH resolved AS (
-    SELECT su.id
+WITH staged_user AS (
+    -- Same qualification rule as transform.sql: truncate at the first '@'
+    -- before appending, matching apps.user/append-username-suffix.
+    SELECT su.id,
+           regexp_replace(su.username, '@.*$', '') || '@'  || :'uid_domain' AS de_username,
+           regexp_replace(su.username, '@.*$', '') || '@@' || :'uid_domain' AS de_username_malformed
     FROM :"staging".users su
     WHERE su.username NOT LIKE :'junk_pattern'
-      AND EXISTS (
-          SELECT 1 FROM users u
-          WHERE u.username IN (
-              su.username || '@' || :'uid_domain',
-              su.username || '@@' || :'uid_domain'
-          )
-      )
+),
+resolved AS (
+    SELECT sc.id
+    FROM staged_user sc
+    WHERE EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.username IN (sc.de_username, sc.de_username_malformed)
+    )
 )
 SELECT
     (SELECT count(*) FROM :"staging".notifications) AS staged_notifications,
@@ -31,12 +36,21 @@ SELECT
 
     -- Should be zero: transform.sql creates a DE user for every non-junk
     -- staged account before mapping.
-    (SELECT count(*) FROM :"staging".users su
-      WHERE su.username NOT LIKE :'junk_pattern'
-        AND su.id NOT IN (SELECT id FROM resolved)) AS unmapped_users,
+    (SELECT count(*) FROM staged_user sc
+      WHERE sc.id NOT IN (SELECT id FROM resolved)) AS unmapped_users,
     (SELECT count(*) FROM :"staging".notification_types st
       WHERE NOT EXISTS (SELECT 1 FROM notification_types nt
                          WHERE nt.name = st.name))  AS unmapped_types,
+
+    -- Two staged accounts qualifying to one DE username -- "jdoe" and
+    -- "jdoe@elsewhere.edu" both resolve to "jdoe@<uid_domain>". Neither
+    -- environment has any today. If one appears, their notification histories
+    -- would silently merge under a single DE user, so this fails the load
+    -- rather than guessing that they are the same person.
+    (SELECT count(*) FROM (
+        SELECT de_username FROM staged_user
+        GROUP BY de_username HAVING count(*) > 1
+     ) c)                                           AS colliding_users,
 
     -- What should have landed, and what did.
     (SELECT count(*) FROM :"staging".notifications sn

@@ -5,15 +5,20 @@
 * **Add**: [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
   — covers `notifications_db_merge.yml`, which moves the standalone
   notifications database into `public.notifications` in the DE database.
-  Documents the two identifier remappings the move requires (users by
-  suffixed username, preferring the single-`@` row where the malformed
-  double-`@` duplicate also exists; notification types by name against the
-  lookup table that `de-database` migration `000055` puts in place of the old
-  enum), the staging schema and why the rows are streamed rather than restored
-  from the `pg_dump`, and the handling of notification accounts the DE has
-  never seen — real people are created, iplant-groups subject IDs are
-  discarded. The username-qualification change to the service is called out as
-  a precondition the playbook cannot itself check.
+  Documents the two identifier remappings the move requires: users by
+  qualified username, which truncates at the first `@` before appending
+  `uid_domain` the way `apps.user/append-username-suffix` does — so an account
+  already named as an address resolves to its real DE account rather than to a
+  `name@elsewhere.edu@iplantcollaborative.org` stray — and preferring the
+  single-`@` row where the malformed double-`@` duplicate also exists;
+  notification types by name against the lookup table that `de-database`
+  migration `000055` puts in place of the old enum. Also covers the staging
+  schema and why the rows are streamed rather than restored from the
+  `pg_dump`, the handling of notification accounts the DE has never seen (real
+  people are created, iplant-groups subject IDs are discarded), and the
+  collision check that fails the load rather than merging two people's
+  histories under one DE user. The username-qualification change to the
+  service is called out as a precondition the playbook cannot itself check.
 * **Update**: [notifications](/services/notifications.md) — noted that the
   dedicated database is being retired, with the service-side username
   qualification that has to land before the move.

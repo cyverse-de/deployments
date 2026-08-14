@@ -33,9 +33,10 @@
         notifications_db_merge_counts: >-
           {{ dict(['staged_notifications', 'staged_users', 'junk_users',
                    'junk_notifications', 'unmapped_users', 'unmapped_types',
-                   'expected_notifications', 'loaded_notifications']
+                   'colliding_users', 'expected_notifications',
+                   'loaded_notifications']
                   | zip(notifications_db_merge_reconciliation.stdout_lines
-                        | select('match', '^([0-9]+,){7}[0-9]+$')
+                        | select('match', '^([0-9]+,){8}[0-9]+$')
                         | first | split(',') | map('int'))) }}
 
     - name: Report the reconciliation
@@ -47,12 +48,15 @@
         that:
           - notifications_db_merge_counts.unmapped_users == 0
           - notifications_db_merge_counts.unmapped_types == 0
+          - notifications_db_merge_counts.colliding_users == 0
           - notifications_db_merge_counts.loaded_notifications == notifications_db_merge_counts.expected_notifications
         fail_msg: >
           The notifications load did not reconcile: {{ notifications_db_merge_counts }}.
           unmapped_users or unmapped_types above zero means a staged account or
-          type had no DE counterpart; a loaded/expected mismatch means rows were
-          dropped or public.notifications was not empty before the load.
+          type had no DE counterpart; colliding_users means two notification
+          accounts qualify to one DE username and their histories would merge;
+          a loaded/expected mismatch means rows were dropped or
+          public.notifications was not empty before the load.
         success_msg: >
           Loaded {{ notifications_db_merge_counts.loaded_notifications }} of
           {{ notifications_db_merge_counts.staged_notifications }} staged notifications;
