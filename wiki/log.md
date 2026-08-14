@@ -20,8 +20,10 @@
   histories under one DE user. The username-qualification change to the
   service is called out as a precondition the playbook cannot itself check.
 * **Update**: [notifications](/services/notifications.md) — noted that the
-  dedicated database is being retired, with the service-side username
-  qualification that has to land before the move.
+  dedicated database is being retired, and documented the new required
+  `notifications.uid.domain` setting the service qualifies usernames with
+  before any database lookup, along with the reason `outgoing_json` keeps the
+  bare username the caller sent.
 * **Update**: [PostgreSQL](/infrastructure/postgresql.md) — flagged the
   `notifications` database as being folded into `de` in the database table.
 

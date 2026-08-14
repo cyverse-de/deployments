@@ -21,11 +21,19 @@ in the manifest).
 That dedicated database is on its way out. `de-database` migrations `000055`
 and `000056` create `public.notifications` in the DE database, and
 [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
-moves the rows. The service change that has to land first is username
-qualification: this service stores bare usernames while `public.users` stores
-them suffixed with `uid_domain`, and it writes every table name unqualified, so
-pointing it at the DE database before that change would put bare usernames into
-the shared `users` table.
+moves the rows.
+
+The service change that has to land first is username qualification. Callers
+send bare usernames — apps and terrain both pass `shortUsername` — while the DE
+identifies users by the qualified form, so the service now appends
+`notifications.uid.domain` (rendered from `uid_domain`) before any user lookup.
+It truncates at the first `@` first, matching `apps.user/append-username-suffix`,
+so an account already named as an address resolves to the same DE user every
+other service resolves it to. The setting is required and validated at startup.
+
+Qualification happens only on the way to the database. The username in
+`outgoing_json` and in the `notification.<user>` message stays exactly as the
+caller sent it, because clients read it back out.
 
 ## Event recording
 
