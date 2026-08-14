@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-08-04T12:00:00Z
+timestamp: 2026-08-14T00:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -170,7 +170,7 @@ typically reachable directly from operator workstations (or via VPN). Connect wi
 | Database        | Purpose                                                    |
 | --------        | -------                                                    |
 | `de`            | Main DE database: analyses, apps, tools, users, subscriptions |
-| `notifications` | Notification records                                       |
+| `notifications` | Notification records. Being folded into `de`; see [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md) |
 | `metadata`      | Metadata templates and AVUs                                |
 | `qms`           | Quota/subscription management (if QMS enabled); migrations come from the `subscriptions` repo |
 | `keycloak`      | Keycloak user and realm data                               |

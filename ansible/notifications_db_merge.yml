@@ -1,0 +1,15 @@
+---
+# Moves the contents of the standalone notifications database into the DE
+# database. The schema is created by de-database migrations 000055 and 000056;
+# this playbook moves the rows.
+#
+# PRECONDITION: the notifications service must already be qualifying usernames
+# (appending uid_domain) before this runs. The standalone database stores bare
+# usernames and public.users stores qualified ones; a service still writing
+# bare usernames will insert them into the shared users table after the move.
+- name: Move the notifications database into the DE database
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  roles:
+    - role: notifications_db_merge

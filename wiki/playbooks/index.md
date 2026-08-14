@@ -14,6 +14,7 @@
 * [Longhorn Teardown](/playbooks/longhorn-teardown.md) - The all-or-nothing procedure for deleting a Longhorn install from a cluster, and how to recover if the default BackupTarget was deleted prematurely.
 * [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) - A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, app imports, and GoCD kubeconfig transfer.
 * [Node OS Updates and Rolling Reboots](/playbooks/node-maintenance.md) - OS package updates with update_nodes.yml and drained, rolling reboots of cluster nodes with reboot_nodes.yml.
+* [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md) - How notifications_db_merge.yml moves the standalone notifications database into the DE database's public schema, remapping user and notification-type identifiers on the way.
 * [General Operations Runbook](/playbooks/ops-runbook.md) - Day-to-day DE cluster operations — health checks, restarts, scaling, rollbacks, config pushes, log access, and node maintenance.
 * [Portal Exim Mail Relay](/playbooks/portal-exim.md) - How portal-exim.yml deploys an exim4 SMTP relay into the portal namespace for outbound portal mail.
 * [VICE Image Caching](/playbooks/vice-image-cache.md) - The two mechanisms for pre-pulling VICE images onto worker nodes - the kube-fledged image_cache role and the legacy vice-cache Job playbook.

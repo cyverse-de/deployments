@@ -1,0 +1,60 @@
+---
+- name: Reconcile the load against the staged rows
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Query the reconciliation counts
+      environment:
+        PGPASSWORD: "{{ dbms_connection_pass }}"
+      ansible.builtin.shell:
+        cmd: >
+          psql
+          --host={{ db_login_host }}
+          --port={{ pg_listen_port }}
+          --username={{ dbms_connection_user }}
+          --dbname={{ de_db_name }}
+          --set=ON_ERROR_STOP=1
+          --set=staging={{ notifications_db_merge_staging_schema }}
+          --set=uid_domain={{ uid_domain }}
+          --set=junk_pattern={{ notifications_db_merge_junk_user_pattern }}
+          --quiet
+          --tuples-only
+          --no-align
+          --field-separator=,
+          --file=-
+        stdin: "{{ lookup('ansible.builtin.file', 'verify.sql') }}"
+      register: notifications_db_merge_reconciliation
+      changed_when: false
+
+    # Selected by shape rather than position: psql can emit a notice after the
+    # result, so the counts are not reliably the last line.
+    - name: Parse the reconciliation counts
+      ansible.builtin.set_fact:
+        notifications_db_merge_counts: >-
+          {{ dict(['staged_notifications', 'staged_users', 'junk_users',
+                   'junk_notifications', 'unmapped_users', 'unmapped_types',
+                   'expected_notifications', 'loaded_notifications']
+                  | zip(notifications_db_merge_reconciliation.stdout_lines
+                        | select('match', '^([0-9]+,){7}[0-9]+$')
+                        | first | split(',') | map('int'))) }}
+
+    - name: Report the reconciliation
+      ansible.builtin.debug:
+        var: notifications_db_merge_counts
+
+    - name: Fail if the load did not reconcile
+      ansible.builtin.assert:
+        that:
+          - notifications_db_merge_counts.unmapped_users == 0
+          - notifications_db_merge_counts.unmapped_types == 0
+          - notifications_db_merge_counts.loaded_notifications == notifications_db_merge_counts.expected_notifications
+        fail_msg: >
+          The notifications load did not reconcile: {{ notifications_db_merge_counts }}.
+          unmapped_users or unmapped_types above zero means a staged account or
+          type had no DE counterpart; a loaded/expected mismatch means rows were
+          dropped or public.notifications was not empty before the load.
+        success_msg: >
+          Loaded {{ notifications_db_merge_counts.loaded_notifications }} of
+          {{ notifications_db_merge_counts.staged_notifications }} staged notifications;
+          discarded {{ notifications_db_merge_counts.junk_notifications }} belonging to
+          {{ notifications_db_merge_counts.junk_users }} non-person subject IDs.

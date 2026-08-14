@@ -4,7 +4,7 @@ title: notifications
 description: User notifications service backed by its own notifications database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
 resource: /ansible/roles/services/notifications
 tags: [notifications, postgresql, amqp, rabbitmq, jobservices, events, email, smtp]
-timestamp: 2026-08-12T00:00:00Z
+timestamp: 2026-08-14T00:00:00Z
 ---
 
 notifications stores and serves DE user notifications. Its config points at a
@@ -17,6 +17,15 @@ port 80; other services reach it via `baseurls_notifications`
 its consumers as `notification_agent.base`. OpenTelemetry tracing is
 explicitly disabled for this service (`OTEL_TRACES_EXPORTER=none` is hardcoded
 in the manifest).
+
+That dedicated database is on its way out. `de-database` migrations `000055`
+and `000056` create `public.notifications` in the DE database, and
+[Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
+moves the rows. The service change that has to land first is username
+qualification: this service stores bare usernames while `public.users` stores
+them suffixed with `uid_domain`, and it writes every table name unqualified, so
+pointing it at the DE database before that change would put bare usernames into
+the shared `users` table.
 
 ## Event recording
 

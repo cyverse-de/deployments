@@ -1,0 +1,37 @@
+---
+- name: Dump the notifications database
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Check that de-database migration 000056 has been applied
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        query: SELECT to_regclass('public.notifications') IS NOT NULL AS ready
+      register: notifications_db_merge_schema_check
+      changed_when: false
+
+    - name: Fail if the target table is missing
+      ansible.builtin.fail:
+        msg: >
+          public.notifications does not exist in the {{ de_db_name }} database.
+          Run the de-database migrations (000055 and 000056) before this playbook.
+      when: not notifications_db_merge_schema_check.query_result[0].ready
+
+    - name: Dump the notifications database to a file
+      environment:
+        PGPASSWORD: "{{ dbms_connection_pass }}"
+      ansible.builtin.shell:
+        cmd: >
+          pg_dump {{ notifications_db_name }}
+          --host={{ db_login_host }}
+          --port={{ pg_listen_port }}
+          --username={{ dbms_connection_user }}
+          --file {{ notifications_db_merge_dump_file }}
+          --no-owner
+          --no-privileges
+          -n public
+        creates: "{{ notifications_db_merge_dump_file }}"
