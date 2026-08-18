@@ -19,7 +19,7 @@
 * [kifshare](/services/kifshare.md) - Public download page for files shared from the data store via iRODS tickets.
 * [maintenance-page](/services/maintenance-page.md) - Maintenance-mode page that redirects DE traffic to itself by rewriting the environment's Gateway API HTTPRoutes.
 * [metadata](/services/metadata.md) - DE metadata service backed by its own metadata database on PostgreSQL.
-* [notifications](/services/notifications.md) - User notifications service backed by its own notifications database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
+* [notifications](/services/notifications.md) - User notifications service backed by the DE database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
 * [openldap-docker](/services/openldap-docker.md) - In-cluster OpenLDAP directory for DE deployments without an external LDAP server, deployed as a StatefulSet with config and seed data rendered from templates.
 * [permissions](/services/permissions.md) - DE permissions service backed by its own PostgreSQL database, with read access to the Grouper database for group information.
 * [portal-conductor](/services/portal-conductor.md) - Account-provisioning API used by the user portal, acting on LDAP, iRODS, terrain, Mailman, and formation, with an exim sidecar for outbound mail.

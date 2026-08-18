@@ -1,27 +1,29 @@
 ---
 type: Service
 title: notifications
-description: User notifications service backed by its own notifications database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
+description: User notifications service backed by the DE database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
 resource: /ansible/roles/services/notifications
 tags: [notifications, postgresql, amqp, rabbitmq, jobservices, events, email, smtp]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-18T00:00:00Z
 ---
 
-notifications stores and serves DE user notifications. Its config points at a
-dedicated database — `notifications_db_name` (default `notifications`) on the
-[PostgreSQL](/infrastructure/postgresql.md) DBMS host — alongside the DE
-database and the [RabbitMQ](/infrastructure/rabbitmq.md) `de` topic exchange.
-It listens on port 8080, exposed in-cluster as Service `notifications` on
-port 80; other services reach it via `baseurls_notifications`
+notifications stores and serves DE user notifications. Its config points at the
+DE database — `de_db_name` on the [PostgreSQL](/infrastructure/postgresql.md)
+DBMS host — alongside the [RabbitMQ](/infrastructure/rabbitmq.md) `de` topic
+exchange. It listens on port 8080, exposed in-cluster as Service
+`notifications` on port 80; other services reach it via `baseurls_notifications`
 (`http://notifications/v1`), which the shared job-services template exposes to
 its consumers as `notification_agent.base`. OpenTelemetry tracing is
 explicitly disabled for this service (`OTEL_TRACES_EXPORTER=none` is hardcoded
 in the manifest).
 
-That dedicated database is on its way out. `de-database` migrations `000055`
-and `000056` create `public.notifications` in the DE database, and
+It used to keep a dedicated database of its own. `de-database` migrations
+`000055` and `000056` create `public.notifications` in the DE database, and
 [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
-moves the rows.
+moves the rows; `notifications.db.uri` renders from `de_db_name` as of the
+2026-08-18 repoint. The standalone database is left running and still holds the
+pre-merge rows — retire it only once every environment has been cut over and
+verified.
 
 The service change that goes with it is username qualification, and it ships
 in the same deploy as the repoint rather than ahead of it — against the
@@ -142,8 +144,9 @@ The role renders the shared job-services template
 `templates/jobservices.yml.j2` into the `notifications-configs` secret,
 mounted at `/etc/iplant/de/jobservices.yml`. The operative section is
 `notifications.db.uri`, built from `dbms_connection_user`/
-`dbms_connection_pass`, `groups['dbms'][0]`, `pg_listen_port`, and
-`notifications_db_name`; the AMQP URI comes from the `de_amqp_*` group_vars.
+`dbms_connection_pass`, `groups['dbms'][0]`, `pg_listen_port`, and `de_db_name`
+— the key is named for the service, not for the database it points at; the AMQP
+URI comes from the `de_amqp_*` group_vars.
 The `de:` and `email:` blocks drive outbound mail. The rest of the shared
 template (Condor, iRODS, VICE, Keycloak, Harbor) is common boilerplate across
 the job services. Defaults: `notifications_replicas: 2` with required pod
