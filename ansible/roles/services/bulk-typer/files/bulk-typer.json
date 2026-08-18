@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/bulk-typer","tag":"harbor.cyverse.org/de/bulk-typer:v2026.07.07-dirty@sha256:6a6612b344845c6f9e7fdf63587ec36558ce48e5c08a3cb0847783a16cc18fd1"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/bulk-typer","tag":"harbor.cyverse.org/de/bulk-typer:v2026.09.01-rc01@sha256:52630f260926343bee2c15b49361bf3c713056face53e209d450a017a09fda49"}]}
