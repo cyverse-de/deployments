@@ -2,6 +2,19 @@
 
 ## 2026-08-18
 
+* **Update**: [data-info](/services/data-info.md) — documents why a share can
+  succeed without granting anything. `share-path` skips when the recipient
+  already holds the requested permission, but it tests the aggregated
+  (group-inclusive) permission while the share it skips would have written a
+  direct ACL. Since every account is in `public` and home directories inherit a
+  `public` read ACL, sharing under a home directory at read routinely skips: the
+  request succeeds, the UI notifies, and the recipient never appears in the
+  shared-with list. Records the consequence beyond the display — the access
+  rests on the group membership that suppressed the ACL, so it disappears
+  silently if that membership changes — plus how to confirm it from the
+  `already-shared` reason, and why statting as the recipient is not a valid
+  check.
+
 * **Update**: [notifications](/services/notifications.md) — `notifications.db.uri`
   now renders from `de_db_name` rather than `notifications_db_name`. The
   username-qualification change had shipped without the repoint that is
