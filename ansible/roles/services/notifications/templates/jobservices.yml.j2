@@ -89,7 +89,8 @@ notification_agent:
 
 notifications:
   db:
-    uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ notifications_db_name }}?sslmode=disable"
+    # The notifications rows live in the DE database; the standalone one is retired.
+    uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable"
   uid:
     # Callers send bare usernames; the DE identifies users by the qualified form.
     domain: "{{ uid_domain }}"

@@ -4,7 +4,7 @@ title: Merging the Notifications Database into DE
 description: How notifications_db_merge.yml moves the standalone notifications database into the DE database's public schema, remapping user and notification-type identifiers on the way.
 resource: /ansible/notifications_db_merge.yml
 tags: [notifications, postgresql, migration, database, de-database]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-18T00:00:00Z
 ---
 
 The [notifications](/services/notifications.md) service has always kept its own
@@ -49,6 +49,32 @@ into the `users` table that apps, analyses, and requests all key off.
 
 The playbook cannot check either half — both are properties of the running
 service rather than of the database.
+
+## Recovering from a half-completed cutover
+
+If step 3 lands qualification without the repoint — the deploy that shipped
+`notifications.uid.domain` while `notifications.db.uri` still named
+`notifications_db_name` — the service keeps writing to the standalone database
+while qualifying usernames. Its lookup for `jdoe@<uid_domain>` misses the bare
+`jdoe` row, so it creates a second one: the person's existing notifications
+drop out of their list, and new rows accumulate under an account the merge has
+no clean home for.
+
+That leaves both spellings qualifying to the same DE username, so the next run
+of this playbook fails `colliding_users` rather than silently combining them.
+The check is doing its job; the fix is to fold the duplicate back before
+re-running.
+
+`notes/notifications-merge-collision-repair.sql` does that, against the
+**standalone** database. It repoints the stray rows onto the bare user, deletes
+the emptied duplicate, and re-reports the collision check. It is a dry run
+unless passed `-v apply=1`, and it refuses to run against the DE database,
+where the qualified spelling is the correct one. Repoint and redeploy the
+service first — run against a service still writing bare-to-qualified and the
+duplicate simply comes back.
+
+Rows written to the standalone database during the gap are swept up by the
+final playbook run, since the ids are preserved and the load is idempotent.
 
 ## What the two identifiers do
 
@@ -144,3 +170,4 @@ read — only once the service has been cut over and verified.
 [2] `ansible/roles/notifications_db_merge/` — role tasks, defaults, and SQL.
 [3] [notifications](/services/notifications.md) — the service that owns these rows.
 [4] [PostgreSQL](/infrastructure/postgresql.md) — the DBMS and its databases.
+[5] `notes/notifications-merge-collision-repair.sql` — duplicate-user repair for a half-completed cutover.

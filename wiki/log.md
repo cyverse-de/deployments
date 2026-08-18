@@ -1,5 +1,22 @@
 # Wiki Update Log
 
+## 2026-08-18
+
+* **Update**: [notifications](/services/notifications.md) — `notifications.db.uri`
+  now renders from `de_db_name` rather than `notifications_db_name`. The
+  username-qualification change had shipped without the repoint that is
+  supposed to travel with it, so the service was still writing to the
+  standalone database while qualifying usernames. Corrects the opening
+  paragraph and the configuration section, which both still described the
+  dedicated database as the one the service connects to.
+* **Update**: [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
+  — adds a recovery section for a half-completed cutover: what a
+  qualification-without-repoint deploy does to the standalone database, why it
+  then trips the `colliding_users` check on the next run, and how
+  `notes/notifications-merge-collision-repair.sql` folds the duplicate user row
+  back onto the bare one so the merge can be re-run. Notes that the service has
+  to be repointed first or the duplicate returns.
+
 ## 2026-08-14
 
 * **Add**: [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
