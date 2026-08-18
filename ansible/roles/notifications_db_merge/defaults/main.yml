@@ -1,0 +1,15 @@
+---
+# Working file for the dump taken from the standalone notifications database.
+notifications_db_merge_dump_file: "./{{ notifications_db_name }}_merge_dump.sql"
+
+# Schema the dump is loaded into inside the DE database. Dropped on success
+# unless notifications_db_merge_keep_staging is true.
+notifications_db_merge_staging_schema: notifications_staging
+
+# Leave the staging schema in place after a successful load, for inspection.
+notifications_db_merge_keep_staging: false
+
+# Discard notification users whose names match this pattern instead of creating
+# them. These are iplant-groups subject IDs that Terrain sends as the user for
+# team notifications; they are not people.
+notifications_db_merge_junk_user_pattern: "@grouper-%"
