@@ -17,5 +17,6 @@
 * [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md) - How notifications_db_merge.yml moves the standalone notifications database into the DE database's public schema, remapping user and notification-type identifiers on the way.
 * [General Operations Runbook](/playbooks/ops-runbook.md) - Day-to-day DE cluster operations — health checks, restarts, scaling, rollbacks, config pushes, log access, and node maintenance.
 * [Portal Exim Mail Relay](/playbooks/portal-exim.md) - How portal-exim.yml deploys an exim4 SMTP relay into the portal namespace for outbound portal mail.
+* [Production Release Procedure](/playbooks/production-release.md) - The end-to-end production release run — maintenance mode, quiescing Data Store consumers, config and database updates, service deploys, and node updates.
 * [VICE Image Caching](/playbooks/vice-image-cache.md) - The two mechanisms for pre-pulling VICE images onto worker nodes - the kube-fledged image_cache role and the legacy vice-cache Job playbook.
 * [VICE Troubleshooting](/playbooks/vice-troubleshooting.md) - Diagnosing stuck or broken VICE interactive apps — loading-page stalls, scheduling and image pull failures, readiness problems, and orphaned resources.

@@ -1,5 +1,9 @@
 # Wiki Update Log
 
+## 2026-08-20
+
+* **Creation**: Added [Production Release Procedure](/playbooks/production-release.md), summarizing the new `docs/production-release.md` — a scrubbed, repo-maintained version of the internal production release document. Corrected three points that had gone stale in the original: build descriptors now live in this repo rather than a `de-releases` checkout, there is no `deploy_service.yml`, and `timelord` / `vice-status-listener` are no longer deploy tags.
+
 ## 2026-08-18
 
 * **Update**: [data-info](/services/data-info.md) — documents why a share can
