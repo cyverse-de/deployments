@@ -115,6 +115,7 @@ terrain.fileio.url-import-app = 1E8F719B-0452-4D39-A2F3-8714793EE3E6
 
 # Filesystem settings
 terrain.data-info.base-url            = {{ baseurls_data_info|string|regex_replace("\/$","") }}
+terrain.info-typer.base-url           = {{ baseurls_info_typer|string|regex_replace("\/$","") }}
 terrain.fs.community-data             = /{{ irods_zone }}/home/shared
 terrain.fs.bad-names                  = cacheServiceTempDir
 terrain.fs.perms-filter               = {{ irods_perms_filter | join(",") }}
