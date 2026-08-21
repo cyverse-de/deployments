@@ -49,17 +49,6 @@
             chdir: "{{ source_repo }}"
             cmd: git worktree add --force --detach {{ build_tmp.path }}/repo {{ git_ref }}
 
-        # A worktree's .git is a file pointing outside the build context, so a
-        # Dockerfile cannot read the history itself. Resolve the commit here and
-        # hand it to the build through the environment below.
-        - name: resolve the commit the worktree is at
-          delegate_to: localhost
-          ansible.builtin.command:
-            chdir: "{{ build_tmp.path }}/repo"
-            cmd: git rev-parse HEAD
-          changed_when: false
-          register: build_commit
-
         # The deployments repo is the source of truth for skaffold.yaml and the
         # k8s manifests, so overlay them onto the source tree before building.
         - name: overlay the skaffold config from the service role
@@ -122,14 +111,6 @@
         - name: build the image{{ ' and push it, writing the build descriptor' if push_images | bool else ' without pushing' }}
           delegate_to: localhost
           run_once: true
-          # What the image is built from, for a skaffold.yaml that wants to stamp
-          # it into the artifact. Only configs using skaffold's own docker builder
-          # can read them, via buildArgs: the shared buildx-build.sh passes no
-          # --build-arg, so services using it are unaffected and their labels stay
-          # at the Dockerfiles' "unknown" defaults.
-          environment:
-            DESCRIPTIVE_VERSION: "{{ git_ref }}"
-            GIT_COMMIT: "{{ build_commit.stdout }}"
           ansible.builtin.command:
             chdir: "{{ build_tmp.path }}/repo"
             cmd: >-
