@@ -1940,6 +1940,13 @@
 # data_info_replicas: 2
 # data_info_pod_anti_affinity: true
 
+# data-info-next -- the Go rewrite, deployed beside data-info with nothing routed to it so
+# the two can be diffed against a real data store. Off unless this is set, and meant for one
+# environment at a time; deploy_it.yml --tags data-info-next does nothing without it.
+# data_info_next_enabled: false
+# data_info_next_replicas: 1
+# data_info_next_git_ref: golang
+
 # de-webhooks
 # de_webhooks_replicas: 2
 # de_webhooks_pod_anti_affinity: true

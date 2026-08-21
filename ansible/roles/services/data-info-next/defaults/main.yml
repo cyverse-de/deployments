@@ -1,0 +1,15 @@
+---
+# Off by default. This is the Go rewrite of data-info running beside the Clojure service so
+# the two can be diffed against a real data store, and it writes to whatever iRODS the
+# environment points at -- so it comes up only where somebody has asked for it by name.
+data_info_next_enabled: false
+
+# One replica, not two. This deployment takes no traffic -- it exists so the Go rewrite can
+# be exercised and diffed against the Clojure service on a real cluster -- and every replica
+# holds its own pool of iRODS connections, which are the scarce resource on a shared data
+# store. No anti-affinity rule either, for the same reason.
+data_info_next_replicas: 1
+
+# The branch the Go rewrite lives on. data-info's main branch has no Go tree at all, so this
+# cannot fall back to build-service's default of main.
+data_info_next_git_ref: golang
