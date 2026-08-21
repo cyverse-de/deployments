@@ -18,13 +18,12 @@ Deployments need this repository along with a single private repository:
 
 Building service images from source additionally needs the service source repositories checked out locally; the `clone_sources.yml` playbook clones all of them. See [BUILD_DEPLOY.md](../BUILD_DEPLOY.md) for the full clone/build/deploy workflow.
 
-The [cyverse-de/de-releases](https://github.com/cyverse-de/de-releases) repository is only needed when an inventory overrides `build_json_dir` to read build descriptors from it instead of from the service roles. The QA CI flow publishes build descriptors there (see below), and the QA inventory points `build_json_dir` at a local checkout of it.
+Build descriptors are read from the service roles in this repository. No other repository is involved: `build_json_dir` defaults to `ansible/roles/services/<service>/files/` and nothing overrides it.
 
 ## Continuous Integration To QA
 
 This section describes how builds are automated and deployed to QA. You will want to have access to the following git repositories:
 
-* [cyverse-de/de-releases](https://github.com/cyverse-de/de-releases)
 * [cyverse-de/github-workflows](https://github.com/cyverse-de/github-workflows)
 * [cyverse-de/deployments](https://github.com/cyverse-de/deployments)
 
@@ -40,8 +39,7 @@ At a high-level, our CI build process is as follows:
  - Tag revisions with a new version in the format `v#.#.#` such as `v1.0.1`.
  - Push tags.
  - `skaffold-build.yml` workflow is triggered, which builds the images on Github's systems.
- - The workflow generates a new build JSON file, which gets committed and pushed to the `builds` directory of the `de-releases` repository.
- - The workflow then emits a webhook to our CI/CD system at https://cicd-qa.cyverse.org.
+ - The workflow commits the updated build descriptor to this repository, at `ansible/roles/services/<service>/files/<service>.json` on `main`.
 
 Each repository that contains a deployable should have a `.github/workflows/skaffold-build.yml` file that looks like the following:
 
@@ -65,14 +63,29 @@ jobs:
 
 This workflow calls out to the `skaffold-build.yml` workflow contained in the [cyverse-de/github-workflows](https://github.com/cyverse-de/github-workflows) repository. Pin to the latest tag (`v0.4.0` as of this writing; check the repo for newer versions). The `build-prerelease` input is no longer used as of `v0.4.0`.
 
-As part of the shared `skaffold-build.yml` file contained in the `cyverse-de/github-workflows` repository, a new JSON artifact file is created in the `builds/` directory of the [cyverse-de/de-releases](https://github.com/cyverse-de/de-releases) repository. An action after that sends a webhook request to [https://cicd-qa.cyverse.org](https://cicd-qa.cyverse.org), which triggers the GoCD pipeline that deploys the service into the QA cluster.
+The shared workflow checks out this repository alongside the service's source, runs
+`build_it.yml --tags <service> -e push_images=true` against it, and commits the rewritten
+`ansible/roles/services/<service>/files/<service>.json` straight back to `main`. It fails
+early if no service role by that name exists, since `build_it.yml` would otherwise match no
+`--tags` and silently build nothing; pass `service-name` when the source repo's name differs
+from the role's. `extra-service-names` copies the same descriptor into additional roles that
+share one image, which is how `vice-operator` mirrors `app-exposer`.
+
+Concurrent builds push to the same branch, so the commit step rebases and retries up to five
+times before failing. If it does fail, re-run the job.
+
+The secret inputs still carry the names they had when descriptors lived in a separate
+releases repository — `releases-repo-push-token`, fed from the org-level
+`GH_DE_RELEASES_PUSH_TOKEN`. The names are historical; the token pushes to this repository.
+
+Note that `v0.4.0` no longer emits the webhook to [https://cicd-qa.cyverse.org](https://cicd-qa.cyverse.org)
+that earlier versions did. The descriptor commit is where the CI path ends.
 
 ## Production Deployment Automation
 
 You'll need the following repositories checked out locally:
  - `deployments`. See [https://github.com/cyverse-de/deployments](https://github.com/cyverse-de/deployments)
  - The private inventory repo.
- - `de-releases`, but only if the inventory reads build descriptors from it. See [https://github.com/cyverse-de/de-releases](https://github.com/cyverse-de/de-releases)
 
 You'll need the following tools installed:
  - `ansible` at a reasonably recent version. See [https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
@@ -129,7 +142,7 @@ set -gx KUBECONFIG ~/.kube/prod.conf
 Database migrations run as part of the `setup-databases` step below and require the `migrate` command (from `golang-migrate`, listed in the tools above) to be in your PATH.
 
 ### Where build descriptors are read from
-Deploys read each service's build descriptor (`<service>.json`) from `build_json_dir`, which defaults to the service's own role directory (`ansible/roles/services/<service>/files/`). An inventory may override `build_json_dir` to read descriptors from elsewhere instead; for example, the QA inventory points it at `../../de-releases/builds`, a `de-releases` checkout cloned alongside the `deployments` repository, which is where the QA CI flow publishes descriptors.
+Deploys read each service's build descriptor (`<service>.json`) from `build_json_dir`, which defaults to — and in practice always resolves to — the service's own role directory (`ansible/roles/services/<service>/files/`). That is also where the CI build path commits it, so a deploy picks up whatever CI last built.
 
 ### Deployment process
 If the release images need to be built first, see [BUILD_DEPLOY.md](../BUILD_DEPLOY.md). Here is the process to deploy a release into an environment. Each line is a separate command:

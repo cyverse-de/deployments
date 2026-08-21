@@ -16,8 +16,8 @@
           for an exact path, or -e source_repo_dir=/parent/dir if your source repos are
           checked out somewhere other than alongside the deployments repo.
 
-    # Resolve absolute paths into the service role itself, independent of any
-    # build_json_dir override that points deploys at a sibling de-releases repo.
+    # Resolve absolute paths into the service role itself, independent of the
+    # build_json_dir a deploy reads from.
     - name: resolve the service role paths
       delegate_to: localhost
       ansible.builtin.set_fact:

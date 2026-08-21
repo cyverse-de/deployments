@@ -52,11 +52,11 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
 * Builds check out a temporary git worktree at `git_ref`; the source checkout
   is never modified, and the changed descriptor is never committed — review and
   commit it yourself.
-* Builds always write descriptors into the service role's own `files/`
-  directory; deploys read from `build_json_dir`, which inventories may override
-  (the QA inventory points it at a sibling `de-releases/builds` checkout). If a
-  freshly built image isn't picked up on deploy, check where `build_json_dir`
-  resolves.
+* Builds write descriptors into the service role's own `files/` directory, and
+  deploys read from `build_json_dir`, which resolves to that same directory. If
+  a freshly built image isn't picked up on deploy, the build most likely never
+  rewrote the descriptor — a `push_images=false` run leaves it untouched by
+  design.
 * `build_release.yml` is best-effort: a failed service doesn't stop the others,
   and a rebuilt/skipped/failed summary is printed at the end.
 * Deploys assume the cluster subsystems are already installed — see
