@@ -11,6 +11,14 @@ build:
       # the one at the plain name until cutover, when this reverts to the shared builder.
       docker:
         dockerfile: Dockerfile.golang
+        # The Go binary reports its version from a linker-stamped variable, so
+        # unlike the JVM services it has nowhere else to get one -- without these
+        # it answers "unknown" to GET / and --version. build-service exports both;
+        # the else branches keep a bare `skaffold build` working outside ansible.
+        buildArgs:
+          descriptive_version: "{{if .DESCRIPTIVE_VERSION}}{{.DESCRIPTIVE_VERSION}}{{else}}unknown{{end}}"
+          version: "{{if .DESCRIPTIVE_VERSION}}{{.DESCRIPTIVE_VERSION}}{{else}}unknown{{end}}"
+          git_commit: "{{if .GIT_COMMIT}}{{.GIT_COMMIT}}{{else}}unknown{{end}}"
   tagPolicy:
     gitCommit: {}
   local: {}
