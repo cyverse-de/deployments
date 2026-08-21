@@ -43,11 +43,55 @@
           changed_when: false
           failed_when: false
 
+        # A bare name resolves under refs/heads, refs/tags and refs/remotes/<name>,
+        # but never refs/remotes/origin/<name>. The fetch above makes tags local
+        # refs and a clone gets its default branch, so those resolve -- a branch
+        # living only on the remote does not. Resolve the ref here and hand the
+        # worktree a SHA, so no local branch has to be created in the source
+        # checkout to make the ref reachable. Only the checkout takes the SHA --
+        # git_ref stays the human name that reaches skaffold's --tag below, which
+        # rejects a slash (an `origin/<ref>` tag is not a valid image tag).
+        - name: resolve the requested ref to a commit
+          delegate_to: localhost
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git rev-parse --verify --quiet {{ git_ref }}^{commit}
+          register: git_ref_local
+          changed_when: false
+          failed_when: false
+
+        - name: resolve the requested ref against the remote
+          delegate_to: localhost
+          when: git_ref_local.rc != 0
+          ansible.builtin.command:
+            chdir: "{{ source_repo }}"
+            cmd: git rev-parse --verify --quiet origin/{{ git_ref }}^{commit}
+          register: git_ref_remote
+          changed_when: false
+          failed_when: false
+
+        - name: record the resolved commit
+          delegate_to: localhost
+          ansible.builtin.set_fact:
+            build_commit: "{{ git_ref_local.stdout if git_ref_local.rc == 0 else git_ref_remote.stdout | default('') }}"
+
+        # Fail here rather than let an empty SHA reach git worktree add, which
+        # would check out HEAD and silently build the wrong tree.
+        - name: ensure the requested ref resolved
+          delegate_to: localhost
+          ansible.builtin.assert:
+            that:
+              - build_commit | length > 0
+            fail_msg: >-
+              git_ref {{ git_ref }} names no commit in {{ source_repo }}, either
+              directly or as origin/{{ git_ref }}. Check the ref name, or re-run
+              clone_sources.yml if the checkout is missing or stale.
+
         - name: check out the requested ref in a worktree
           delegate_to: localhost
           ansible.builtin.command:
             chdir: "{{ source_repo }}"
-            cmd: git worktree add --force --detach {{ build_tmp.path }}/repo {{ git_ref }}
+            cmd: git worktree add --force --detach {{ build_tmp.path }}/repo {{ build_commit }}
 
         # The deployments repo is the source of truth for skaffold.yaml and the
         # k8s manifests, so overlay them onto the source tree before building.
