@@ -6,12 +6,14 @@
   rewrite of data-info, deployed beside the Clojure service with nothing routed
   to it so the shadow/diff harness can compare the two against a real data
   store. Temporary: at cutover the data-info role adopts its config template and
-  manifest and this role goes away. Records the two things it does differently
-  and why — it builds from `Dockerfile.golang` through skaffold's own docker
-  builder, since the shared `buildx-build.sh` hardcodes the plain `Dockerfile`
-  name; and its pod gets a 120-second grace period and a `preStop` sleep,
+  manifest and this role goes away. Records the one thing it does differently
+  and why — its pod gets a 120-second grace period and a `preStop` sleep,
   because on SIGTERM the service has to let each in-flight job post the terminal
-  status that releases its path lock. Also notes that it is gated on
+  status that releases its path lock. Everything else is the house pattern: it
+  builds through the shared `buildx-build.sh`, with `data-info` building from
+  `main` where the Clojure tree lives and `data-info-next` from `golang` where
+  the Go tree does, so neither branch carries the other's Dockerfile. Also notes
+  that it is gated on
   `data_info_next_enabled`, which defaults to false, and is deliberately absent
   from the deploy-all list.
 

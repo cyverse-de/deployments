@@ -32,16 +32,7 @@ and deploy with `deploy_it.yml --tags data-info-next` — see
 [Building and Deploying Services](/playbooks/build-and-deploy.md). It is
 deliberately absent from `kubernetes.yml`'s deploy-all list.
 
-## Two things this role does differently, and why
-
-**It builds from `Dockerfile.golang`, not `Dockerfile`.** Both trees live in
-the same checkout until cutover, so data-info builds the Clojure image and
-data-info-next builds the Go one from the same commit — which is what makes a
-difference between the two a difference in the code rather than in what was
-built. The shared `buildx-build.sh` hardcodes `--file "$BUILD_CONTEXT/Dockerfile"`,
-so this role's `skaffold.yaml` uses skaffold's own docker builder to name the
-other file. At cutover the Go Dockerfile takes the plain name back and the
-custom builder returns.
+## The one thing this role does differently, and why
 
 **Its pod gets `terminationGracePeriodSeconds: 120` and a 5-second `preStop`
 sleep**, where data-info runs on Kubernetes' 30-second default. On SIGTERM the
@@ -53,10 +44,17 @@ paths locked against every later request. The binary budgets 30 seconds for the
 listener and 60 for the jobs, which is why the grace period has to be this
 generous.
 
+Everything else is the house pattern. The role builds through the shared
+`buildx-build.sh` like every other service: `data-info` builds from `main`,
+where the Clojure tree and its Dockerfile live, and `data-info-next` from
+`golang`, where the Go tree and its Dockerfile do. `build-service` checks out a
+worktree at the ref it is told to build, so each finds a plain `Dockerfile`
+where it expects one and neither branch has to carry the other's.
+
 # Citations
 
 1. `ansible/roles/services/data-info-next/templates/data-info.yml.j2` — the YAML config, translated from data-info's properties template.
 2. `ansible/roles/services/data-info-next/templates/k8s/data-info-next.yml.j2` — Deployment/Service, probes, grace period and preStop.
-3. `ansible/roles/services/data-info-next/files/skaffold.yaml` — the native docker builder naming `Dockerfile.golang`.
+3. `ansible/roles/services/data-info-next/files/skaffold.yaml` — the shared custom builder, same as every other service.
 4. `ansible/roles/services/data-info-next/defaults/main.yml` — `data_info_next_enabled`, `data_info_next_replicas`, `data_info_next_git_ref`.
 5. `ansible/roles/common/defaults/main.yml` — the `source_repos` entry and its `source_repo_urls` override.
