@@ -102,8 +102,9 @@ failed** summary and **exits non-zero if any service failed**.
   descriptors; those are not undone. Re-run with `-e services=<the failed ones>`
   after fixing the cause.
 - **Expecting fresh digests to auto-deploy.** Descriptors are written into each
-  service role's own `files/` dir and are **never committed**. Deploys read from
-  `build_json_dir` (which an inventory may point at a separate `de-releases`
-  checkout), so publish/commit the updated descriptors before deploying.
+  service role's own `files/` dir and are **never committed** by the rebuild.
+  Deploys read that same dir, so a deploy from this checkout picks them up
+  immediately — but commit them before anyone else deploys, or the next `git
+  pull` reverts the digests you just built.
 - **Treating skipped services as failures.** A digest-only descriptor (e.g.
   `vice-operator`) is intentionally skipped, not failed.

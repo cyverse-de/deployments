@@ -17,6 +17,20 @@
   `data_info_next_enabled`, which defaults to false, and is deliberately absent
   from the deploy-all list.
 
+* **Update**: [Continuous Integration Builds](/playbooks/ci-to-qa.md) (was
+  "Continuous Integration to QA"), plus the `build_json_dir` notes in
+  [Building and Deploying Services](/playbooks/build-and-deploy.md),
+  [Full DE Deployment](/playbooks/full-deployment.md) and
+  [Operations Runbook](/playbooks/ops-runbook.md) — the `de-releases`
+  repository is retired. Build descriptors are committed straight into each
+  service role's `files/` directory in the deployments repo, which is also
+  where deploys read them, so the `build_json_dir` override the QA inventory
+  used to set is gone. Read the shared `skaffold-build.yml` at `v0.4.0` to
+  describe what it actually does now, which turned up a second stale claim: it
+  no longer emits the webhook that triggered the GoCD deploy, so a tag push
+  builds and commits but does not deploy. That gap is flagged on the page
+  rather than papered over.
+
 ## 2026-08-20
 
 * **Creation**: Added [Production Release Procedure](/playbooks/production-release.md), summarizing the new `docs/production-release.md` — a scrubbed, repo-maintained version of the internal production release document. Corrected three points that had gone stale in the original: build descriptors now live in this repo rather than a `de-releases` checkout, there is no `deploy_service.yml`, and `timelord` / `vice-status-listener` are no longer deploy tags.

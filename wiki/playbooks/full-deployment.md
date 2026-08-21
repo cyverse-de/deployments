@@ -8,9 +8,8 @@ timestamp: 2026-07-31T12:00:00Z
 ---
 
 `kubernetes.yml` is the top-level playbook for standing up and maintaining a
-full DE environment. You need the `deployments` repo, the private inventory
-repo, and (only if the inventory overrides `build_json_dir`) a `de-releases`
-checkout. Required tools: `ansible`, `kubectl` >= 1.29, `helm` >= 3.16,
+full DE environment. You need the `deployments` repo and the private inventory
+repo. Required tools: `ansible`, `kubectl` >= 1.29, `helm` >= 3.16,
 `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, and `k0sctl`.
 
 ## Get a kubeconfig
@@ -56,9 +55,8 @@ ansible-playbook -i $INVENTORY --tags=deploy-all-services kubernetes.yml
 (migrations need `migrate` on your PATH); `configure-services` renders the
 shared `configs` secret and loads secrets; `deploy-all-services` runs every
 role under `roles/services/`. Deploys read each service's build descriptor
-(`<service>.json`) from `build_json_dir`, which defaults to the service role's
-`files/` directory; inventories may override it (QA points at a sibling
-`de-releases/builds` checkout). To build images first, or to deploy a subset
+(`<service>.json`) from `build_json_dir`, which resolves to the service role's
+own `files/` directory. To build images first, or to deploy a subset
 afterwards with `deploy_it.yml`, see
 [Building and Deploying Services](/playbooks/build-and-deploy.md).
 
