@@ -70,7 +70,7 @@ order declared in `deploy_it.yml`.
 | `kubeconfig` | `$KUBECONFIG` env → `~/.kube/config`; overridable in inventory group_vars | Cluster to deploy to. Resolve it with `resolving-the-kubeconfig`. |
 | `ns` | `qa` (overridden by inventory) | Target namespace. |
 | `deploy_ns` | `ns` | Per-deploy namespace override, if set. |
-| `build_json_dir` | the service role's own `files/` dir | Directory deploys **read** descriptors from. Inventories may override it (QA points it at a sibling `de-releases/builds` checkout). |
+| `build_json_dir` | the service role's own `files/` dir | Directory deploys **read** descriptors from — the same dir builds write to. Nothing overrides it. |
 | `load_configs` | `true` | Whether to (re)render the per-service `<service>-configs` secret. Set `false` to deploy the image without touching config. |
 | `deploy_profile` | unset | Optional skaffold profile, if a role defines one. |
 
@@ -102,13 +102,12 @@ For each selected service, entirely on localhost with `KUBECONFIG` set:
 
 ## Common Mistakes
 
-- **Deploying a stale digest after a build.** Builds **write** the descriptor
-  into the service role's own `files/` dir, but deploys **read** from
-  `build_json_dir`, which an inventory may override to a separate
-  `de-releases/builds` checkout. If a freshly built image isn't picked up,
-  confirm the new descriptor was published to the location `build_json_dir`
-  resolves to (and that checkout is pulled up to date) — otherwise the deploy
-  ships the old digest.
+- **Deploying a stale digest after a build.** Builds and deploys use the same
+  `files/<service>.json`, so a stale digest means the build never rewrote it —
+  most often a `push_images=false` run, which leaves it untouched by design since
+  an unpushed image has no registry digest. Check that the file actually changed.
+  Also pull `main` first if you are deploying what CI built: CI commits the new
+  descriptor there.
 - **Clobbering hand-patched config.** With `load_configs` on (the default), the
   deploy re-renders `<service>-configs` from the current inventory, reverting any
   in-cluster edits. Use `-e load_configs=false` to deploy the image only.

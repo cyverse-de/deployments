@@ -156,12 +156,11 @@ git -C /path/to/deployments checkout HEAD~1 -- \
 ansible-playbook -i /path/to/inventory deploy_it.yml --tags <service>
 ```
 
-> **`build_json_dir` caveat:** Deploys read descriptors from `build_json_dir`, which
-> inventories may override to a separate `de-releases/builds` checkout (QA does this).
-> If your environment uses that override, restoring the file under `roles/services/` has
-> no effect on the deploy — you also need to update the descriptor in that separate
-> checkout. Check `build_json_dir` in your inventory's group_vars if the rollback doesn't
-> seem to take effect.
+> **Commit the restored descriptor.** Deploys read it from `build_json_dir`, which
+> resolves to the same `roles/services/<service>/files/` directory you just edited, so a
+> local rollback takes effect immediately. It will be undone the next time CI builds that
+> service, though — CI commits the new descriptor to `main` — so a rollback meant to stick
+> has to be committed here too.
 
 ## 5. Deploy a single service update
 

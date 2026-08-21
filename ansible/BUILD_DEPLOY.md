@@ -231,18 +231,19 @@ digest recorded in the descriptor.
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | clone | default org base URL for clone URLs (SSH; override for HTTPS) |
 | `source_repos` | list in `common` | clone | repos to clone into `source_repo_dir` |
 | `source_repo_urls` | `{}` | clone | per-repo clone-URL overrides |
-| `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; inventories may override it (QA points at a `de-releases/builds` checkout) |
+| `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; nothing overrides it |
 
 ## Notes and troubleshooting
 
-### Descriptor locations: build vs. deploy
+### A freshly built image isn't picked up on deploy
 
-Builds always **write** the descriptor into the service role's own `files/`
-directory. Deploys **read** from `build_json_dir`, which inventories may override
-to point at a separate releases checkout (the QA inventory points it at a sibling
-`de-releases/builds` directory). If a freshly built image isn't picked up on
-deploy, confirm the descriptor was published to the location `build_json_dir`
-resolves to.
+Builds **write** the descriptor into the service role's own `files/` directory,
+and deploys **read** it from `build_json_dir`, which resolves to that same
+directory. So a deploy that runs the old image usually means the build never
+wrote a new descriptor: a build with `push_images=false` leaves it untouched by
+design, since an unpushed image has no registry digest to record. Check that
+`files/<service>.json` actually changed, and that the change was committed —
+builds never commit it, but the CI build path does.
 
 ### A release tag won't check out
 

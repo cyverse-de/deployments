@@ -7,7 +7,7 @@
 * [Bootstrapping a Portal Admin](/playbooks/bootstrap-portal-admin.md) - How bootstrap_portal_admin.yml creates a login-capable portal admin across LDAP, the portal database, iRODS, and the DE.
 * [Building and Deploying Services](/playbooks/build-and-deploy.md) - How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 * [Certificate Management](/playbooks/certificate-management.md) - TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
-* [Continuous Integration to QA](/playbooks/ci-to-qa.md) - The tag-triggered CI path that builds service images on GitHub Actions, publishes build descriptors to de-releases, and deploys to QA via GoCD.
+* [Continuous Integration Builds](/playbooks/ci-to-qa.md) - The tag-triggered CI path that builds a service image on GitHub Actions and commits the updated build descriptor back to the deployments repo.
 * [Deploying TLS Certificates](/playbooks/deploy-tls-certs.md) - How the tls_certs_main.yml playbook copies the combined TLS certificate to the proxy nodes for HAProxy.
 * [Deploying a Full DE Environment](/playbooks/full-deployment.md) - How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
 * [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) - How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
