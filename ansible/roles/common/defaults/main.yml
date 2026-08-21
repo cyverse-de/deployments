@@ -1019,6 +1019,9 @@ source_repos:
   - clockwork
   - dashboard-aggregator
   - data-info
+  # A second checkout of the data-info repo. It is not shared with the data-info entry
+  # because build_release.yml resolves every service's repo from the service's own name.
+  - data-info-next
   - de-webhooks
   - dewey
   - formation
@@ -1043,5 +1046,7 @@ source_repos:
   - terrain
   - user-info
   - vice-default-backend
-# Per-repo clone URL overrides for repos not under cyverse_repo_base.
-source_repo_urls: {}
+# Per-repo clone URL overrides for repos not under cyverse_repo_base, and for repos whose
+# local directory name differs from the repository's.
+source_repo_urls:
+  data-info-next: "{{ cyverse_repo_base }}/data-info"

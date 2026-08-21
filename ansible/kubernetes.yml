@@ -266,6 +266,9 @@
     - role: services/bulk-typer
     - role: services/clockwork
     - role: services/data-info
+    # data-info-next is deliberately absent from this list. It is the Go rewrite running
+    # alongside the Clojure service for diffing, it is gated on data_info_next_enabled, and
+    # it should only ever be brought up somewhere it was asked for by name.
     - role: services/de-webhooks
     - role: services/dewey
     - role: services/info-typer

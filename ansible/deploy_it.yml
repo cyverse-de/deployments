@@ -21,6 +21,8 @@
       tags: clockwork
     - role: services/data-info
       tags: data-info
+    - role: services/data-info-next
+      tags: data-info-next
     - role: services/de-webhooks
       tags: de-webhooks
     - role: services/dewey

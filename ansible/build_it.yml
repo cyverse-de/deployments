@@ -75,6 +75,12 @@
           tags: data-info
       tags: data-info
     - ansible.builtin.include_role:
+        name: services/data-info-next
+        tasks_from: build
+        apply:
+          tags: data-info-next
+      tags: data-info-next
+    - ansible.builtin.include_role:
         name: services/de-webhooks
         tasks_from: build
         apply:
