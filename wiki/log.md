@@ -2,6 +2,13 @@
 
 ## 2026-08-21
 
+* **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)
+  — `git_ref` is now resolved to a commit, falling back to `origin/<ref>`,
+  before the build worktree is created. A branch that existed only on the remote
+  used to fail outright, because a bare name never resolves under
+  `refs/remotes/origin/<name>`; only tags and the clone's default branch did.
+  The source checkout still gains no local branch.
+
 * **Update**: [Continuous Integration Builds](/playbooks/ci-to-qa.md) (was
   "Continuous Integration to QA"), plus the `build_json_dir` notes in
   [Building and Deploying Services](/playbooks/build-and-deploy.md),
