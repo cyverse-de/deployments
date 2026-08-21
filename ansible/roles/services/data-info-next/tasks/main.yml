@@ -1,0 +1,29 @@
+---
+- name: deploy data-info-next
+  when: data_info_next_enabled | bool
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: create the data-info-next-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: data-info-next-configs
+            namespace: "{{ ns }}"
+          data:
+            # Keyed data-info.yml rather than data-info-next.yml on purpose: this is the
+            # template the data-info role adopts at cutover, and a different name here
+            # would mean renaming it again then.
+            data-info.yml: "{{ lookup('template', 'data-info.yml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: data-info-next

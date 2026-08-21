@@ -1,0 +1,23 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: data-info-next
+build:
+  artifacts:
+    - image: harbor.cyverse.org/de/data-info-next
+      # skaffold's own docker builder rather than the shared buildx-build.sh every other
+      # service uses. That script hardcodes --file "$BUILD_CONTEXT/Dockerfile", and this
+      # image is built from Dockerfile.golang -- the Clojure service's Dockerfile is still
+      # the one at the plain name until cutover, when this reverts to the shared builder.
+      docker:
+        dockerfile: Dockerfile.golang
+  tagPolicy:
+    gitCommit: {}
+  local: {}
+  platforms:
+    - "linux/amd64"
+manifests:
+  rawYaml:
+    - k8s/data-info-next.yml
+deploy:
+  kubectl: {}

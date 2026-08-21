@@ -7,6 +7,7 @@
 * [bulk-typer](/services/bulk-typer.md) - Assigns file types in bulk by reading files from iRODS and recording the ipc-filetype attribute, driven by AMQP.
 * [clockwork](/services/clockwork.md) - Scheduler that triggers recurring DE jobs, notably infosquito indexing, publishing over AMQP and reading iRODS.
 * [dashboard-aggregator](/services/dashboard-aggregator.md) - Aggregates the data shown on the DE dashboard — news/event feeds, videos, and app information such as favorites and featured apps.
+* [data-info-next](/services/data-info-next.md) - The Go rewrite of data-info, deployed beside the Clojure service with nothing routed to it so the two can be diffed against a real data store.
 * [data-info](/services/data-info.md) - HTTP API for data-store operations — file and folder metadata, permissions, path lists, and anonymous-access URLs backed by iRODS.
 * [de-webhooks](/services/de-webhooks.md) - Consumes DE notification messages from RabbitMQ and forwards them to users' configured webhook endpoints.
 * [dewey](/services/dewey.md) - Indexes data-store changes into OpenSearch by consuming iRODS change messages from the irods AMQP exchange.

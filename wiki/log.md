@@ -1,5 +1,20 @@
 # Wiki Update Log
 
+## 2026-08-21
+
+* **Creation**: Added [data-info-next](/services/data-info-next.md) — the Go
+  rewrite of data-info, deployed beside the Clojure service with nothing routed
+  to it so the shadow/diff harness can compare the two against a real data
+  store. Temporary: at cutover the data-info role adopts its config template and
+  manifest and this role goes away. Records the two things it does differently
+  and why — it builds from `Dockerfile.golang` through skaffold's own docker
+  builder, since the shared `buildx-build.sh` hardcodes the plain `Dockerfile`
+  name; and its pod gets a 120-second grace period and a `preStop` sleep,
+  because on SIGTERM the service has to let each in-flight job post the terminal
+  status that releases its path lock. Also notes that it is gated on
+  `data_info_next_enabled`, which defaults to false, and is deliberately absent
+  from the deploy-all list.
+
 ## 2026-08-20
 
 * **Creation**: Added [Production Release Procedure](/playbooks/production-release.md), summarizing the new `docs/production-release.md` — a scrubbed, repo-maintained version of the internal production release document. Corrected three points that had gone stale in the original: build descriptors now live in this repo rather than a `de-releases` checkout, there is no `deploy_service.yml`, and `timelord` / `vice-status-listener` are no longer deploy tags.
