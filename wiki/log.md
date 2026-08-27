@@ -1,5 +1,14 @@
 # Wiki Update Log
 
+## 2026-08-27
+
+* **Update**: [portal2](/services/portal2.md) — recorded the deferred
+  follow-ups from the August 2026 security audit: no CSRF synchronizer token
+  (and logout CSRF via `GET /logout`), per-IP rate limiting that is
+  best-effort because the edge forwards no usable client IP, container
+  hardening without `readOnlyRootFilesystem`, seven dependency advisories
+  needing breaking major bumps, and the inert honeypot fake-field detection.
+
 ## 2026-08-21
 
 * **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)

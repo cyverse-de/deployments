@@ -36,6 +36,13 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
 {% include 'partials/de_ca_volume.j2' %}
         - name: config-volume
@@ -48,6 +55,11 @@ spec:
         - name: portal
           image: harbor.cyverse.org/de/portal2
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
 {% include 'partials/de_ca_env.j2' %}
             - name: TZ
