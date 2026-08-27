@@ -131,6 +131,7 @@ baseurls_async_tasks: http://async-tasks
 baseurls_dashboard_aggregator: http://dashboard-aggregator
 baseurls_data_info: http://data-info
 baseurls_grouper_web_services: http://grouper-ws/grouper-ws
+baseurls_info_typer: http://info-typer
 baseurls_iplant_email: http://notifications/mail
 baseurls_iplant_groups: http://iplant-groups
 baseurls_job_status: http://job-status

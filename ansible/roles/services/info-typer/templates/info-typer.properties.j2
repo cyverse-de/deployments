@@ -1,4 +1,5 @@
 info-typer.environment-name     = {{ ns }}
+info-typer.port                 = 60000
 
 info-typer.type-attribute       = ipc-filetype
 info-typer.filetype-read-amount = 1024
@@ -15,7 +16,5 @@ info-typer.irods.home        = /{{ irods_zone }}/home
 
 # AMQP settings
 info-typer.amqp.uri                  = amqp://{{ irods_amqp_user }}:{{ irods_amqp_password | urlencode }}@{{ irods_amqp_host }}:{{ irods_amqp_port }}/{{ irods_amqp_vhost | urlencode | regex_replace('\/', '%2F') }}
-info-typer.amqp.exchange.name        = irods
+info-typer.amqp.exchange             = irods
 info-typer.amqp.qos                  = 100
-
-info-typer.events.amqp.uri = amqp://{{ de_amqp_user }}:{{ de_amqp_password | urlencode }}@{{ de_amqp_host }}:{{ de_amqp_port }}/{{ de_amqp_vhost | urlencode | regex_replace('\/', '%2F') }}
