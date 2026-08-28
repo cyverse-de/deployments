@@ -155,7 +155,7 @@ terrain.saved-searches.host = {{ baseurls_user_info|string|regex_replace("\/$","
 terrain.permanent-id.curators-group  = {{ perm_id_curators_group }}
 terrain.permanent-id.staging-dir     = /{{ irods_zone }}/home/shared/commons_repo/staging
 terrain.permanent-id.publish-dir     = /{{ irods_zone }}/home/shared/commons_repo/curated
-terrain.permanent-id.target-base-url = http://datacommons.cyverse.org/browse
+terrain.permanent-id.target-base-url = https://dc.cyverse.org/dataset
 
 # Set data move timeout to just over 68 minutes = 4095 (2^12-1) seconds:
 # since the waiting thread doubles its sleep-seconds each time it polls
