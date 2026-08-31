@@ -37,10 +37,8 @@ de:
 email:
   request: {{ email_support_dest }}
   fromAddress: {{ email_src }}
-  # Every smtp* value goes through to_json: a password containing a colon, hash,
-  # or brace would otherwise produce a file that fails to parse or parses wrong.
   smtpHost: {{ notifications_smtp_host | to_json }}
-  smtpPort: {{ notifications_smtp_port | to_json }}
+  smtpPort: {{ notifications_smtp_port | int | to_json }}
   smtpUser: {{ notifications_smtp_user | to_json }}
   smtpPassword: {{ notifications_smtp_password | to_json }}
   smtpUseTLS: {{ notifications_smtp_use_tls | bool | to_json }}
