@@ -1,5 +1,19 @@
 # Wiki Update Log
 
+## 2026-08-28
+
+* **Update**: [notifications](/services/notifications.md) — the service gained
+  `email.smtp*` settings for reaching authenticated and TLS-only relays, so
+  `smtpHost` is no longer hardcoded to `local-exim`. Added a "Reaching the
+  relay" section covering the new `notifications_smtp_*` inventory variables,
+  the two mutually exclusive pairs the service rejects at startup, why
+  authentication requires one of the TLS settings, and why certificate
+  verification usually needs nothing configured given `SSL_CERT_FILE`.
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md)
+  — local-exim is now the default path for outbound DE mail rather than the
+  only one, since `notifications_smtp_*` can point notifications at an external
+  relay directly.
+
 ## 2026-08-27
 
 * **Update**: [portal2](/services/portal2.md) — recorded the deferred

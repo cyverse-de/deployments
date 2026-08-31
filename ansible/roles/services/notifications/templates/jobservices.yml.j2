@@ -37,7 +37,15 @@ de:
 email:
   request: {{ email_support_dest }}
   fromAddress: {{ email_src }}
-  smtpHost: local-exim
+  smtpHost: {{ notifications_smtp_host | to_json }}
+  smtpPort: {{ notifications_smtp_port | int | to_json }}
+  smtpUser: {{ notifications_smtp_user | to_json }}
+  smtpPassword: {{ notifications_smtp_password | to_json }}
+  smtpUseTLS: {{ notifications_smtp_use_tls | bool | to_json }}
+  smtpUseSSL: {{ notifications_smtp_use_ssl | bool | to_json }}
+  smtpLocalName: {{ notifications_smtp_local_name | to_json }}
+  smtpInsecureSkipVerify: {{ notifications_smtp_insecure_skip_verify | bool | to_json }}
+  smtpCACertFile: {{ notifications_smtp_ca_cert_file | to_json }}
 
 external_irods:
   host: "{{ irods_external_host }}"

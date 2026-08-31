@@ -357,6 +357,22 @@ exim_password: "127.0.0.1"
 exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
 local_exim_replicas: 2
 local_exim_pod_anti_affinity: true
+# Relay the notifications service sends the DE's outbound mail through. The
+# defaults point at the in-cluster exim above, unauthenticated and in the clear.
+# Point them at an external relay to bypass exim; authentication needs one of
+# the TLS settings, since Go refuses to send credentials over an unencrypted
+# connection to a remote host. Leave notifications_smtp_ca_cert_file empty
+# unless the relay's certificate chains to something other than
+# de_ca_bundle_configmap, which the pod already trusts through SSL_CERT_FILE.
+notifications_smtp_host: local-exim
+notifications_smtp_port: 25
+notifications_smtp_user: ""
+notifications_smtp_password: ""
+notifications_smtp_use_tls: false
+notifications_smtp_use_ssl: false
+notifications_smtp_local_name: ""
+notifications_smtp_insecure_skip_verify: false
+notifications_smtp_ca_cert_file: ""
 
 # QMS settings
 qms_enabled: true

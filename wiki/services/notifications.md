@@ -4,7 +4,7 @@ title: notifications
 description: User notifications service backed by the DE database, reached by other services at http://notifications/v1; also records the notification events it publishes and sends the resulting email, roles absorbed from the retired event-recorder and de-mailer.
 resource: /ansible/roles/services/notifications
 tags: [notifications, postgresql, amqp, rabbitmq, jobservices, events, email, smtp]
-timestamp: 2026-08-18T00:00:00Z
+timestamp: 2026-08-28T00:00:00Z
 ---
 
 notifications stores and serves DE user notifications. Its config points at the
@@ -96,15 +96,47 @@ Message bodies are rendered from templates shipped in the image under
 `/app/templates/{html,text}`, selected by the request's template name and
 preferring the HTML version. The merge added the `de:` config block (the DE
 base URL plus the UI path fragments used to build links in email bodies) and
-two settings under `email:` — `fromAddress` (`email_src`) and `smtpHost`
-(hardcoded to `local-exim`). All of `email.fromAddress`, `email.smtpHost`, and
-`de.base` are validated at startup alongside the existing required settings,
-so a missing one fails the deployment rather than failing every send.
+the `email:` settings that describe the relay. All of `email.fromAddress`,
+`email.smtpHost`, and `de.base` are validated at startup alongside the existing
+required settings, so a missing one fails the deployment rather than failing
+every send.
 
 Failed AMQP deliveries are logged with their cause and acked (dropped),
 matching the retired service's behavior. On `SIGTERM` the service drains
 in-flight deliveries before closing the connection, so mail that was already
 sent isn't requeued and sent again on the next rolling deploy.
+
+### Reaching the relay
+
+`smtpHost` defaults to `local-exim` (below), but the service is not limited to
+it. The `notifications_smtp_*` inventory variables map onto the service's
+`email.smtp*` settings and cover what a relay is likely to demand: a port other
+than 25 (`notifications_smtp_port`), SMTP AUTH (`notifications_smtp_user` and
+`notifications_smtp_password`, with the mechanism negotiated from what the
+relay advertises), STARTTLS (`notifications_smtp_use_tls`) or implicit TLS
+(`notifications_smtp_use_ssl`), and the HELO name
+(`notifications_smtp_local_name`, defaulting to the pod's hostname). Pointing
+them at an external relay takes local-exim out of the delivery path entirely;
+leaving them at their defaults keeps it.
+
+Two constraints bite in practice. Authentication needs one of the TLS settings:
+Go refuses to send credentials over an unencrypted connection to a remote host,
+so a user configured without TLS fails at delivery time rather than at startup.
+And the two TLS settings are mutually exclusive — STARTTLS upgrades a cleartext
+connection, implicit TLS is encrypted from the first byte — as are
+`notifications_smtp_insecure_skip_verify` and
+`notifications_smtp_ca_cert_file`. Both pairs are validated at startup, so a
+contradictory inventory fails the deployment instead of every send.
+
+Certificate verification usually needs nothing configured: when
+`de_ca_bundle_configmap` is set, the pod already trusts that bundle through
+`SSL_CERT_FILE`, which Go honors for the system roots.
+`notifications_smtp_ca_cert_file` is only for a relay whose certificate chains
+to some other authority, and that bundle has to be mounted into the pod by
+separate means for the path to resolve.
+
+With `notifications_smtp_use_tls` set, a relay that will not offer STARTTLS is
+an error rather than a silent fallback to cleartext.
 
 ### The local-exim relay
 
@@ -147,7 +179,9 @@ mounted at `/etc/iplant/de/jobservices.yml`. The operative section is
 `dbms_connection_pass`, `groups['dbms'][0]`, `pg_listen_port`, and `de_db_name`
 — the key is named for the service, not for the database it points at; the AMQP
 URI comes from the `de_amqp_*` group_vars.
-The `de:` and `email:` blocks drive outbound mail. The rest of the shared
+The `de:` and `email:` blocks drive outbound mail; every `email.smtp*` value is
+rendered through `to_json`, so a password containing a colon or hash cannot
+break the file. The rest of the shared
 template (Condor, iRODS, VICE, Keycloak, Harbor) is common boilerplate across
 the job services. Defaults: `notifications_replicas: 2` with required pod
 anti-affinity.
@@ -165,7 +199,7 @@ See [Building and Deploying Services](/playbooks/build-and-deploy.md).
 1. `ansible/roles/services/notifications/templates/jobservices.yml.j2` — notifications DB URI, AMQP configuration, `email.request`, and the `de:`/`email:` blocks that drive outbound mail.
 2. `ansible/roles/services/notifications/templates/k8s/notifications.yml.j2` — Deployment/Service, port 8080, `OTEL_TRACES_EXPORTER=none`.
 3. `ansible/roles/services/notifications/files/notifications.json` — image and pinned tag/digest.
-4. `ansible/roles/common/defaults/main.yml` — `notifications_db_name`, `baseurls_notifications`, `baseurls_iplant_email`, `email_support_dest`, `email_src`, `source_repos` entry, and the placeholder `exim_*` defaults.
+4. `ansible/roles/common/defaults/main.yml` — `notifications_db_name`, `baseurls_notifications`, `baseurls_iplant_email`, `email_support_dest`, `email_src`, the `notifications_smtp_*` relay defaults, `source_repos` entry, and the placeholder `exim_*` defaults.
 5. `ansible/roles/services/notifications/tasks/main.yml` — creates the `notifications-configs` Secret and removes the retired event-recorder and de-mailer objects.
 6. `ansible/roles/k8s_de_reqs/tasks/local_exim.yml` — the local-exim Deployment and Service, and how `EXIM_ALLOWED_SENDERS` is assembled from the cluster CIDRs.
 7. `ansible/local-exim.yml` — standalone local-exim run with the smarthost assertion.
