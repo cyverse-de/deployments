@@ -1,5 +1,16 @@
 # Wiki Update Log
 
+## 2026-09-01
+
+* **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)
+  — documented that cloning and building both assume a checkout's `origin`
+  remote is the `cyverse-de` repository. Added a "Fork checkouts build from the
+  fork" section: `source_repo_dir` defaults to the directory containing this
+  repo, so a fork-based development tree is picked up by default, where missing
+  upstream release tags and locally-resolved branch refs make builds fail or
+  build the wrong tree. `ansible/BUILD_DEPLOY.md` and `ansible/clone_sources.yml`
+  gained the same warning.
+
 ## 2026-08-28
 
 * **Update**: [notifications](/services/notifications.md) — the service gained
