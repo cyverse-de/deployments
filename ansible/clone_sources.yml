@@ -12,6 +12,12 @@
 # Cloning over SSH needs a configured GitHub SSH key. For HTTPS instead, set
 # -e cyverse_repo_base=https://github.com/cyverse-de (and a credential helper
 # such as `gh auth setup-git` for private repos).
+#
+# Already-cloned repos are only re-fetched, from their `origin` remote, which is
+# assumed to be the cyverse-de repository. A fork-based development checkout
+# (origin = your fork, upstream = cyverse-de) will not pick up release tags cut
+# after the fork; point source_repo_dir at a separate deployment checkout
+# instead. See BUILD_DEPLOY.md.
 
 ---
 - name: clone the cyverse source repositories

@@ -4,7 +4,7 @@ title: Building and Deploying Services
 description: How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 resource: /ansible/BUILD_DEPLOY.md
 tags: [build, deploy, release, skaffold, ansible]
-timestamp: 2026-08-21T22:27:54Z
+timestamp: 2026-09-01T00:00:00Z
 ---
 
 This repo is the source of truth for build and deploy configuration: each
@@ -55,6 +55,8 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
   exists only on the remote — it is resolved to a commit, falling back to
   `origin/<ref>`, before the worktree is made, so no local branch is created in
   the checkout. A ref that resolves to neither fails by name.
+* Both cloning and building assume each checkout's `origin` remote is the
+  `cyverse-de` repository — see [Fork checkouts build from the fork](#fork-checkouts-build-from-the-fork).
 * Builds write descriptors into the service role's own `files/` directory, and
   deploys read from `build_json_dir`, which resolves to that same directory. If
   a freshly built image isn't picked up on deploy, the build most likely never
@@ -104,8 +106,27 @@ unchanged service genuinely untouched. Keep any such value distinct per
 service: skaffold scopes `--status-check` by this label, so one value shared
 across services makes each deploy wait on all of them.
 
+## Fork checkouts build from the fork
+
+`clone_sources.yml` and the build role both fetch from `origin` by name, and a
+`git_ref` that doesn't resolve locally is retried as `origin/<ref>`. Neither
+knows about an `upstream` remote, and the remote name isn't a variable. Since
+`source_repo_dir` defaults to the directory containing this repo, a fork-based
+development tree sitting alongside it is picked up by default.
+
+In that tree `origin` is the fork, so release tags cut in `cyverse-de` after the
+fork was created are absent and `build_release.yml` fails on them with
+`names no commit`; a branch ref resolves to the local branch, unpushed work
+included. Both fetches are best-effort (`failed_when: false`), so the symptom is
+a stale build or a missing ref rather than a wrong-remote error.
+
+Keep deployment checkouts separate from development ones and pass
+`-e source_repo_dir=<dir>` on every clone, build, and release run — there is no
+inventory-level place it is set. `-e source_repo=<path>` overrides one service.
+
 # Citations
 
 [1] `ansible/BUILD_DEPLOY.md` — source document: full prerequisites, what a build does step by step, all variables, troubleshooting.
 [2] `ansible/roles/build-service/`, `ansible/roles/deploy-service/` — the roles that implement builds and deploys.
 [3] `ansible/deploy_it.yml` — the service list, and the post-run wait and failure report driven by `deploy_wait` / `deploy_continue_on_error`.
+[4] `ansible/clone_sources.yml`, `ansible/roles/clone-sources/` — the clone playbook and role, including the `git fetch --tags --force origin` refresh of existing checkouts.

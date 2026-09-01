@@ -53,6 +53,43 @@ expected as siblings of this repo:
 `<source_repo_dir>/<service>` and can be overridden with `source_repo` when a
 checkout lives elsewhere or under a different name.
 
+### Checkouts must have `origin` pointing at `cyverse-de`
+
+Cloning and building assume each checkout's `origin` remote is the canonical
+`cyverse-de` repository. Both roles fetch from `origin` by name, and a ref that
+doesn't resolve locally is retried as `origin/<ref>`. There is no `upstream`
+handling and no variable for the remote name.
+
+A fork-based development checkout — `origin` pointing at your fork and
+`upstream` at `cyverse-de` — therefore builds from the fork:
+
+- Release tags cut in `cyverse-de` after the fork was created don't exist in
+  `origin`, so the fetch won't bring them in and `build_release.yml` fails on
+  them with `git_ref <tag> names no commit`.
+- A branch name resolves to your *local* branch before anything remote is
+  consulted, so the build gets whatever that branch points at, including
+  unpushed work.
+- Both fetches are best-effort and never fail the run, so this surfaces as a
+  stale build or a missing-ref error rather than as a wrong-remote error.
+
+Keep deployment checkouts separate from fork-based development checkouts, and
+point `source_repo_dir` at them:
+
+```bash
+ansible-playbook clone_sources.yml -e source_repo_dir=/path/to/de-deploy
+ansible-playbook -i "$QA_INVENTORY" build_it.yml --tags terrain \
+  -e source_repo_dir=/path/to/de-deploy
+```
+
+`source_repo_dir` has to be passed on every build and release run — there is no
+inventory-level place it is set. `source_repo` does the same for a single
+service, if you do want one built from a development checkout.
+
+Builds themselves are non-destructive to a checkout: they add a detached
+worktree in a temp directory and remove it afterwards, leaving your branches and
+working tree alone. An interrupted run can leave a stale worktree entry behind
+(`git worktree prune` clears it).
+
 ## Prerequisites
 
 - **Docker** with **BuildKit** available, and **skaffold** on `PATH`.
@@ -84,7 +121,9 @@ ansible-playbook clone_sources.yml
 ```
 
 - Already-cloned repos are left untouched, but their tags/branches are refreshed
-  (`git fetch --tags`) since releases build from tags.
+  (`git fetch --tags --force origin`) since releases build from tags. The fetch
+  is from `origin`, which must be the `cyverse-de` repository — see
+  [Checkouts must have `origin` pointing at `cyverse-de`](#checkouts-must-have-origin-pointing-at-cyverse-de).
 - All repos live under the `cyverse-de` org. `source_repo_urls` exists for
   per-repo exceptions and is currently empty.
 - Clones default to SSH (`git@github.com:cyverse-de`), so a GitHub SSH key must
@@ -139,8 +178,10 @@ For each selected service the `build-service` role:
 1. Asserts the source repo exists at `source_repo` (fails with guidance if not).
 2. Creates a temporary git **worktree** checked out at `git_ref` — the source
    checkout itself is never modified.
-3. `git fetch --tags` first, so a requested release tag resolves even if the
-   clone is stale.
+3. `git fetch --tags --force origin` first, so a requested release tag resolves
+   even if the clone is stale, then resolves `git_ref` to a commit — as a local
+   ref if possible, otherwise as `origin/<ref>`. Both steps go through `origin`,
+   which must be the `cyverse-de` repository.
 4. Overlays the service role's `skaffold.yaml`, `k8s/`, and the shared
    `buildx-build.sh` onto the worktree.
 5. Rewrites `harbor.cyverse.org` in the overlaid skaffold config to
@@ -251,6 +292,11 @@ Release builds use git tags. If a tag isn't found, the local clone is likely
 stale — re-run `clone_sources.yml` (which fetches tags for existing checkouts),
 or `git fetch --tags` in the source repo. Builds fetch tags automatically before
 checkout, so this is usually a clone that predates that behavior.
+
+The other cause is a checkout whose `origin` is a fork rather than
+`cyverse-de`: the tag was never pushed to the fork, so no fetch will find it.
+Check `git remote -v` in the source repo — see
+[Checkouts must have `origin` pointing at `cyverse-de`](#checkouts-must-have-origin-pointing-at-cyverse-de).
 
 ### An upstream build is broken
 
