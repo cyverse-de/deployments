@@ -27,7 +27,7 @@
               postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ permissions_db_name }}?sslmode=disable
             GROUPS_IMPORT_DB_SCHEMA: "permissions"
             GROUPS_IMPORT_USER_SUFFIX: "{{ groups_user_suffix }}"
-            GROUPS_IMPORT_PERMISSIONS_BASE: "http://permissions"
+            GROUPS_IMPORT_PERMISSIONS_BASE: "{{ baseurls_permissions | string | regex_replace('\\/$', '') }}"
             GROUPS_IMPORT_PHASE: "{{ grouper_import_phase }}"
       when: load_configs is undefined or (load_configs | bool)
 

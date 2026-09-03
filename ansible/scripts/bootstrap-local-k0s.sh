@@ -103,8 +103,16 @@ if ! api_address_interface_up; then
     exit 1
 fi
 
-echo "== writing ${k0s_config}"
-write_k0s_config "${k0s_api_address}"
+# Only when it is absent: the file states the network block, and rewriting it
+# from defaults would renumber a cluster already running on customised CIDRs.
+# Re-running after a failed install is meant to be safe.
+if [[ -f "${k0s_config}" ]]; then
+    echo "== keeping the existing ${k0s_config}"
+    echo "   delete it, or re-run with --reset, to regenerate it"
+else
+    echo "== writing ${k0s_config}"
+    write_k0s_config "${k0s_api_address}"
+fi
 
 # --single gives a combined controller/worker with no taint, which is what a
 # one-machine deployment wants. --enable-worker would add a master NoSchedule

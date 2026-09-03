@@ -48,7 +48,8 @@ SELECT :'subject' AS subject,
 -- interpolated as real literals rather than passed as a subquery, because the
 -- shape being compared is precisely one where the planner sees a constant list
 -- of known length.
-SELECT '''' || array_to_string(array_agg(subject_id), ''',''') || '''' AS idlist
+SELECT '''' || array_to_string(array_agg(subject_id), ''',''') || '''' AS idlist,
+       count(*) > 0 AS have_subject
   FROM (SELECT s2.subject_id
           FROM subjects s2 WHERE s2.subject_id = :'subject'
          UNION
@@ -58,6 +59,15 @@ SELECT '''' || array_to_string(array_agg(subject_id), ''',''') || '''' AS idlist
           JOIN subjects gs ON gs.id = em.group_id
          WHERE s.subject_id = :'subject') t
 \gset
+
+-- array_agg over no rows is NULL, which \gset turns into an empty idlist and
+-- query B into ANY(ARRAY[]) -- a "cannot determine type of empty array" error
+-- rather than a word about the subject that does not exist.
+\if :have_subject
+\else
+\echo '!! no such subject:' :subject
+\quit
+\endif
 
 \echo ''
 \echo '###############################################################'

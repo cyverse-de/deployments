@@ -1,16 +1,16 @@
 # The Grouper importer, as a suspended CronJob.
 #
-# It is created suspended deliberately. Until the permissions service reads group
-# data from this database there is nothing to keep in sync, and until then an
-# unattended import is write traffic nobody asked for. Resume it when the
-# permissions service is deployed:
+# It is created suspended deliberately, and the cutover keeps it that way. The
+# whole migration ships in one maintenance window, so nothing reads the imported
+# rows before the window, and grouper_cutover.yml's preflight refuses to flip the
+# data source marker while this CronJob is unsuspended -- past the flip every
+# scheduled run refuses and exits nonzero, which reads as a failing service.
+#
+# The one case that resumes it is the rollback where permissions keeps its new
+# image while the rest of the DE runs against Grouper, so group changes made
+# through the Grouper-backed services still reach the permissions schema:
 #
 #     kubectl -n {{ ns }} patch cronjob grouper-import -p '{"spec":{"suspend":false}}'
-#
-# It must run on a schedule for as long as Grouper stays authoritative: terrain
-# and apps still write group changes there, and those changes are invisible to
-# the permissions service until the next import. Suspend it again once terrain,
-# apps, group-propagator, and Sonora have cut over.
 #
 # Unlike the groups service, this carries no de_ca_* partials on purpose: the
 # importer reaches Grouper and the DE database over postgresql with sslmode

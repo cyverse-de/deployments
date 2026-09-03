@@ -77,6 +77,13 @@ api_error_count() {
         grep -c 'no route to host\|connection refused\|i/o timeout' || true
 }
 
+# kube-proxy and CoreDNS log a handful of these for a minute or two after a node
+# boot or a k0scontroller restart, while the API server is still coming up. A
+# component that has genuinely lost the API server keeps logging them, so a
+# threshold tells a healthy cluster inspected right after boot apart from a
+# broken one -- without it, --fix restarts k0scontroller over startup noise.
+api_error_threshold=5
+
 assert_local_cluster
 
 configured="$(configured_api_address)"
@@ -98,8 +105,8 @@ printf '  %-22s %s\n' "config file:" "${k0s_config}$([[ -f ${k0s_config} ]] || e
 printf '  %-22s %s\n' "configured address:" "${configured:-<none>} (${configured_state})"
 printf '  %-22s %s\n' "kubernetes endpoint:" "${endpoint:-<unknown>}"
 printf '  %-22s %s\n' "standard address:" "${detected} on ${k0s_api_interface} (${iface_state})"
-printf '  %-22s %s\n' "kube-proxy errors/5m:" "${proxy_errors}"
-printf '  %-22s %s\n' "coredns errors/5m:" "${dns_errors}"
+printf '  %-22s %s\n' "kube-proxy errors/5m:" "${proxy_errors} (threshold ${api_error_threshold})"
+printf '  %-22s %s\n' "coredns errors/5m:" "${dns_errors} (threshold ${api_error_threshold})"
 echo
 
 # Written as an if rather than a run of `test && drifted=true`, where whether
@@ -113,8 +120,8 @@ drifted=false
 if [[ "${configured_state}" == UNREACHABLE ]] ||
    [[ -z "${configured}" ]] ||
    { [[ -n "${endpoint}" ]] && ! api_address_reachable "${endpoint}"; } ||
-   (( proxy_errors > 0 )) ||
-   (( dns_errors > 0 )); then
+   (( proxy_errors >= api_error_threshold )) ||
+   (( dns_errors >= api_error_threshold )); then
     drifted=true
 fi
 
@@ -149,11 +156,11 @@ if [[ "${drifted}" == true ]]; then
         echo "  The address is not pinned, so k0s re-detects it at every start and"
         echo "  will drift again on the next lease change."
     fi
-    if (( dns_errors > 0 )); then
+    if (( dns_errors >= api_error_threshold )); then
         echo "  CoreDNS cannot reach the API server, so any Service created since"
         echo "  the drift does not resolve."
     fi
-    if (( proxy_errors > 0 )); then
+    if (( proxy_errors >= api_error_threshold )); then
         echo "  kube-proxy cannot reach the API server, so any endpoint changed"
         echo "  since the drift is not programmed and those Services do not route."
     fi
@@ -187,7 +194,17 @@ if [[ -f "${k0s_config}" ]]; then
     # cluster whose CIDRs were customised.
     cp -a "${k0s_config}" "${k0s_config}.bak.$(date +%Y%m%d%H%M%S)"
     if [[ -n "${configured}" ]]; then
-        sed -i -E "s|^([[:space:]]*address:[[:space:]]*)${configured}[[:space:]]*$|\\1${detected}|" "${k0s_config}"
+        # sans carries the same address, and k0s puts it in the apiserver
+        # certificate; leaving the old one there makes the file disagree with
+        # itself and can leave the new address off the cert.
+        sed -i -E \
+            -e "s|^([[:space:]]*address:[[:space:]]*)${configured}[[:space:]]*$|\\1${detected}|" \
+            -e "s|^([[:space:]]*-[[:space:]]*)${configured}[[:space:]]*$|\\1${detected}|" \
+            "${k0s_config}"
+        if [[ "$(configured_api_address)" != "${detected}" ]]; then
+            echo "  could not rewrite spec.api.address in ${k0s_config}; fix it by hand." >&2
+            exit 1
+        fi
     else
         echo "  ${k0s_config} exists but has no spec.api.address; add it by hand." >&2
         exit 1

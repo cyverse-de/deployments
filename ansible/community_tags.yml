@@ -99,6 +99,8 @@
                         cpu: "1"
                         memory: "512Mi"
 
+    # Not fatal on its own: see the same guard in grouper_import.yml. A rewrite
+    # that outlives its timeout still has an orphan list worth reading.
     - name: wait for the rewrite to finish
       environment:
         KUBECONFIG: "{{ kubeconfig }}"
@@ -113,6 +115,7 @@
         or (community_tags_job.resources[0].status.failed | default(0) | int) > 0
       retries: "{{ (community_tags_timeout | int) // 10 }}"
       delay: 10
+      failed_when: false
 
     # The orphan list is the point of the run: those tag values name no
     # community, and they are the apps that will not appear in any collection.
@@ -131,5 +134,10 @@
 
     - name: fail if the rewrite did not succeed
       ansible.builtin.fail:
-        msg: "the community-tag rewrite failed; see the report above"
+        msg: >-
+          {{ 'the community-tag rewrite failed; see the report above'
+             if (community_tags_job.resources[0].status.failed | default(0) | int) > 0
+             else 'the community-tag rewrite did not finish within ' ~ community_tags_timeout ~ 's
+                   and may still be running; see the report above and
+                   kubectl --namespace ' ~ ns ~ ' get job/' ~ community_tags_job_name }}
       when: (community_tags_job.resources[0].status.succeeded | default(0) | int) < 1

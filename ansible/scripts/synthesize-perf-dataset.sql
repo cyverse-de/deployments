@@ -15,7 +15,14 @@
 -- NEVER run this against QA or production. It writes ~1.5M rows and deletes any
 -- pre-existing perf-* rows.
 
+-- Two steps because :{?confirm} only asks whether the variable is defined:
+-- -v confirm=no would otherwise sail straight through.
 \if :{?confirm}
+\else
+\set confirm no
+\endif
+
+\if :confirm
 \else
 \echo '!! refusing to run: pass -v confirm=yes'
 \echo '!! this writes ~1.5M rows and is only ever meant for a scratch database'
@@ -144,7 +151,7 @@ SELECT g AS n,
 ALTER TABLE perf_groups ADD COLUMN owner varchar(512);
 UPDATE perf_groups
    SET owner = CASE WHEN group_type IN ('team', 'collaborator_list')
-                    THEN 'perfuser' || lpad((((n * 7919) % 40000) + 1)::text, 6, '0')
+                    THEN 'perfuser' || lpad((((n * 7919) % (SELECT n_users FROM perf_cfg)) + 1)::text, 6, '0')
                END;
 CREATE INDEX ON perf_groups (n);
 CREATE INDEX ON perf_groups (sid);

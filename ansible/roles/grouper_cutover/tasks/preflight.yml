@@ -40,19 +40,8 @@
       when: not grouper_cutover_schema_check.query_result[0].present
 
     - name: Read the group data source marker
-      community.postgresql.postgresql_query:
-        login_host: "{{ db_login_host }}"
-        login_port: "{{ pg_listen_port }}"
-        login_user: "{{ pg_login_user }}"
-        login_password: "{{ pg_login_password }}"
-        login_db: "{{ permissions_db_name }}"
-        query: SELECT source, changed_by FROM permissions.group_data_source
-      register: grouper_cutover_marker
-      changed_when: false
-
-    - name: Record the marker
-      ansible.builtin.set_fact:
-        grouper_cutover_source: "{{ grouper_cutover_marker.query_result[0].source }}"
+      ansible.builtin.import_tasks:
+        file: read_marker.yml
 
     # An unsuspended CronJob is not merely noise after the flip: every scheduled
     # run refuses and exits nonzero, which reads as a service failing rather than

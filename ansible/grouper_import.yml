@@ -83,6 +83,10 @@
                         cpu: "1"
                         memory: "1Gi"
 
+    # Not fatal on its own. A run that outlives import_timeout still has a
+    # report worth reading, and letting the retry loop abort the play would
+    # replace it with a bare "retries exceeded" during a maintenance window.
+    # The explicit failure below covers both the failed and the timed-out case.
     - name: wait for the import to finish
       environment:
         KUBECONFIG: "{{ kubeconfig }}"
@@ -97,6 +101,7 @@
         or (import_job.resources[0].status.failed | default(0) | int) > 0
       retries: "{{ (import_timeout | int) // 10 }}"
       delay: 10
+      failed_when: false
 
     # The report is the point of the run: it names the groups that vanished from
     # Grouper, the identifiers it had to trim, the privileges it could not
@@ -118,5 +123,10 @@
 
     - name: fail if the import did not succeed
       ansible.builtin.fail:
-        msg: "the Grouper import failed; see the report above"
+        msg: >-
+          {{ 'the Grouper import failed; see the report above'
+             if (import_job.resources[0].status.failed | default(0) | int) > 0
+             else 'the Grouper import did not finish within ' ~ import_timeout ~ 's and may
+                   still be running; see the report above and
+                   kubectl --namespace ' ~ ns ~ ' get job/' ~ import_job_name }}
       when: (import_job.resources[0].status.succeeded | default(0) | int) < 1

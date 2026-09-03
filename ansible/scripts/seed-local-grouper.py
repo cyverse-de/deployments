@@ -121,6 +121,12 @@ def seed_ldap(ns, base_dn, root_pw):
     subprocess.run(["kubectl", "delete", "secret", "-n", ns,
                     "grouper-seed-ldap-pw", "--ignore-not-found"],
                    capture_output=True)
+    # ldapadd -c keeps going past individual entry errors, so a nonzero exit
+    # here means the load itself did not happen -- a wrong LDAP_ROOT_PW or an
+    # unreachable openldap Service. Left unchecked, the groups seeded below
+    # would take members that exist in Grouper but in no directory.
+    if r.returncode:
+        sys.exit(f"could not load the seed users into LDAP: {r.stderr.strip()}")
 
 
 class Groups:

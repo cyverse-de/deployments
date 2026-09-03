@@ -24,7 +24,7 @@ keycloak:
 # Group authorization is delegated to the permissions service, where each group
 # is a resource of type "group".
 permissions:
-  base: "http://permissions"
+  base: "{{ baseurls_permissions | string | regex_replace('\\/$', '') }}"
 
 # Group change events, for downstream re-indexing.
 amqp:

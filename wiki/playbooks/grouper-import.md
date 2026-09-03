@@ -42,18 +42,23 @@ and are only visible in the report.
 
 ## Keeping it in step
 
-The role also deploys a `grouper-import` CronJob, created **suspended**. Resume
-it once the permissions service is reading group data from this database:
+The role also deploys a `grouper-import` CronJob, created **suspended**, and the
+cutover leaves it suspended throughout. The migration ships in a single
+maintenance window, so nothing reads the imported rows beforehand, and
+[the cutover playbook](/playbooks/grouper-cutover.md) refuses to flip the data
+source marker while the CronJob is unsuspended — past the flip every scheduled
+run refuses and exits nonzero, which reads as a failing service rather than as a
+guard working.
+
+The one case that resumes it is the rollback where `permissions` keeps its new
+image while the rest of the DE runs against Grouper. Permission checks then read
+group data from the database, so without scheduled imports every group change
+made through the Grouper-backed services is invisible — a user added to a
+collaborator list simply does not get access:
 
 ```
 kubectl -n $NAMESPACE patch cronjob grouper-import -p '{"spec":{"suspend":false}}'
 ```
-
-This matters for as long as Grouper stays authoritative. terrain and apps still
-write group changes there, and those changes are invisible to the permissions
-service until the next import — a user added to a collaborator list simply does
-not get access. Suspend it again once terrain, apps, group-propagator, and
-Sonora have cut over.
 
 ## Guards
 

@@ -7,6 +7,10 @@
   delegate_to: localhost
   become: false
   block:
+    - name: Read the group data source marker
+      ansible.builtin.import_tasks:
+        file: read_marker.yml
+
     - name: Note that the marker has already been flipped
       ansible.builtin.debug:
         msg: >-
