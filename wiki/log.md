@@ -1,5 +1,30 @@
 # Wiki Update Log
 
+## 2026-09-01
+
+* **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)
+  — documented that cloning and building both assume a checkout's `origin`
+  remote is the `cyverse-de` repository. Added a "Fork checkouts build from the
+  fork" section: `source_repo_dir` defaults to the directory containing this
+  repo, so a fork-based development tree is picked up by default, where missing
+  upstream release tags and locally-resolved branch refs make builds fail or
+  build the wrong tree. `ansible/BUILD_DEPLOY.md` and `ansible/clone_sources.yml`
+  gained the same warning.
+
+## 2026-08-28
+
+* **Update**: [notifications](/services/notifications.md) — the service gained
+  `email.smtp*` settings for reaching authenticated and TLS-only relays, so
+  `smtpHost` is no longer hardcoded to `local-exim`. Added a "Reaching the
+  relay" section covering the new `notifications_smtp_*` inventory variables,
+  the two mutually exclusive pairs the service rejects at startup, why
+  authentication requires one of the TLS settings, and why certificate
+  verification usually needs nothing configured given `SSL_CERT_FILE`.
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md)
+  — local-exim is now the default path for outbound DE mail rather than the
+  only one, since `notifications_smtp_*` can point notifications at an external
+  relay directly.
+
 ## 2026-08-27
 
 * **Update**: [portal2](/services/portal2.md) — recorded the deferred

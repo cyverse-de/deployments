@@ -121,6 +121,49 @@
 # Default: replace_me@replace_me.replace_me
 # email_dest: support@cyverse.org
 
+# Relay the notifications service sends the DE's outbound mail through. The
+# defaults point at the in-cluster exim (see local-exim under Phase 4),
+# unauthenticated and in the clear. Set these to send through an external
+# relay directly instead, leaving exim out of the path.
+# Defaults: local-exim / 25
+# notifications_smtp_host: smtp.example.org
+# notifications_smtp_port: 587
+
+# Credentials for a relay that requires SMTP AUTH. Both must be set, or
+# neither; the service refuses to start if only one is. The mechanism is
+# negotiated from what the relay advertises (CRAM-MD5, LOGIN, or PLAIN).
+# Authentication REQUIRES one of the two TLS settings below: Go will not send
+# credentials over an unencrypted connection to a remote host, so a relay
+# configured with a user but no TLS fails at delivery time.
+# Defaults: "" / ""
+# notifications_smtp_user: notifications@example.org
+# notifications_smtp_password: replace_me
+
+# How the connection is encrypted. These are mutually exclusive and the
+# service refuses to start if both are set. Use notifications_smtp_use_tls
+# (STARTTLS) on ports 25 and 587, and notifications_smtp_use_ssl (TLS from the
+# first byte) on port 465. With use_tls set, delivery fails rather than
+# silently falling back to cleartext when the relay will not offer STARTTLS.
+# Defaults: false / false
+# notifications_smtp_use_tls: true
+# notifications_smtp_use_ssl: false
+
+# Name sent in the SMTP HELO. Defaults to the pod's hostname, which is not a
+# fully qualified domain name; set this when the relay rejects or penalizes a
+# HELO name it cannot resolve.
+# Default: ""
+# notifications_smtp_local_name: notifications.example.org
+
+# Certificate verification escape hatches for a relay with a private CA.
+# Neither is usually needed: when de_ca_bundle_configmap is set, the pod
+# already trusts that bundle through SSL_CERT_FILE, which Go honors. Reach for
+# notifications_smtp_ca_cert_file only when the relay's certificate chains to
+# some other authority, and note that the bundle has to be mounted into the
+# pod by separate means for the path to resolve. The two cannot both be set.
+# Defaults: false / ""
+# notifications_smtp_insecure_skip_verify: false
+# notifications_smtp_ca_cert_file: /etc/de-ca/ca.crt
+
 
 # ---------------------------------------------------------------------
 # iRODS

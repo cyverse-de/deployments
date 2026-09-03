@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/dewey","tag":"harbor.cyverse.org/de/dewey:v2026.09.01-rc01@sha256:466ec101d5f21dfea6233fa721c27bd666e6a9325282e65ebc00bb778ab026b8"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/dewey","tag":"harbor.cyverse.org/de/dewey:v2026.09.01@sha256:0770aeb2ade1a132ef67cce9c48370d62b5b36b2f755daace67e34f940ef13f9"}]}

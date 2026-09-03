@@ -4,7 +4,7 @@ title: Miscellaneous Utility Playbooks
 description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, app imports, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-30T00:00:00Z
+timestamp: 2026-08-28T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -67,11 +67,13 @@ Deploys the `local-exim` mail relay on its own — the standalone equivalent of
 the local-exim slice of `--tags de-reqs`, which otherwise also re-runs the
 namespace, cert-issuer, timezone, and Harbor pull-secret tasks. It imports the
 same task file the `k8s_de_reqs` role uses, so the two paths cannot drift.
-[notifications](/services/notifications.md) relays all outbound DE mail through
-this deployment. The play first asserts that `exim_smarthost` is set and does not
-point at loopback: the role default does, which makes exim smarthost to itself
-and silently drops every message. Note that the value is an exim host list, so
-a port needs a second colon (`host::port`).
+[notifications](/services/notifications.md) relays outbound DE mail through this
+deployment by default, though its `notifications_smtp_*` settings can point it
+at an external relay directly and leave exim out of the path. The play first
+asserts that `exim_smarthost` is set and does not point at loopback: the role
+default does, which makes exim smarthost to itself and silently drops every
+message. Note that the value is an exim host list, so a port needs a second
+colon (`host::port`).
 
 ## openldap_community_group.yml
 
