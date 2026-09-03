@@ -266,31 +266,25 @@
     - role: services/bulk-typer
     - role: services/clockwork
     - role: services/data-info
-    - role: services/de-mailer
+    # data-info-next is deliberately absent from this list. It is the Go rewrite running
+    # alongside the Clojure service for diffing, it is gated on data_info_next_enabled, and
+    # it should only ever be brought up somewhere it was asked for by name.
     - role: services/de-webhooks
     - role: services/dewey
-    - role: services/email-requests
-    - role: services/event-recorder
     - role: services/info-typer
     - role: services/infosquito2
     - role: services/iplant-groups
-    - role: services/job-status-listener
-    - role: services/job-status-recorder
-    - role: services/job-status-to-apps-adapter
+    - role: services/job-status
     - role: services/kifshare
     - role: services/metadata
     - role: services/notifications
     - role: services/groups
     - role: services/permissions
-    - role: services/qms
     - role: services/requests
     - role: services/resource-usage-api
-    - role: services/data-usage-api
     - role: services/subscriptions
-    - role: services/timelord
     - role: services/user-info
     - role: services/vice-default-backend
-    - role: services/vice-status-listener
     - role: services/search
     - role: services/dashboard-aggregator
     - role: services/terrain

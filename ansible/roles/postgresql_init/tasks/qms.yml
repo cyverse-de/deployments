@@ -33,22 +33,24 @@
       tags:
         - update-databases
 
-    - name: Checkout the qms repo for its migrations
+    # The qms database schema is owned by the subscriptions repo now; the QMS
+    # service that used to hold these migrations has been merged into it.
+    - name: Checkout the subscriptions repo for the qms migrations
       ansible.builtin.git:
-        repo: "https://github.com/cyverse/qms"
-        dest: "{{ dbs_dir.path }}/qms"
+        repo: "https://github.com/cyverse-de/subscriptions"
+        dest: "{{ dbs_dir.path }}/subscriptions"
         clone: true
         update: true
         force: true
-        version: "{{ qms_version }}"
+        version: "{{ subscriptions_version }}"
       tags:
         - update-databases
 
-    - name: Run qms repo for its migrations
+    - name: Run the qms migrations from the subscriptions repo
       ansible.builtin.command: >
         {{ migrate_installed.stdout }}
-        -database "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ db_login_host }}:{{ pg_listen_port }}/qms?sslmode=disable"
-        -path "{{ dbs_dir.path }}/qms/migrations"
+        -database "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ qms_db_name }}?sslmode=disable"
+        -path "{{ dbs_dir.path }}/subscriptions/migrations"
         up
       when: migrate is defined and migrate
       tags:

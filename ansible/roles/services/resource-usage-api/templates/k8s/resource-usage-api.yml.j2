@@ -27,6 +27,9 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       restartPolicy: Always
+      # A data usage batch can hold the ICAT database for several minutes, and the
+      # service drains in-flight work on SIGTERM rather than abandoning it partway.
+      terminationGracePeriodSeconds: {{ resource_usage_api_termination_grace_period }}
       volumes:
 {% include 'partials/de_ca_volume.j2' %}
         - name: resource-usage-api-configs
@@ -43,9 +46,13 @@ spec:
               cpu: "1m"
               memory: "128Mi"
               ephemeral-storage: "1Gi"
+            # The pod now holds two database pools and runs the data usage batches
+            # alongside the latency-sensitive summary endpoint, so the old 100m
+            # ceiling would throttle requests behind a batch. Measure before
+            # trimming these back.
             limits:
-              cpu: "100m"
-              memory: "256Mi"
+              cpu: "500m"
+              memory: "512Mi"
               ephemeral-storage: "1Gi"
           env:
 {% include 'partials/de_ca_env.j2' %}
@@ -54,16 +61,6 @@ spec:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: OTEL_TRACES_EXPORTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_TRACES_EXPORTER
-            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
           args:
             - --log-level
             - debug

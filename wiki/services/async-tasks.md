@@ -4,7 +4,7 @@ title: async-tasks
 description: HTTP API for tracking asynchronous DE tasks, configured with the shared jobservices.yml config.
 resource: /ansible/roles/services/async-tasks
 tags: [async-tasks, jobs, postgresql, amqp]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 async-tasks provides the DE's asynchronous-task tracking API; other services
@@ -19,8 +19,9 @@ notifications databases on [PostgreSQL](/infrastructure/postgresql.md),
 [Condor](/infrastructure/condor.md) section, and base URLs for
 [apps](/services/apps.md), [metadata](/services/metadata.md),
 [notifications](/services/notifications.md),
-[iplant-groups](/services/iplant-groups.md), [qms](/services/qms.md),
-[job-status-listener](/services/job-status-listener.md), and VICE settings.
+[iplant-groups](/services/iplant-groups.md),
+[subscriptions](/services/subscriptions.md),
+[job-status](/services/job-status.md), and VICE settings.
 The same template content appears in the app-exposer role; async-tasks reads
 whichever subsections it needs from the shared shape.
 

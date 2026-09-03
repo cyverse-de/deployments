@@ -4,7 +4,7 @@ title: Batch Analyses Troubleshooting
 description: Diagnosing stuck, failed, or orphaned batch analyses executed via Argo Workflows, including the AMQP status pipeline and output transfer.
 resource: /docs/batch-analyses-troubleshooting.md
 tags: [batch, analyses, argo, troubleshooting, amqp, status-pipeline]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 This runbook covers diagnosing and resolving problems with batch (non-VICE) analyses —
@@ -43,16 +43,16 @@ User submits job
   status-sender     ← step in the workflow; curls Argo Events webhook
       │
       ▼
- Argo Events       ← Sensor "webhook-jsl" forwards to job-status-listener
+ Argo Events       ← Sensor "webhook-jsl" forwards to job-status
       │
       ▼
-job-status-listener ← HTTP server; receives status, publishes to AMQP
+job-status (api)    ← HTTP server; receives status, publishes to AMQP
       │
       ▼
-job-status-recorder ← AMQP consumer; writes to `job_status_updates` table
+job-status (recorder) ← AMQP consumer; writes to `job_status_updates` table
       │
       ▼
-job-status-to-apps-adapter ← polls `job_status_updates`, notifies the `apps` service
+job-status (propagator) ← polls `job_status_updates`, notifies the `apps` service
       │
       ▼
      apps           ← updates the `jobs` table with final status
@@ -67,7 +67,7 @@ apps → jex-adapter (HTTP POST) → publishes to AMQP (jobs.launches key) → c
 If your deployment still runs `jex-adapter`, the submission path goes through it
 instead of app-exposer's `/batch` endpoint. The status pipeline is nearly identical
 in both cases, except the legacy system publishes to AMQP directly from within the
-job (via road-runner) rather than going through Argo Events and job-status-listener.
+job (via road-runner) rather than going through Argo Events and the job-status service.
 See [Condor](/infrastructure/condor.md) for the legacy execution infrastructure.
 
 ### Status pipeline
@@ -210,14 +210,10 @@ pipeline has a problem.
 
 ```bash
 # Check all three services are running
-kubectl -n $NS get pods -l de-app=job-status-listener
-kubectl -n $NS get pods -l de-app=job-status-recorder
-kubectl -n $NS get pods -l de-app=job-status-to-apps-adapter
+kubectl -n $NS get pods -l de-app=job-status
 
 # Check for errors
-kubectl -n $NS logs -l de-app=job-status-listener --since=1h | grep -i error
-kubectl -n $NS logs -l de-app=job-status-recorder --since=1h | grep -i error
-kubectl -n $NS logs -l de-app=job-status-to-apps-adapter --since=1h | grep -i error
+kubectl -n $NS logs -l de-app=job-status --since=1h | grep -i error
 ```
 
 ### Check AMQP queue depths
@@ -234,7 +230,7 @@ curl -s -u guest:guest http://$RABBITMQ_HOST:15672/api/queues/%2F$NS%2Fde/ | \
 A growing queue with no consumption indicates a dead consumer. Restart the appropriate service:
 
 ```bash
-kubectl -n $NS rollout restart deployment/job-status-listener
+kubectl -n $NS rollout restart deployment/job-status
 ```
 
 ### Manually fix a stuck analysis
@@ -368,7 +364,7 @@ WHERE id = '<uuid>'
 kubectl -n $NS get pods | grep -v Running | grep -v Completed
 
 # Watch status pipeline services
-watch 'kubectl -n $NS get pods -l "de-app in (job-status-listener,job-status-recorder,job-status-to-apps-adapter)"'
+watch 'kubectl -n $NS get pods -l de-app=job-status'
 
 # Count analyses by status in the DB
 psql -h $DBMS_HOST -U de -d de -c \

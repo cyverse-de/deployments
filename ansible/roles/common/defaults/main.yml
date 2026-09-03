@@ -108,6 +108,8 @@ settings_enabled: true
 coge_enabled: true
 resource_usage_api_enabled: true
 qms_api_enabled: true
+# Terrain still exposes the data usage routes; they are served by
+# resource-usage-api now that it has absorbed the data-usage-api service.
 data_usage_api_enabled: true
 
 # Agave Variables
@@ -141,14 +143,15 @@ baseurls_dashboard_aggregator: http://dashboard-aggregator
 baseurls_data_info: http://data-info
 baseurls_grouper_web_services: http://grouper-ws/grouper-ws
 baseurls_groups: http://groups
-baseurls_iplant_email: http://de-mailer
+baseurls_info_typer: http://info-typer
+baseurls_iplant_email: http://notifications/mail
 baseurls_iplant_groups: http://iplant-groups
-baseurls_job_status_listener: http://job-status-listener
+baseurls_job_status: http://job-status
 baseurls_metadata: http://metadata
 baseurls_notifications: http://notifications/v1
 baseurls_permissions: http://permissions
-baseurls_qms: http://qms
 baseurls_requests: http://requests
+baseurls_resource_usage_api: http://resource-usage-api
 baseurls_search: http://search
 baseurls_subscriptions: http://subscriptions
 baseurls_terrain: http://terrain
@@ -401,7 +404,7 @@ jaeger_query_replicas: 2
 # Nodeports
 kifshare_nodeport: 31340
 terrain_nodeport: 31341
-job_status_listener_nodeport: 31342
+job_status_nodeport: 31342
 agave_cb_nodeport: 31343
 
 # K8s Default Variables
@@ -518,15 +521,13 @@ de_db_version: main
 notifications_db_version: main
 metadata_db_version: main
 mgmt_version: main
-qms_version: main
+subscriptions_version: main
 portal_version: main
 de_db_name: de
 notifications_db_name: notifications
 metadata_db_name: metadata
 permissions_db_name: de
 qms_db_name: qms
-qms_automigrate: false
-qms_reinitialize: false
 pg_login_user: postgres
 pg_login_host: localhost
 pg_login_password: Chang3m3
@@ -1045,30 +1046,24 @@ cyverse_repo_base: "git@github.com:cyverse-de"
 source_repos:
   - analyses
   - app-exposer
-  - apply-labels
   - apps
   - async-tasks
   - bulk-typer
-  - check-resource-access
   - clockwork
   - dashboard-aggregator
   - data-info
-  - data-usage-api
-  - de-mailer
+  # A second checkout of the data-info repo. It is not shared with the data-info entry
+  # because build_release.yml resolves every service's repo from the service's own name.
+  - data-info-next
   - de-webhooks
   - dewey
-  - email-requests
-  - event-recorder
   - formation
-  - get-analysis-id
   - group-propagator
   - groups
   - info-typer
   - infosquito2
   - iplant-groups
-  - job-status-listener
-  - job-status-recorder
-  - job-status-to-apps-adapter
+  - job-status
   - kifshare
   - maintenance-page
   - metadata
@@ -1077,17 +1072,15 @@ source_repos:
   - permissions
   - portal-conductor
   - portal2
-  - qms
   - requests
   - resource-usage-api
   - search
   - sonora
   - subscriptions
   - terrain
-  - timelord
   - user-info
   - vice-default-backend
-  - vice-status-listener
-# Per-repo clone URL overrides for repos not under cyverse_repo_base.
+# Per-repo clone URL overrides for repos not under cyverse_repo_base, and for repos whose
+# local directory name differs from the repository's.
 source_repo_urls:
-  qms: "git@github.com:cyverse/qms"
+  data-info-next: "{{ cyverse_repo_base }}/data-info"

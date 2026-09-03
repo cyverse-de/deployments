@@ -4,7 +4,7 @@ title: Building and Deploying Services
 description: How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 resource: /ansible/BUILD_DEPLOY.md
 tags: [build, deploy, release, skaffold, ansible]
-timestamp: 2026-07-31T12:00:00Z
+timestamp: 2026-08-21T22:27:54Z
 ---
 
 This repo is the source of truth for build and deploy configuration: each
@@ -51,12 +51,15 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
   automatically.
 * Builds check out a temporary git worktree at `git_ref`; the source checkout
   is never modified, and the changed descriptor is never committed — review and
-  commit it yourself.
-* Builds always write descriptors into the service role's own `files/`
-  directory; deploys read from `build_json_dir`, which inventories may override
-  (the QA inventory points it at a sibling `de-releases/builds` checkout). If a
-  freshly built image isn't picked up on deploy, check where `build_json_dir`
-  resolves.
+  commit it yourself. `git_ref` may be a tag, a local branch, or a branch that
+  exists only on the remote — it is resolved to a commit, falling back to
+  `origin/<ref>`, before the worktree is made, so no local branch is created in
+  the checkout. A ref that resolves to neither fails by name.
+* Builds write descriptors into the service role's own `files/` directory, and
+  deploys read from `build_json_dir`, which resolves to that same directory. If
+  a freshly built image isn't picked up on deploy, the build most likely never
+  rewrote the descriptor — a `push_images=false` run leaves it untouched by
+  design.
 * `build_release.yml` is best-effort: a failed service doesn't stop the others,
   and a rebuilt/skipped/failed summary is printed at the end.
 * Deploys assume the cluster subsystems are already installed — see

@@ -1,5 +1,271 @@
 # Wiki Update Log
 
+## 2026-08-27
+
+* **Update**: [portal2](/services/portal2.md) — recorded the deferred
+  follow-ups from the August 2026 security audit: no CSRF synchronizer token
+  (and logout CSRF via `GET /logout`), per-IP rate limiting that is
+  best-effort because the edge forwards no usable client IP, container
+  hardening without `readOnlyRootFilesystem`, seven dependency advisories
+  needing breaking major bumps, and the inert honeypot fake-field detection.
+
+## 2026-08-21
+
+* **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)
+  — `git_ref` is now resolved to a commit, falling back to `origin/<ref>`,
+  before the build worktree is created. A branch that existed only on the remote
+  used to fail outright, because a bare name never resolves under
+  `refs/remotes/origin/<name>`; only tags and the clone's default branch did.
+  The source checkout still gains no local branch.
+
+* **Creation**: Added [data-info-next](/services/data-info-next.md) — the Go
+  rewrite of data-info, deployed beside the Clojure service with nothing routed
+  to it so the shadow/diff harness can compare the two against a real data
+  store. Temporary: at cutover the data-info role adopts its config template and
+  manifest and this role goes away. Records the one thing it does differently
+  and why — its pod gets a 120-second grace period and a `preStop` sleep,
+  because on SIGTERM the service has to let each in-flight job post the terminal
+  status that releases its path lock. Everything else is the house pattern: it
+  builds through the shared `buildx-build.sh`, with `data-info` building from
+  `main` where the Clojure tree lives and `data-info-next` from `golang` where
+  the Go tree does, so neither branch carries the other's Dockerfile. Also notes
+  that it is gated on
+  `data_info_next_enabled`, which defaults to false, and is deliberately absent
+  from the deploy-all list.
+
+* **Update**: [Continuous Integration Builds](/playbooks/ci-to-qa.md) (was
+  "Continuous Integration to QA"), plus the `build_json_dir` notes in
+  [Building and Deploying Services](/playbooks/build-and-deploy.md),
+  [Full DE Deployment](/playbooks/full-deployment.md) and
+  [Operations Runbook](/playbooks/ops-runbook.md) — the `de-releases`
+  repository is retired. Build descriptors are committed straight into each
+  service role's `files/` directory in the deployments repo, which is also
+  where deploys read them, so the `build_json_dir` override the QA inventory
+  used to set is gone. Read the shared `skaffold-build.yml` at `v0.4.0` to
+  describe what it actually does now, which turned up a second stale claim: it
+  no longer emits the webhook that triggered the GoCD deploy, so a tag push
+  builds and commits but does not deploy. That gap is flagged on the page
+  rather than papered over.
+
+## 2026-08-20
+
+* **Creation**: Added [Production Release Procedure](/playbooks/production-release.md), summarizing the new `docs/production-release.md` — a scrubbed, repo-maintained version of the internal production release document. Corrected three points that had gone stale in the original: build descriptors now live in this repo rather than a `de-releases` checkout, there is no `deploy_service.yml`, and `timelord` / `vice-status-listener` are no longer deploy tags.
+
+## 2026-08-18
+
+* **Update**: [data-info](/services/data-info.md) — documents why a share can
+  succeed without granting anything. `share-path` skips when the recipient
+  already holds the requested permission, but it tests the aggregated
+  (group-inclusive) permission while the share it skips would have written a
+  direct ACL. Since every account is in `public` and home directories inherit a
+  `public` read ACL, sharing under a home directory at read routinely skips: the
+  request succeeds, the UI notifies, and the recipient never appears in the
+  shared-with list. Records the consequence beyond the display — the access
+  rests on the group membership that suppressed the ACL, so it disappears
+  silently if that membership changes — plus how to confirm it from the
+  `already-shared` reason, and why statting as the recipient is not a valid
+  check.
+
+* **Update**: [notifications](/services/notifications.md) — `notifications.db.uri`
+  now renders from `de_db_name` rather than `notifications_db_name`. The
+  username-qualification change had shipped without the repoint that is
+  supposed to travel with it, so the service was still writing to the
+  standalone database while qualifying usernames. Corrects the opening
+  paragraph and the configuration section, which both still described the
+  dedicated database as the one the service connects to.
+* **Update**: [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
+  — adds a recovery section for a half-completed cutover: what a
+  qualification-without-repoint deploy does to the standalone database, why it
+  then trips the `colliding_users` check on the next run, and how
+  `notes/notifications-merge-collision-repair.sql` folds the duplicate user row
+  back onto the bare one so the merge can be re-run. Notes that the service has
+  to be repointed first or the duplicate returns.
+
+## 2026-08-14
+
+* **Add**: [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md)
+  — covers `notifications_db_merge.yml`, which moves the standalone
+  notifications database into `public.notifications` in the DE database.
+  Documents the two identifier remappings the move requires: users by
+  qualified username, which truncates at the first `@` before appending
+  `uid_domain` the way `apps.user/append-username-suffix` does — so an account
+  already named as an address resolves to its real DE account rather than to a
+  `name@elsewhere.edu@iplantcollaborative.org` stray — and preferring the
+  single-`@` row where the malformed double-`@` duplicate also exists;
+  notification types by name against the lookup table that `de-database`
+  migration `000055` puts in place of the old enum. Also covers the staging
+  schema and why the rows are streamed rather than restored from the
+  `pg_dump`, the handling of notification accounts the DE has never seen (real
+  people are created, iplant-groups subject IDs are discarded), and the
+  collision check that fails the load rather than merging two people's
+  histories under one DE user. The username-qualification change to the
+  service is called out as a precondition the playbook cannot itself check.
+* **Update**: [notifications](/services/notifications.md) — noted that the
+  dedicated database is being retired, and documented the new required
+  `notifications.uid.domain` setting the service qualifies usernames with
+  before any database lookup, along with the reason `outgoing_json` keeps the
+  bare username the caller sent and why the change ships in the same deploy as
+  the repoint rather than ahead of it.
+* **Update**: [PostgreSQL](/infrastructure/postgresql.md) — flagged the
+  `notifications` database as being folded into `de` in the database table.
+
+## 2026-08-12
+
+* **Remove**: `services/de-mailer.md` — de-mailer has been merged into
+  [notifications](/services/notifications.md) and its role is gone from this
+  repo. notifications was already the only publisher on `email.requests` and
+  de-mailer the only consumer, so the pair was a closed loop across two
+  deployments; de-mailer also had no database of its own, so absorbing it
+  leaves notifications talking to just the notifications database.
+* **Update**: [notifications](/services/notifications.md) — added an
+  `## Email delivery` section covering the absorbed HTTP intake (now `POST
+  /mail`, with `baseurls_iplant_email` repointed at
+  `http://notifications/mail` so terrain, apps, and requests needed no
+  change), the retained `email_requests` queue and why the broker hop was kept
+  rather than short-circuited, the templates now shipped in the image, the
+  three new required settings, and the `SIGTERM` drain that keeps a rolling
+  deploy from re-sending mail that already went out. Carried over de-mailer's
+  local-exim guidance, which has no other home: the placeholder `exim_*`
+  defaults, the `host::port` host-list gotcha, and the SNAT/allowlist note.
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md)
+  — `local-exim.yml`'s description now names notifications as the service
+  relaying through the deployment.
+* **Update**: [resource-usage-api](/services/resource-usage-api.md) — the role
+  now deletes the retired data-usage-api Deployment, Service, and config secret
+  on deploy, matching the cleanup the other service merges do. Without it a
+  leftover data-usage-api keeps competing for the data usage queues, whose
+  names carried over, and nothing else would ever remove it now that its role
+  is gone.
+* **Remove**: `services/data-usage-api.md` — the service has been merged into
+  [resource-usage-api](/services/resource-usage-api.md) and its role is gone
+  from this repo. The two had converged on the same framework, the same DE
+  database, and the same [subscriptions](/services/subscriptions.md) client
+  written twice, and resource-usage-api already called data-usage-api over HTTP
+  to build its `/summary` response — a round trip that is now an in-process
+  call.
+* **Update**: [resource-usage-api](/services/resource-usage-api.md) — documented
+  the absorbed data usage endpoints, which kept their paths, and the two data
+  usage queues, which kept their names so the existing durable queues carry
+  over. Its config gains the ICAT database URI, zone, and root resources, so the
+  `resource-usage-api-configs` secret now holds the ICAT password; the service
+  validates at startup and exits on a missing setting, so the secret has to land
+  before the pod rolls. Both services can run at once during cut-over: they act
+  as competing consumers on the shared queues and the usage write is an
+  idempotent `SET`. CPU limit raised from 100m to 500m and a 330s termination
+  grace period added, since the pod now holds two database pools and runs data
+  usage batches — which can occupy ICAT for minutes — alongside the
+  latency-sensitive `/summary` endpoint. The OpenTelemetry env vars are gone;
+  the service never installed a tracer provider, so they did nothing.
+* **Update**: [terrain](/services/terrain.md) — added a
+  `terrain.data-usage-api.base-uri` config line pointing at
+  `baseurls_resource_usage_api`. Terrain's compiled-in default is
+  `http://data-usage-api`, so without it terrain would keep calling a service
+  that no longer exists. Its data usage routes are otherwise unchanged and stay
+  gated on `data_usage_api_enabled`.
+* Dropped data-usage-api from [subscriptions](/services/subscriptions.md)'s
+  caller list and from the [service index](/services/index.md), and reworded the
+  historical NATS reference in
+  [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+* **Remove**: `services/event-recorder.md` — the service has been retired and
+  its role is gone from this repo. Its consumer moved into
+  [notifications](/services/notifications.md), which already published the
+  events it was recording, so the queue hop between the two is now in-process.
+  The role was removed separately; this catches the wiki up with it.
+* **Update**: [notifications](/services/notifications.md) — documented the
+  absorbed recording half: the v1 API publishes to the `de` exchange on
+  `events.notification.update.<type>`, and an in-process consumer reads the
+  durable `event_listener` queue, writes to the notifications database, and
+  publishes both the `email.requests` message `de-mailer` consumes and the
+  `notification.<user>` message the UI listens for. The queue
+  name and binding still match the retired service, so the two are competing
+  consumers during a rollout — deploy notifications and confirm it is recording
+  before scaling event-recorder down. Also noted `email.request`
+  (`email_support_dest`), now a required setting the service validates at
+  startup. The role additionally deletes the orphaned `event-recorder`
+  Deployment and `event-recorder-configs` secret, which the role removal left
+  behind in running clusters.
+* **Update**: `de-mailer` — the sole publisher on the `email.requests` routing
+  key is now notifications rather than event-recorder.
+
+## 2026-08-11
+
+* **Remove**: `services/vice-status-listener.md` — the service has been retired
+  and its role is gone from this repo. Its Deployment informer moved into
+  [vice-operator](/services/vice-operator.md) in May, so every cluster now
+  publishes its own VICE status updates instead of one worker covering only the
+  local cluster — which is what multi-cluster required. The two ran side by side
+  in QA for about three months; the standalone listener was emitting four or
+  five duplicate `Running` updates per analysis against the operator's one.
+* **Update**: [vice-operator](/services/vice-operator.md) — documented the
+  status publisher behind `--status-listener-url`: a leader-elected informer on
+  `app-type=interactive` that POSTs `Running` once a Deployment has an available
+  replica and `Succeeded` when it is deleted, gated on the
+  `vice-operator-status-publisher` lease so extra replicas don't duplicate
+  updates. One behavior change came with the retirement: the old listener
+  published `Running` the moment the Deployment object appeared, so analyses now
+  stay in `Submitted` through image pull and report `Running` when the pod is
+  actually ready. [app-exposer](/services/app-exposer.md)'s reconciler remains
+  the five-minute backstop.
+* **Update**: [app-exposer](/services/app-exposer.md) — the role now deletes the
+  retired `vice-status-listener` Deployment and `vice-status-listener-configs`
+  secret; those cleanup tasks can be dropped once every deployment has rolled
+  past the merge release. There was no Service to remove.
+* Dropped vice-status-listener from the cut-over redeploy list in
+  [job-status](/services/job-status.md) — only app-exposer's config embeds
+  `vice.job-status.base` now — and swapped it for vice-operator as the
+  `replicas: 1` example in the
+  [Operations Runbook](/playbooks/ops-runbook.md).
+
+## 2026-08-10
+
+- Removed `services/email-requests.md`: the email-requests service has been
+  merged into `de-mailer`, which now consumes the `email_requests` AMQP queue
+  directly, and its role is gone from this repo.
+  Rewrote `services/de-mailer.md` to cover the absorbed consumer, the new
+  `amqp:` config block, the dropped OpenTelemetry wiring, and the role's
+  cleanup tasks for the retired Deployment and Secret. Noted in
+  `services/event-recorder.md` that it is the sole publisher of
+  `email.requests` and now feeds de-mailer directly.
+* **Remove**: `services/timelord.md` — timelord has been merged into
+  [app-exposer](/services/app-exposer.md), which now enforces VICE analysis
+  time limits from a background worker in its own process, and the role is gone
+  from this repo. timelord was already an app-exposer satellite: it held no
+  Kubernetes client of its own, ran under the `app-exposer` service account,
+  and called back into app-exposer over HTTP to terminate anything. Its Service
+  existed only for expvar probes and nothing in the DE called it.
+* **Update**: [app-exposer](/services/app-exposer.md) — added the analysis
+  time-limit section covering the expiry warnings, the periodic reminder, the
+  save-and-exit termination path, and marking vanished analyses Completed. The
+  config template needed no change: it already carried the `amqp`,
+  `iplant_groups`, and `notification_agent` sections, since every job-services
+  config in this repo renders from the same shared template. The role now also
+  deletes the retired `timelord` Deployment, Service, and `timelord-configs`
+  secret; those cleanup tasks can be dropped once every deployment has rolled
+  past the merge release. The `timelord` AMQP queue name is deliberately kept so
+  the existing queue and its bindings carry over.
+* Repointed the timelord references in [job-status](/services/job-status.md)
+  (both the caller list and the cut-over redeploy list) at app-exposer, and
+  dropped the stale "identical to the user-info/timelord copy" note from the
+  since-deleted `vice-status-listener` page.
+
+## 2026-08-07
+
+- Removed `services/qms.md`: the QMS service has been merged into
+  [subscriptions](/services/subscriptions.md), and its role is gone from this
+  repo. Updated `services/subscriptions.md` to cover the merged `/v1` API, the
+  `terrain.qms.base-uri` wiring, and the migrations that now live in the
+  subscriptions repo.
+- Documented `qms_cleanup.yml` in `playbooks/misc-utility-playbooks.md`.
+- Repointed QMS links in `services/app-exposer.md` and `services/async-tasks.md`
+  at subscriptions; noted the dropped `baseurls_qms` in
+  `services/resource-usage-api.md`; named the new migration source in
+  `infrastructure/postgresql.md`.
+
+## 2026-08-06
+
+* **Remove**: apply-labels, check-resource-access, and get-analysis-id — the three build-only service roles are retired from the deployments repo (never wired into `deploy_it.yml`; nothing consumes their images). Their `build_it.yml` blocks, `source_repos` entries, role directories, and wiki pages are gone, and deleting the role directories also drops them from `build_release.yml`'s auto-discovery.
+* **Add**: [job-status](/services/job-status.md) — the job-status-listener, job-status-recorder, and job-status-to-apps-adapter services were merged into a single `job-status` service (new `cyverse-de/job-status` repo, one deployment running api/recorder/propagator components). The three per-service pages are retired. The new role renders a trimmed `job-status.yml` config instead of the shared jobservices template, and the propagator now claims rows with `FOR UPDATE SKIP LOCKED`, so `replicas: 2` is safe for the whole pipeline. Cross-references updated in [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), the since-deleted `vice-status-listener` page, [Ingress](/infrastructure/ingress.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Keycloak](/infrastructure/keycloak.md), [Argo Resources](/playbooks/argo-resources.md), [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md), [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md), and [Operations Runbook](/playbooks/ops-runbook.md); `baseurls_job_status_listener` is now `baseurls_job_status` and the NodePort variable is `job_status_nodeport` (still 31342).
+
 ## 2026-08-05
 
 * **Update**: [Rewriting App Community Tags](/playbooks/community-tags.md) — the rewrite now also normalizes tag units to `''`, and the report line grew a `K units normalized` count. A production check found three community-tag rows carrying file-format units (`bam`, `fasta`) on the Integrated Genome Browser community; the new contract writes and deletes tags with an empty unit and the metadata deleter matches the exact triple, so those rows would have survived every removal as a silent 200 no-op. Rows that would collide with `avus_unique` once normalized are dropped first. Verified end to end against seeded odd-unit rows on the local cluster.
@@ -33,6 +299,8 @@
 * **Update**: [groups](/services/groups.md) — added `terrain_groups_backend`, which selects whether [terrain](/services/terrain.md) reads groups from Grouper or the groups service, rendered as `terrain.groups.backend`. The template previously rendered no `terrain.groups.*` at all, so the only way to flip terrain over was to rely on its compiled defaults — which meant the toggle that is terrain's rollback path was not expressible from the inventory. The default stays `iplant-groups` so no shared environment flips by inheriting it. Recorded the precondition that matters: the deployed [apps](/services/apps.md) image must tag communities by ID first, because the new backend does not block community renames and an older apps orphans every tag on the first rename with nothing raised anywhere. Also recorded the two response shapes that change on the flip — `display_name` becomes the short name rather than the full colon-delimited Grouper path, and `id_index` goes empty — both of which a caller consumes without erroring, which is what makes them worth stating in advance. Group IDs are unaffected, so permission grants and iRODS `@grouper-<id>` names survive the switch.
 
 ## 2026-08-04
+
+* **Update**: [PostgreSQL](/infrastructure/postgresql.md) — the locale pre-flight is scoped to runs that create databases again. It had been given `apply: tags: update-databases` on the reading that a dynamic include needs it for its children to run under `--tags`, which is true in general but wrong here: every `postgresql_db` task the check guards is untagged and so is filtered out of a `--tags update-databases` run anyway. The result was a migrations-only pass against production aborting on a `keycloak` database created before the switch to ICU — over a reconciliation no task in scope was going to attempt. The check now carries no tags of its own and inherits the play's. Also recorded that `grafana.yml` is the exception on the other side: its create task is tagged `update-databases` while `grafana_db_name` is absent from `postgresql_init_managed_databases`, so it is neither checked nor deferred.
 
 * **New**: [Rewriting App Community Tags](/playbooks/community-tags.md) — `community_tags.yml` and the `community-tags` command behind it. An app's community tag was the community's *name*, composed by the browser and stored verbatim, so renaming a community dropped every app tagged with it out of its own listing with nothing raised anywhere — which is how production came to hold 17 tag values naming communities that no longer exist. The rewrite is a command rather than a migration because the mapping spans two databases: community identity is in the permissions schema of the DE database and the tags are in the metadata service's own, so no migration in either can see both. It must run after the group import, which is what records the `legacy_name` the mapping joins on. Orphans are reported and left alone; a value already holding an ID is skipped, which is what makes a second run a no-op.
 
@@ -90,8 +358,8 @@
 ## 2026-07-28
 
 * **Addition**: [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) — a runbook for the new `local.yml` playbook, which stands up a full DE on a pre-existing single-node k0s cluster. Covers why it is a separate playbook rather than `kubernetes.yml` with things switched off (several of that playbook's plays build the cluster, reconfigure nodes over SSH, or need sudo), the three new roles that stand in for out-of-cluster infrastructure (`local_node_prep`, `local_db_endpoint`, `rabbitmq_k8s`), the host preparation that can't be automated, the tag-by-tag bring-up order, and the two consequences worth knowing up front: data search stays empty because no iRODS instance publishes to the local broker, and analyses write into whatever zone is reused.
-* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and [de-mailer](/services/de-mailer.md) — documented the new `local-exim.yml` playbook, which deploys the local-exim mail relay on its own instead of through `--tags de-reqs` (which also re-runs the namespace, cert-issuer, timezone, and Harbor pull-secret tasks). It imports the same task file the `k8s_de_reqs` role uses, so the two paths can't drift. Recorded the hazard that prompted it on the de-mailer page: the `exim_*` role defaults are non-functional placeholders, and `exim_smarthost`'s `127.0.0.1:25` default points exim at itself, so an environment that never set it accepts mail from de-mailer and then fails to route it. The playbook asserts a non-loopback smarthost before applying.
-* **Update**: [de-mailer](/services/de-mailer.md) and [Portal Exim Mail Relay](/playbooks/portal-exim.md) — corrected the documented `exim_smarthost` format. It feeds exim's `route_list ... byname`, so it is a host list in which a single colon separates hosts and a port needs a second one (`host::port`); the previously documented `host:port` form silently appends a bogus second host that exim resolves to `0.0.0.25` and tries on failover. Fixed the same guidance in the `exim_smarthost` role default and the example inventory. Also recorded on the de-mailer page that the relay pods reach the smarthost SNAT'd as their node IP, so the upstream allowlist must cover the cluster nodes.
+* **Update**: [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md) and `de-mailer` — documented the new `local-exim.yml` playbook, which deploys the local-exim mail relay on its own instead of through `--tags de-reqs` (which also re-runs the namespace, cert-issuer, timezone, and Harbor pull-secret tasks). It imports the same task file the `k8s_de_reqs` role uses, so the two paths can't drift. Recorded the hazard that prompted it on the de-mailer page: the `exim_*` role defaults are non-functional placeholders, and `exim_smarthost`'s `127.0.0.1:25` default points exim at itself, so an environment that never set it accepts mail from de-mailer and then fails to route it. The playbook asserts a non-loopback smarthost before applying.
+* **Update**: `de-mailer` and [Portal Exim Mail Relay](/playbooks/portal-exim.md) — corrected the documented `exim_smarthost` format. It feeds exim's `route_list ... byname`, so it is a host list in which a single colon separates hosts and a port needs a second one (`host::port`); the previously documented `host:port` form silently appends a bogus second host that exim resolves to `0.0.0.25` and tries on failover. Fixed the same guidance in the `exim_smarthost` role default and the example inventory. Also recorded on the de-mailer page that the relay pods reach the smarthost SNAT'd as their node IP, so the upstream allowlist must cover the cluster nodes.
 * **Update**: [cert-manager](/infrastructure/cert-manager.md) — documented the new `cluster_issuer_default_type` variable (`selfSigned` default, or `ca`). With `ca`, `default-cluster-issuer` is backed by an existing CA keypair loaded from the control machine instead of a generated root, so the ordinary `selfsigned` chain issues certificates that chain to a root the clients already trust. It is orthogonal to `cert_manager_provider`, and it puts the CA private key in a Secret in the `cert-manager` namespace.
 * **Update**: [RabbitMQ](/infrastructure/rabbitmq.md) — noted that `rabbitmq.yml` and `rabbitmq_configure.yml` both act on a host (packages plus `rabbitmqctl` over SSH under become) and so cannot target a broker running as a pod, and documented the new `rabbitmq_k8s` role as the in-cluster alternative, including what happens to [dewey](/services/dewey.md)/[infosquito2](/services/infosquito2.md)/info-typer when `irods_amqp_host` points at a broker no iRODS instance publishes to.
 * **Update**: [OpenEBS](/infrastructure/openebs.md) — the `openebs-hostpath` StorageClass is not annotated as the cluster default, and [openldap-docker](/services/openldap-docker.md)'s volume claim template omits `storageClassName`, so its PVC pends forever on a cluster with no default class. [Longhorn](/infrastructure/longhorn.md) sets `persistence.defaultClass`, which is why it only shows up after switching.
@@ -113,11 +381,11 @@
 ## 2026-07-24
 
 * **Removal**: Deleted the NATS infrastructure page — NATS has been retired from the DE. It carried the QMS request/reply traffic between terrain, data-usage-api, resource-usage-api, and [subscriptions](/services/subscriptions.md), and all four now use the subscriptions HTTP API, so the `nats` role, the `nats_urls`/`NATS_URLS` config plumbing, and subscriptions' NATS mounts are gone. Dropped the NATS section from [Certificate Management](/playbooks/certificate-management.md) and the NATS check from the [Ops Runbook](/playbooks/ops-runbook.md), removed the NATS references from [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Building and Deploying Services](/playbooks/build-and-deploy.md), and [Full Deployment](/playbooks/full-deployment.md), and documented the new `nats_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md). The argo-events EventBus is a separate NATS instance and is untouched.
-* **Update**: [data-usage-api](/services/data-usage-api.md) and [resource-usage-api](/services/resource-usage-api.md) — both now reach [subscriptions](/services/subscriptions.md) over HTTP instead of NATS, so removed their NATS secret mounts, the `nats-configuration` volume, and the `DISCOENV_NATS_CLUSTER` env from the deployments, passing `--subscriptions-base-uri` (from `baseurls_subscriptions`) instead. Rewrote [Certificate Management](/playbooks/certificate-management.md)'s NATS section: subscriptions is now the only NATS consumer, and since every caller uses its HTTP API, an expired NATS certificate no longer breaks QMS operations.
+* **Update**: `services/data-usage-api.md` and [resource-usage-api](/services/resource-usage-api.md) — both now reach [subscriptions](/services/subscriptions.md) over HTTP instead of NATS, so removed their NATS secret mounts, the `nats-configuration` volume, and the `DISCOENV_NATS_CLUSTER` env from the deployments, passing `--subscriptions-base-uri` (from `baseurls_subscriptions`) instead. Rewrote [Certificate Management](/playbooks/certificate-management.md)'s NATS section: subscriptions is now the only NATS consumer, and since every caller uses its HTTP API, an expired NATS certificate no longer breaks QMS operations.
 
 ## 2026-07-23
 
-* **Removal**: Deleted the qms-adapter service page — the service was retired from the repo. Nothing publishes to the `qms.usages` AMQP routing key it consumed; usage updates moved to NATS and the [subscriptions](/services/subscriptions.md) service in 2022. Dropped the cross-reference and the stale "exchanging updates over AMQP" description from [qms](/services/qms.md), and documented the new `qms_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
+* **Removal**: Deleted the qms-adapter service page — the service was retired from the repo. Nothing publishes to the `qms.usages` AMQP routing key it consumed; usage updates moved to NATS and the [subscriptions](/services/subscriptions.md) service in 2022. Dropped the cross-reference and the stale "exchanging updates over AMQP" description from the since-deleted `qms` page, and documented the new `qms_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Update**: [terrain](/services/terrain.md) — terrain now reaches the QMS add-on operations on the [subscriptions](/services/subscriptions.md) service over HTTP instead of NATS, so removed its three NATS secret mounts and the `terrain.nats.urls` property from the deployment, added a `baseurls_subscriptions` default and the `terrain.subscriptions.base-uri` config line, and dropped the now-consumerless `nats-client-tls-pkcs8` generation from the `nats` role. Removed terrain from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists. NATS clients are now data-usage-api, resource-usage-api, and subscriptions.
 * **Removal**: Deleted the jex-adapter service page — the service was retired from the repo. Its HTTP job-submission role was folded into app-exposer's `/batch` endpoint, and apps and terrain now point their JEX base URL there. Dropped jex-adapter from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists and from the [Keycloak](/infrastructure/keycloak.md) VICE-client list, trimmed the stale `(jex-adapter)` attribution in the [Ops Runbook](/playbooks/ops-runbook.md), and documented the new `jex_adapter_cleanup.yml` in [Miscellaneous Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Update**: [app-exposer](/services/app-exposer.md) — removed the NATS client TLS/creds mounts and `NATS_URLS` env wiring from the deployment; the app-exposer source no longer connects to NATS. Also dropped app-exposer from [Certificate Management](/playbooks/certificate-management.md)'s NATS consumer and restart lists.
@@ -138,7 +406,7 @@
 ## 2026-07-20
 
 * **Creation**: Added [Copying Apps Between DE Instances](/playbooks/app-export-import.md) documenting the rebuilt uv-managed `scripts/appei` tool for exporting/importing apps and tools via the Terrain API.
-* **Creation**: Populated the services section with a page per DE microservice role under `ansible/roles/services/` (49 pages, from [analyses](/services/analyses.md) to [vice-status-listener](/services/vice-status-listener.md)).
+* **Creation**: Populated the services section with a page per DE microservice role under `ansible/roles/services/` (49 pages, from [analyses](/services/analyses.md) to the since-deleted `vice-status-listener` page).
 * **Creation**: Added infrastructure pages for [cert-manager](/infrastructure/cert-manager.md), [HTCondor](/infrastructure/condor.md), [GoCD](/infrastructure/gocd.md), [GPU Workers](/infrastructure/gpu-workers.md), [Grouper](/infrastructure/grouper.md), [Harbor](/infrastructure/harbor.md), [Ingress](/infrastructure/ingress.md), [Jaeger](/infrastructure/jaeger.md), [Kubernetes Cluster](/infrastructure/kubernetes-cluster.md), [Longhorn](/infrastructure/longhorn.md), and [OpenSearch](/infrastructure/opensearch.md).
 * **Creation**: Added playbook pages for [Full Deployment](/playbooks/full-deployment.md), [CI to QA](/playbooks/ci-to-qa.md), [Bootstrap Portal Admin](/playbooks/bootstrap-portal-admin.md), [Node Maintenance](/playbooks/node-maintenance.md), [portal-exim](/playbooks/portal-exim.md), [VICE Image Cache](/playbooks/vice-image-cache.md), [Argo Resources](/playbooks/argo-resources.md), and [Misc Utility Playbooks](/playbooks/misc-utility-playbooks.md).
 * **Migration**: Migrated the top-level ops guides: [Ops Runbook](/playbooks/ops-runbook.md), [Admin Procedures](/playbooks/admin-procedures.md), [Batch Analyses Troubleshooting](/playbooks/batch-analyses-troubleshooting.md), [VICE Troubleshooting](/playbooks/vice-troubleshooting.md), and [Certificate Management](/playbooks/certificate-management.md) from docs/; [Keycloak](/infrastructure/keycloak.md) and [iRODS](/infrastructure/irods.md) migrated as infrastructure pages.

@@ -1,0 +1,10 @@
+---
+- name: build the data-info-next image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: data-info-next
+    git_ref: "{{ data_info_next_git_ref }}"
+  tags:
+    - build

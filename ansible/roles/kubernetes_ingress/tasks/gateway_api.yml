@@ -243,7 +243,7 @@
                   request: "24h"
                   backendRequest: "24h"
               - backendRefs:
-                  - name: job-status-listener
+                  - name: job-status
                     port: 80
                 filters:
                   - type: URLRewrite
@@ -359,7 +359,7 @@
                   request: "24h"
                   backendRequest: "24h"
               - backendRefs:
-                  - name: job-status-listener
+                  - name: job-status
                     port: 80
                 filters:
                   - type: URLRewrite

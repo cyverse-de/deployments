@@ -67,8 +67,8 @@ Deploys the `local-exim` mail relay on its own — the standalone equivalent of
 the local-exim slice of `--tags de-reqs`, which otherwise also re-runs the
 namespace, cert-issuer, timezone, and Harbor pull-secret tasks. It imports the
 same task file the `k8s_de_reqs` role uses, so the two paths cannot drift.
-[de-mailer](/services/de-mailer.md) relays all outbound DE mail through this
-deployment. The play first asserts that `exim_smarthost` is set and does not
+[notifications](/services/notifications.md) relays all outbound DE mail through
+this deployment. The play first asserts that `exim_smarthost` is set and does not
 point at loopback: the role default does, which makes exim smarthost to itself
 and silently drops every message. Note that the value is an exim host list, so
 a port needs a second colon (`host::port`).
@@ -109,6 +109,17 @@ endpoint, and apps and terrain now point their JEX base URL there. Removes the
 `jex-adapter-configs` secret from the DE namespace. Idempotent — deleting
 already-absent resources succeeds silently.
 
+## qms_cleanup.yml
+
+Deletes a running `qms` deployment after the service's merge into
+[subscriptions](/services/subscriptions.md), which now serves the QMS `/v1`
+API. Removes the `qms` Deployment, its `qms` Service, and the `qms-configs`
+secret from the DE namespace. Idempotent.
+
+Order matters: terrain resolves the QMS API through `terrain.qms.base-uri`,
+whose compiled-in default is `http://qms`, so deploy subscriptions and
+redeploy terrain with the config that repoints it *before* running this.
+
 ## qms_adapter_cleanup.yml
 
 Deletes a running qms-adapter deployment after the service's retirement from
@@ -122,7 +133,7 @@ Idempotent — deleting already-absent resources succeeds silently.
 
 Removes the DE's NATS installation after its retirement from this repo. NATS
 carried the QMS request/reply traffic between
-[terrain](/services/terrain.md), [data-usage-api](/services/data-usage-api.md),
+[terrain](/services/terrain.md), the former data-usage-api,
 [resource-usage-api](/services/resource-usage-api.md), and
 [subscriptions](/services/subscriptions.md); all four now use the subscriptions
 HTTP API. Uninstalls the `nats` Helm release and deletes the `nats-server-tls`,
@@ -172,3 +183,4 @@ authenticates as `portal_bootstrap_user`. Idempotent.
 [10] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
 [11] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
 [12] `ansible/import_apps.yml`, `ansible/roles/de_apps/` — default app set import.
+[13] `ansible/qms_cleanup.yml` — QMS Deployment, Service, and config secret teardown.

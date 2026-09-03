@@ -1,3 +1,12 @@
 ---
 resource_usage_api_replicas: 2
 resource_usage_api_pod_anti_affinity: true
+
+# Data usage settings, inherited from the retired data-usage-api service.
+resource_usage_api_refresh_interval: 3h
+resource_usage_api_batch_size: 100
+resource_usage_api_queue_prefix: ""
+
+# A data usage batch can hold the ICAT database for minutes, so the service is given
+# time to finish one before it is killed.
+resource_usage_api_termination_grace_period: 330

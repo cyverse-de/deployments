@@ -10,6 +10,7 @@ inventory setup), see [ansible/docs/index.md](../ansible/docs/index.md).
 
 | Runbook | Covers |
 |---|---|
+| [production-release.md](production-release.md) | The end-to-end production release run: maintenance mode, config/database updates, service deploys |
 | [ops-runbook.md](ops-runbook.md) | Health checks, restarts, scaling, rollbacks, log access |
 | [admin-procedures.md](admin-procedures.md) | Subscriptions, VICE access, workshop provisioning, DOI requests, alerts |
 | [batch-analyses-troubleshooting.md](batch-analyses-troubleshooting.md) | Stuck/failed batch analyses, output missing, status pipeline |

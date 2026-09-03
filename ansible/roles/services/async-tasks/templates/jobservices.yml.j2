@@ -86,8 +86,6 @@ porklock:
 
 qms:
   enabled: {{ qms_enabled }}
-  base: "{{ baseurls_qms|string|regex_replace("\/$","") }}"
-  usage: "/v1/admin/usages"
 
 tickets_path_list:
   file_identifier: "# application/vnd.de.tickets-path-list+csv; version=1"
@@ -107,7 +105,7 @@ vice:
     image: "{{ vice_file_transfers_image }}"
     tag: "{{ vice_file_transfers_tag }}"
   job-status:
-    base: "{{ baseurls_job_status_listener|string|regex_replace("\/$","") }}"
+    base: "{{ baseurls_job_status|string|regex_replace("\/$","") }}"
   image-pull-secret: {{ vice_image_pull_secret }}
   backend-namespace: {{ ns }}
   gateway_provider: {{ gateway_provider }}

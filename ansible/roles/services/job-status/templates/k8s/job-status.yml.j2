@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: job-status
+spec:
+  replicas: {{ job_status_replicas }}
+  selector:
+    matchLabels:
+      de-app: job-status
+  template:
+    metadata:
+      labels:
+        de-app: job-status
+    spec:
+{% if job_status_pod_anti_affinity %}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: de-app
+                    operator: In
+                    values:
+                      - job-status
+              topologyKey: kubernetes.io/hostname
+{% endif %}
+      restartPolicy: Always
+      volumes:
+{% include 'partials/de_ca_volume.j2' %}
+        - name: job-status-configs
+          secret:
+            secretName: job-status-configs
+            items:
+              - key: job-status.yml
+                path: job-status.yml
+      containers:
+        - name: job-status
+          image: harbor.cyverse.org/de/job-status
+          volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+            - name: job-status-configs
+              mountPath: /etc/iplant/de
+              readOnly: true
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
+          env:
+{% include 'partials/de_ca_env.j2' %}
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: timezone
+                  key: timezone
+          args:
+            - --config
+            - /etc/iplant/de/job-status.yml
+            - --batch-size
+            - "20"
+          ports:
+            - name: listen-port
+              containerPort: 60000
+          livenessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /debug/vars
+              port: 60000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: job-status
+spec:
+  selector:
+    de-app: job-status
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: listen-port

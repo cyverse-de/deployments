@@ -6,7 +6,8 @@
 #                      containing this deployments repo).
 #   cyverse_repo_base: default org base URL (default: git@github.com:cyverse-de).
 #   source_repos:      the list of repos to clone.
-#   source_repo_urls:  per-repo URL overrides (e.g. qms -> cyverse org).
+#   source_repo_urls:  per-repo URL overrides for repos outside cyverse-de
+#                      (currently empty).
 #
 # Cloning over SSH needs a configured GitHub SSH key. For HTTPS instead, set
 # -e cyverse_repo_base=https://github.com/cyverse-de (and a credential helper

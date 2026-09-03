@@ -4,7 +4,7 @@ title: General Operations Runbook
 description: Day-to-day DE cluster operations — health checks, restarts, scaling, rollbacks, config pushes, log access, and node maintenance.
 resource: /docs/ops-runbook.md
 tags: [operations, runbook, kubectl, deploy, rollback, logs, health]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 ---
 
 Quick reference for day-to-day DE cluster operations. For topic-specific procedures see:
@@ -101,7 +101,7 @@ To restart all DE services at once (e.g., after a config push):
 kubectl -n $NS rollout restart deployment --all
 ```
 
-> **Note:** Services with `replicas: 1` (e.g., `job-status-recorder`) will have a brief
+> **Note:** Services with `replicas: 1` (e.g., `vice-operator`) will have a brief
 > downtime during the restart. Any AMQP messages delivered during that window are safe —
 > they will be requeued by RabbitMQ and consumed when the service comes back up, assuming
 > the queue's `x-dead-letter-exchange` is configured.
@@ -156,12 +156,11 @@ git -C /path/to/deployments checkout HEAD~1 -- \
 ansible-playbook -i /path/to/inventory deploy_it.yml --tags <service>
 ```
 
-> **`build_json_dir` caveat:** Deploys read descriptors from `build_json_dir`, which
-> inventories may override to a separate `de-releases/builds` checkout (QA does this).
-> If your environment uses that override, restoring the file under `roles/services/` has
-> no effect on the deploy — you also need to update the descriptor in that separate
-> checkout. Check `build_json_dir` in your inventory's group_vars if the rollback doesn't
-> seem to take effect.
+> **Commit the restored descriptor.** Deploys read it from `build_json_dir`, which
+> resolves to the same `roles/services/<service>/files/` directory you just edited, so a
+> local rollback takes effect immediately. It will be undone the next time CI builds that
+> service, though — CI commits the new descriptor to `main` — so a rollback meant to stick
+> has to be committed here too.
 
 ## 5. Deploy a single service update
 

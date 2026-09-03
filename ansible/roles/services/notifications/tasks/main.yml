@@ -17,6 +17,62 @@
             jobservices.yml: "{{ lookup('template', 'jobservices.yml.j2') | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
+    # event-recorder's consumer moved into notifications, which now records the
+    # events it publishes itself. Deleting its role left the running objects
+    # behind, and with the role gone nothing else will ever clean them up, so a
+    # retired recorder would keep consuming from event_listener. Removable once
+    # all deployments have rolled past this release. It was a pure worker, so
+    # there is no Service to remove.
+    - name: Remove the retired event-recorder deployment
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: event-recorder
+
+    - name: Remove the retired event-recorder config secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: event-recorder-configs
+
+    # de-mailer's HTTP API and its email_requests consumer both moved into
+    # notifications. Deleting its role left the running objects behind, so a
+    # retired de-mailer would keep competing for the email_requests queue and
+    # would keep answering on its own Service name. Removable once all
+    # deployments have rolled past this release.
+    - name: Remove the retired de-mailer deployment
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: de-mailer
+
+    - name: Remove the retired de-mailer service
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        namespace: "{{ ns }}"
+        name: de-mailer
+
+    - name: Remove the retired de-mailer config secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: de-mailer-configs
+
     - ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main

@@ -22,8 +22,22 @@ condor:
 db:
   uri: postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
 
+de:
+  base: {{ de_base_uri|string|regex_replace("\/$","") }}
+  admin: /admin
+  analyses: /analyses
+  apps: /apps
+  collections: /collections
+  data: /data/ds
+  doi: /doi
+  teams: /teams
+  tools: /tools
+  vice: /vice
+
 email:
   request: {{ email_support_dest }}
+  fromAddress: {{ email_src }}
+  smtpHost: local-exim
 
 external_irods:
   host: "{{ irods_external_host }}"
@@ -75,7 +89,11 @@ notification_agent:
 
 notifications:
   db:
-    uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ notifications_db_name }}?sslmode=disable"
+    # The notifications rows live in the DE database; the standalone one is retired.
+    uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable"
+  uid:
+    # Callers send bare usernames; the DE identifies users by the qualified form.
+    domain: "{{ uid_domain }}"
 
 path_list:
   file_identifier: "# application/vnd.de.multi-input-path-list+csv; version=1"
@@ -86,8 +104,6 @@ porklock:
 
 qms:
   enabled: {{ qms_enabled }}
-  base: "{{ baseurls_qms|string|regex_replace("\/$","") }}"
-  usage: "/v1/admin/usages"
 
 tickets_path_list:
   file_identifier: "# application/vnd.de.tickets-path-list+csv; version=1"
@@ -107,7 +123,7 @@ vice:
     image: "{{ vice_file_transfers_image }}"
     tag: "{{ vice_file_transfers_tag }}"
   job-status:
-    base: "{{ baseurls_job_status_listener|string|regex_replace("\/$","") }}"
+    base: "{{ baseurls_job_status|string|regex_replace("\/$","") }}"
   image-pull-secret: {{ vice_image_pull_secret }}
   backend-namespace: {{ ns }}
   gateway_provider: {{ gateway_provider }}

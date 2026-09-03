@@ -21,28 +21,20 @@
       tags: clockwork
     - role: services/data-info
       tags: data-info
-    - role: services/de-mailer
-      tags: de-mailer
+    - role: services/data-info-next
+      tags: data-info-next
     - role: services/de-webhooks
       tags: de-webhooks
     - role: services/dewey
       tags: dewey
-    - role: services/email-requests
-      tags: email-requests
-    - role: services/event-recorder
-      tags: event-recorder
     - role: services/info-typer
       tags: info-typer
     - role: services/infosquito2
       tags: infosquito2
     - role: services/iplant-groups
       tags: iplant-groups
-    - role: services/job-status-listener
-      tags: job-status-listener
-    - role: services/job-status-recorder
-      tags: job-status-recorder
-    - role: services/job-status-to-apps-adapter
-      tags: job-status-to-apps-adapter
+    - role: services/job-status
+      tags: job-status
     - role: services/kifshare
       tags: kifshare
     - role: services/metadata
@@ -55,24 +47,16 @@
       tags: groups
     - role: services/permissions
       tags: permissions
-    - role: services/qms
-      tags: qms
     - role: services/requests
       tags: requests
     - role: services/resource-usage-api
       tags: resource-usage-api
-    - role: services/data-usage-api
-      tags: data-usage-api
     - role: services/subscriptions
       tags: subscriptions
-    - role: services/timelord
-      tags: timelord
     - role: services/user-info
       tags: user-info
     - role: services/vice-default-backend
       tags: vice-default-backend
-    - role: services/vice-status-listener
-      tags: vice-status-listener
     - role: services/search
       tags: search
     - role: services/dashboard-aggregator

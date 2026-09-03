@@ -84,26 +84,28 @@ spec:
           ports:
             - name: listen-port
               containerPort: 60000
+          # The startup probe gates the other two, so they need no delay of their own. Unlike the
+          # other services, GET / here opens an iRODS connection on every call, so only the startup
+          # probe polls quickly: it stops once it succeeds, costing a couple of extra checks at boot.
+          # The liveness and readiness periods stay at 20s to leave the steady-state load on iRODS
+          # exactly as it was.
           livenessProbe:
             httpGet:
               path: /
               port: 60000
-            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 10
           startupProbe:
             httpGet:
               path: /
               port: 60000
-            initialDelaySeconds: 60
-            periodSeconds: 20
+            periodSeconds: 3
             timeoutSeconds: 10
-            failureThreshold: 30
+            failureThreshold: 100
           readinessProbe:
             httpGet:
               path: /
               port: 60000
-            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 10
 ---
