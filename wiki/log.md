@@ -18,6 +18,11 @@
   `legacy_name` values are the mapping, and before the marker flip.
 * **Update**: [groups](/services/groups.md) — the `group_data_source` note now
   names the playbook that moves the marker.
+* **Update**: `docs/production-release.md` §7 — spelled out what in the import
+  report is a gate and what is informational (the closure line, the two
+  should-be-none lists, the resolved-collision list), that the importer aborts
+  on its own when two colliding groups both have content, and that a rollback
+  needs the descriptor commit from before the release merge noted in advance.
 * **Update**: [Production Release Procedure](/playbooks/production-release.md) —
   the notifications database merge, job-status consolidation, and
   subscriptions/qms merge have all shipped to production, so their sections are

@@ -282,12 +282,28 @@ group-granted permission reads as absent. That is harmless with users locked out
 outage with them present, which is why it belongs here and not in the preparation above.
 
 Run the real import. Grouper's groups, memberships, and privileges land in the DE database
-here. Read the report: the closure line must be `0 missing, 0 unexpected`, and both
-"groups no longer in Grouper" and "groups created natively" should be none.
+here.
 
 ```bash
 ansible-playbook -i $INVENTORY grouper_import.yml
 ```
+
+A clean exit is not the gate; the report is. The playbook fails on a rejected member or a
+closure that disagrees with Grouper, and the importer aborts by itself when two colliding
+groups both have content — that decision is not one it will make for you. What is left to
+read:
+
+- `effective membership vs Grouper` must be `0 missing, 0 unexpected`, exactly.
+- "groups in the database but no longer in Grouper" and "groups created natively" should
+  both be **none** on this run. Anything listed means something changed the database
+  between runs.
+- "groups skipped as empty duplicates of a colliding identity" names the collisions the
+  importer resolved on its own. Production has one known pair, both sides empty. A name
+  you do not recognise is worth stopping for.
+- "privileges with no equivalent" and the trimmed-name lists are informational, but you
+  should have seen the same ones in the dry runs.
+
+Running it a second time is the convergence proof: every counter reports zero.
 
 Rewrite each app's community tag from the community's Grouper name to its ID. It must run
 after the import, whose recorded `legacy_name` values are the mapping. Orphan values are
@@ -354,7 +370,15 @@ Redeploy first, then re-enable the importer; doing it the other way round means 
 the importer fight over the same rows.
 
 1. Set `terrain_groups_backend: iplant-groups`, re-run `configure-services`, and redeploy
-   the previous terrain, apps, group-propagator, and sonora images.
+   the previous terrain, apps, group-propagator, and sonora images. Those descriptors are
+   the ones committed immediately before the release merge, so note that commit before
+   the window starts — a rollback is not the time to go looking for it:
+
+   ```bash
+   git -C <deployments> show <pre-release-sha>:ansible/roles/services/terrain/files/terrain.json
+   ```
+
+   Check the descriptors out at that commit, deploy, then restore them.
 2. Hand group data back to Grouper:
 
    ```bash
