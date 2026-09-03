@@ -4,7 +4,7 @@ title: groups
 description: Group and membership API backed by the permissions schema of the DE database, replacing iplant-groups and Grouper.
 resource: /ansible/roles/services/groups
 tags: [groups, membership, postgresql, keycloak, amqp, api]
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-09-03T00:00:00Z
 ---
 
 The groups service is the intended replacement for
@@ -198,9 +198,10 @@ Group IDs do **not** change: an imported group keeps its Grouper UUID, so
 permission grants and iRODS `@grouper-<id>` names are unaffected.
 
 Flipping it is also the point at which group writes start landing in Postgres
-rather than Grouper, so `group_data_source` should already read `native` — see
-[Importing Groups from Grouper](/playbooks/grouper-import.md) for why running
-the importer after that point is destructive.
+rather than Grouper, so `group_data_source` should already read `native` —
+[Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md) is
+what moves it, and [Importing Groups from Grouper](/playbooks/grouper-import.md)
+covers why running the importer after that point is destructive.
 
 Deploy with `ansible-playbook -i $INVENTORY deploy_it.yml --tags groups`; see
 [Building and Deploying Services](/playbooks/build-and-deploy.md).

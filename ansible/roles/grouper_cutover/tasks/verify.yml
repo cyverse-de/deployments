@@ -1,0 +1,54 @@
+---
+# Re-reads the marker from the database rather than trusting the update's return,
+# and re-checks the CronJob: an importer left running past the flip fails on
+# every schedule, which reads as a broken service rather than as a guard working.
+#
+# There is no "watch the importer refuse" check here on purpose. The refusal is
+# driven entirely by this row -- RequireGrouperAuthoritative reads it and nothing
+# else -- so asserting the row is asserting the refusal, and starting a Job to
+# watch it fail would only test the same value twice.
+- name: Confirm the cutover took
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Re-read the group data source marker
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ permissions_db_name }}"
+        query: SELECT source, changed_by, changed_at, note FROM permissions.group_data_source
+      register: grouper_cutover_final
+      changed_when: false
+
+    - name: Re-read the grouper-import CronJob
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s_info:
+        api_version: batch/v1
+        kind: CronJob
+        name: grouper-import
+        namespace: "{{ ns }}"
+      register: grouper_cutover_final_cronjob
+
+    - name: Report the marker
+      ansible.builtin.debug:
+        var: grouper_cutover_final.query_result[0]
+
+    - name: Fail if the cutover did not take
+      ansible.builtin.assert:
+        that:
+          - grouper_cutover_final.query_result[0].source == 'native'
+          - grouper_cutover_final_cronjob.resources[0].spec.suspend | default(false) | bool
+        fail_msg: >-
+          The cutover did not take: group_data_source reads
+          {{ grouper_cutover_final.query_result[0].source }} and the grouper-import
+          CronJob suspend flag is
+          {{ grouper_cutover_final_cronjob.resources[0].spec.suspend | default('unset') }}.
+          Both must hold before terrain is pointed at the groups backend.
+        success_msg: >-
+          The DE database is authoritative for group data as of
+          {{ grouper_cutover_final.query_result[0].changed_at }}, and the Grouper
+          importer is suspended. Set terrain_groups_backend to groups in the
+          inventory, re-run configure-services, and deploy the cutover services.

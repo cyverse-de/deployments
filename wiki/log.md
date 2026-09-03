@@ -1,5 +1,28 @@
 # Wiki Update Log
 
+## 2026-09-03
+
+* **New**: [Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md)
+  — `grouper_cutover.yml` and the `grouper_cutover` role, which flip the
+  `permissions.group_data_source` marker that decides whether Grouper or the DE
+  database is authoritative for group data. Documents the four tagged plays
+  (`preflight`, `flip`, `verify`, `rollback`), why the reconciliation gate is in
+  preflight rather than verify — `RequireGrouperAuthoritative` runs ahead of the
+  importer's dry-run check, so past the flip a dry run refuses as well — and why
+  verify asserts the row instead of starting a Job to watch the importer refuse.
+* **Update**: [Importing Groups from Grouper](/playbooks/grouper-import.md) —
+  the `group_data_source` guard now points at the playbook that moves the marker,
+  and records that the guard precedes the dry-run check.
+* **Update**: [Rewriting App Community Tags](/playbooks/community-tags.md) —
+  added where the rewrite sits in the cutover order: after the import, whose
+  `legacy_name` values are the mapping, and before the marker flip.
+* **Update**: [groups](/services/groups.md) — the `group_data_source` note now
+  names the playbook that moves the marker.
+* **Update**: [Production Release Procedure](/playbooks/production-release.md) —
+  the one-time migrations step now names the Grouper cutover alongside the
+  notifications database merge. `docs/production-release.md` gained the matching
+  section under §7.
+
 ## 2026-09-01
 
 * **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)

@@ -1,0 +1,47 @@
+---
+# Hands group data back to Grouper. Reached only by --tags rollback; the flip
+# tasks never fall through to here.
+#
+# This half is cheap: it makes the importer willing to run again, and the next
+# grouper_import.yml run reconciles the database back to Grouper's state,
+# removing memberships and grants written natively since the flip. The expensive
+# half is not here -- terrain_groups_backend has to go back to iplant-groups in
+# the inventory and terrain, apps, group-propagator, and sonora have to be
+# redeployed on their previous images. Do that first: re-enabling the importer
+# while the DE is still writing natively means the two fight over the same rows.
+- name: Hand group data back to Grouper
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Require an operator name for the audit row
+      ansible.builtin.assert:
+        that:
+          - grouper_cutover_changed_by is search('\\S')
+        fail_msg: >-
+          grouper_cutover_changed_by is empty. Pass it explicitly:
+          -e grouper_cutover_changed_by=<your-username>
+
+    - name: Flip the marker back to grouper
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ permissions_db_name }}"
+        query: >-
+          UPDATE permissions.group_data_source
+             SET source = 'grouper', changed_by = %(changed_by)s, note = %(note)s
+           WHERE source <> 'grouper'
+        named_args:
+          changed_by: "{{ grouper_cutover_changed_by }}"
+          note: "{{ grouper_cutover_rollback_note }}"
+      register: grouper_cutover_rollback
+
+    - name: Report the rollback
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'group_data_source is grouper again; run grouper_import.yml to
+             reconcile the database back to Grouper, which removes group data
+             written natively since the flip.'
+             if grouper_cutover_rollback.rowcount | default(0) | int == 1
+             else 'group_data_source already read grouper; nothing changed.' }}

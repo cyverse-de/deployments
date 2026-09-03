@@ -1,0 +1,26 @@
+---
+- name: Check that the cutover can proceed
+  ansible.builtin.import_tasks:
+    file: preflight.yml
+  tags:
+    - preflight
+
+- name: Make the DE database authoritative for group data
+  ansible.builtin.import_tasks:
+    file: flip.yml
+  tags:
+    - flip
+
+- name: Confirm the cutover took
+  ansible.builtin.import_tasks:
+    file: verify.yml
+  tags:
+    - verify
+
+# Never runs as part of the cutover; reached only by --tags rollback.
+- name: Hand group data back to Grouper
+  ansible.builtin.import_tasks:
+    file: rollback.yml
+  tags:
+    - never
+    - rollback

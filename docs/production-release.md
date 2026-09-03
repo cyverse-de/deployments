@@ -287,6 +287,165 @@ ansible-playbook -i $INVENTORY --tags=terrain deploy_it.yml
 ansible-playbook -i $INVENTORY qms_cleanup.yml
 ```
 
+### Move group management off Grouper
+
+Switches the DE's group data — collaborator lists, teams, communities, and the
+`de-users`/`workshop-users` system groups — from Grouper to the `permissions` schema of
+the DE database, served by the new `groups` service. Afterwards terrain, apps, and
+group-propagator do not talk to Grouper or `iplant-groups` at all.
+
+Everything ships in this one window. Nothing runs against live traffic partway through,
+so there is no soak between the `permissions` deploy and the rest, and the
+`grouper-import` CronJob stays suspended throughout.
+
+The order below is load-bearing. The data source marker must flip *after* the import and
+*before* terrain is pointed at the new backend, and the community tag rewrite must run
+*after* the import and *before* the new `apps` image starts writing tags of its own.
+
+#### Ahead of the maintenance day
+
+The group tables arrive with the migrations in
+[step 6](#6-push-configuration-secrets-and-database-updates), which is safe to run early —
+nothing reads them until the window, and the dry runs below need them to exist.
+
+Deploy `groups` early too. It creates the `grouper-import-configs` secret the import Job
+needs, and the `grouper-import` CronJob, which ships suspended and stays that way.
+
+```bash
+ansible-playbook -i $INVENTORY --tags=groups deploy_it.yml
+```
+
+Then dry-run the import, repeatedly, until the report is boring — no unparsed names, no
+unexplained collisions, and orphan lists you have already read. A dry run reads Grouper
+and writes nothing.
+
+```bash
+ansible-playbook -i $INVENTORY grouper_import.yml -e dry_run=true
+ansible-playbook -i $INVENTORY grouper_cutover.yml --tags=preflight
+```
+
+The `preflight` tags are read-only and answer most of what could go wrong on the day.
+
+Do **not** set `terrain_groups_backend` in the inventory ahead of time. It defaults to
+`iplant-groups`; setting it early means an unrelated `configure-services` run flips
+terrain before any of the steps below have happened.
+
+#### In the window
+
+Deploy the two services the rest depends on. The `permissions` deploy is the one that can
+take the DE down — every permission check goes through it — so the verification below is
+not optional.
+
+```bash
+ansible-playbook -i $INVENTORY --tags=groups,permissions deploy_it.yml
+```
+
+Run the real import. Grouper's groups, memberships, and privileges land in the DE database
+here. Read the report: the closure line must be `0 missing, 0 unexpected`, and both
+"groups no longer in Grouper" and "groups created natively" should be none.
+
+```bash
+ansible-playbook -i $INVENTORY grouper_import.yml
+```
+
+Rewrite each app's community tag from the community's Grouper name to its ID. It must run
+after the import, whose recorded `legacy_name` values are the mapping. Orphan values are
+reported and deliberately left in place.
+
+```bash
+ansible-playbook -i $INVENTORY community_tags.yml -e dry_run=true
+ansible-playbook -i $INVENTORY community_tags.yml
+```
+
+Flip the data source marker. This checks its preconditions, moves the marker, and confirms
+it took; from here the importer refuses to run, because reconciling to Grouper would delete
+anything created natively.
+
+```bash
+ansible-playbook -i $INVENTORY grouper_cutover.yml
+```
+
+Finally set `terrain_groups_backend: groups` in the inventory's `group_vars` and deploy the
+rest of the cutover set:
+
+```bash
+ansible-playbook -i $INVENTORY --tags=configure-services kubernetes.yml
+ansible-playbook -i $INVENTORY --tags=terrain,apps,group-propagator,sonora deploy_it.yml
+```
+
+Check that the rendered config actually carries the toggle before trusting the terrain
+deploy — a rollout against a stale secret looks identical to one that worked, and this bit
+the rehearsal:
+
+```bash
+kubectl -n $NS get secret terrain-configs -o jsonpath='{.data.terrain\.properties}' \
+  | base64 -d | grep groups.backend
+```
+
+Sonora is a browser app, so its deploy is not atomic: users keep stale bundles as long as
+their tabs live. That is expected — `apps` accepts both the old and new community-tag
+request shapes.
+
+#### Verify before leaving maintenance mode
+
+- App and analysis listings, and app sharing, behave normally for a test account. These
+  exercise the permissions service's new in-database group expansion on every request.
+- A user sees apps shared with a group they belong to.
+- A community's `display_name` from terrain is its short name (`Imaging`), not a colon
+  path (`iplant:de:prod:communities:Imaging`).
+- Create a test team through terrain, add a member, list members, delete it. The group
+  appears in `permissions.groups`, and **nothing** new appears in Grouper.
+- An app tagged into a community before the cutover still appears in that listing.
+- group-propagator logs `Updated group ... -> @grouper-<id>`; the iRODS group names keep
+  that form because group IDs are preserved.
+- The `groups` status endpoint reports `{"database":true,"keycloak":true}`.
+
+**Leave the Grouper deployments running.** They take no writes from the DE any more, but
+they are the rollback path for the soak week.
+
+#### Rolling back
+
+While the DE is still in maintenance this is free: no users have access, so nothing has
+been written natively. Afterwards it discards group changes users made since the window —
+the trade the marker row exists to make explicit.
+
+Redeploy first, then re-enable the importer; doing it the other way round means the DE and
+the importer fight over the same rows.
+
+1. Set `terrain_groups_backend: iplant-groups`, re-run `configure-services`, and redeploy
+   the previous terrain, apps, group-propagator, and sonora images.
+2. Hand group data back to Grouper:
+
+   ```bash
+   ansible-playbook -i $INVENTORY grouper_cutover.yml --tags=rollback
+   ```
+
+3. Run `grouper_import.yml` to reconcile the database back to Grouper's state.
+4. Decide what happens to `permissions`. Its Grouper-backed code path was deleted rather
+   than toggled, so rolling it back means redeploying its previous image — which is why
+   its `grouperdb` config section has to stay in the deployed config until the rollback
+   window closes. If it instead stays on the new image while the rest of the DE runs
+   against Grouper, unsuspend the `grouper-import` CronJob: permission checks read group
+   data from the database, and without scheduled imports every group change made through
+   Grouper-backed terrain is invisible until the next import.
+
+#### After the soak
+
+Once production has run for at least a week with no Grouper-shaped problems, scale the
+Grouper stack to zero. Record the replica counts first, the same way
+[step 4](#4-quiesce-the-data-store-consumers) does:
+
+```bash
+kubectl -n $NS get deployments grouper-ws grouper-loader iplant-groups
+kubectl -n $NS scale deployments grouper-ws grouper-loader iplant-groups --replicas 0
+```
+
+Then re-check the verification list and sweep the terrain, apps, permissions, groups, and
+group-propagator logs for attempted Grouper or `iplant-groups` connections. The only
+acceptable mention is terrain's startup config echo of the unused
+`terrain.iplant-groups.base-url` key. Removing the Grouper deployments, databases, and
+roles from this repository is follow-up work for a later release.
+
 ## 8. Deploy the release's services
 
 ### Find the services in the release

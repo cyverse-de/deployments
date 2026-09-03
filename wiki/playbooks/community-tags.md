@@ -4,7 +4,7 @@ title: Rewriting App Community Tags
 description: Running the community-tags migration, which changes the community tag on an app from the community's name to its ID.
 resource: /ansible/community_tags.yml
 tags: [communities, apps, metadata, migration, groups]
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-09-03T00:00:00Z
 ---
 
 An app's community tag is an AVU on the app, stored under
@@ -57,6 +57,14 @@ own.** The importer has to have run first, because the mapping comes from the
 
 Running it again is a no-op — a value that is already a community ID is left
 alone — so a second run reporting `0 rewritten` is the expected end state.
+
+## Where it sits in the cutover
+
+It runs after [grouper-import](/playbooks/grouper-import.md), whose recorded
+`legacy_name` values are the mapping, and before the marker flip in
+[Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md) —
+which is to say before the new apps image starts writing ID-based tags of its
+own.
 
 ## Why it is a command and not a migration
 

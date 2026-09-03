@@ -4,7 +4,7 @@ title: Importing Groups from Grouper
 description: Running the grouper-import tool to copy DE group data out of Grouper into the permissions schema, and keeping it in step during the migration.
 resource: /ansible/grouper_import.yml
 tags: [grouper, groups, migration, import, cronjob]
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-09-03T00:00:00Z
 ---
 
 `grouper-import` copies DE group data out of [Grouper](/infrastructure/grouper.md)
@@ -60,7 +60,11 @@ Sonora have cut over.
 - **It refuses to run once `group_data_source` says this database is
   authoritative.** After cutover a reconcile would delete group data created
   natively, so there is deliberately no override flag: setting the marker back to
-  `grouper` is the explicit, attributed act that re-enables it.
+  `grouper` is the explicit, attributed act that re-enables it. The guard runs
+  ahead of the dry-run check, so past the flip `-e dry_run=true` refuses too —
+  anything that has to read Grouper and compare belongs before it. Both the flip
+  and the way back are
+  [Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md).
 - **It never deletes groups.** A group that vanished from Grouper is reported,
   not removed — deleting one cascades away every permission granted to it.
 - **It takes an advisory lock**, so two runs cannot interleave.
