@@ -2,6 +2,13 @@
 # Recorded in the group_data_source row as who performed the cutover. Free text:
 # this is an operator, not a DE user or subject. The column rejects whitespace,
 # so preflight fails rather than letting an empty USER through.
+#
+# $USER is the workstation account, which is not necessarily the CyVerse
+# username; override it when they differ. A value containing spaces has to go
+# through the JSON form -- `-e key=value` splits on the first space and keeps
+# the head, silently recording a truncated name:
+#
+#     -e '{"grouper_cutover_changed_by": "First Last"}'
 grouper_cutover_changed_by: "{{ lookup('env', 'USER') }}"
 
 grouper_cutover_note: >-
