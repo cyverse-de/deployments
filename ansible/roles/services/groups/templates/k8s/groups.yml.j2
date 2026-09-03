@@ -75,9 +75,12 @@ spec:
           ports:
             - name: listen-port
               containerPort: 60000
+          # Deliberately not the database-backed / probe: that answers 503
+          # while the database is unreachable, so probing it here would restart
+          # every replica during an outage a restart cannot fix.
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 60000
             initialDelaySeconds: 5
             periodSeconds: 5

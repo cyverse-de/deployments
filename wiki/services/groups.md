@@ -165,8 +165,10 @@ The permissions service reads the same variable.
 
 Runtime: a Deployment with `groups_replicas` (default 2) and optional pod
 anti-affinity, listening on port 60000 behind a `groups` Service on port 80.
-Health probes hit `/`, which gates readiness on the database (503 when the
-ping fails). Group create, update, delete, and membership changes are
+Readiness hits `/`, which gates it on the database (503 when the ping fails);
+liveness hits `/healthz`, which touches nothing. Probing the database-backed
+endpoint for liveness restarts every replica during a database outage, which a
+restart cannot fix. Group create, update, delete, and membership changes are
 published to the `de` exchange on the DE [RabbitMQ](/infrastructure/rabbitmq.md)
 broker for downstream re-indexing, matching the messages iplant-groups emitted.
 
