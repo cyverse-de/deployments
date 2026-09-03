@@ -35,6 +35,19 @@ environment's Ansible inventory and `group_vars`. Required tool versions are lis
 [ansible/docs/index.md](../ansible/docs/index.md) — `ansible`, `kubectl`, `helm`,
 `skaffold`, `golang-migrate`, `psql`, and `k0sctl`.
 
+Ansible also needs two Python libraries in the interpreter it runs modules with:
+`psycopg2` for the `community.postgresql` modules and `kubernetes` for the
+`kubernetes.core` ones. Several playbooks in this document use both, and a missing one
+surfaces as a module failure partway through a run rather than at startup, so check
+before the window:
+
+```bash
+python3 -c 'import psycopg2, kubernetes'
+```
+
+The [macOS note](#macos-note) below covers installing them where Homebrew's Python makes
+that awkward.
+
 All `ansible-playbook` commands below are run from the `ansible/` directory of this
 repository.
 
