@@ -276,6 +276,11 @@ not optional.
 ansible-playbook -i $INVENTORY --tags=groups,permissions deploy_it.yml
 ```
 
+`groups` is safe to deploy days early; `permissions` is not. The new `permissions` image
+expands groups from the database, so between its deploy and the import finishing, every
+group-granted permission reads as absent. That is harmless with users locked out and an
+outage with them present, which is why it belongs here and not in the preparation above.
+
 Run the real import. Grouper's groups, memberships, and privileges land in the DE database
 here. Read the report: the closure line must be `0 missing, 0 unexpected`, and both
 "groups no longer in Grouper" and "groups created natively" should be none.
