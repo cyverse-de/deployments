@@ -19,9 +19,10 @@
 * **Update**: [groups](/services/groups.md) — the `group_data_source` note now
   names the playbook that moves the marker.
 * **Update**: [Production Release Procedure](/playbooks/production-release.md) —
-  the one-time migrations step now names the Grouper cutover alongside the
-  notifications database merge. `docs/production-release.md` gained the matching
-  section under §7.
+  the notifications database merge, job-status consolidation, and
+  subscriptions/qms merge have all shipped to production, so their sections are
+  gone from `docs/production-release.md` §7. The Grouper cutover is the one
+  outstanding one-time migration, and §7 now carries only it.
 
 ## 2026-09-01
 

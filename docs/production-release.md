@@ -219,73 +219,9 @@ your `PATH`.
 ## 7. One-time migrations for the current release
 
 > **This section is transient.** It covers cutover steps that run once, for a specific
-> release, and is deleted once that release has shipped to every environment. If the
-> release you are deploying does not include these migrations, skip to
+> release, and each is deleted once it has shipped to every environment. If the release
+> you are deploying does not include the migration below, skip to
 > [step 8](#8-deploy-the-releases-services).
-
-### Move the notifications database into the DE database
-
-The migrations that create the new schema in the `de` database run as part of
-[step 6](#6-push-configuration-secrets-and-database-updates) — this is a reminder to go
-back and run them if you skipped ahead.
-
-Deploy the `apps` service first. It contains the code that works with the new schema;
-job-status notifications from the previous version raise errors against it.
-
-```bash
-ansible-playbook -i $INVENTORY --tags=apps deploy_it.yml
-```
-
-Run the merge. It dumps the standalone notifications database and loads it into the `de`
-database, transforming the data to fit the new table layout.
-
-```bash
-ansible-playbook -i $INVENTORY notifications_db_merge.yml
-```
-
-Deploy the `notifications` service. Doing it now avoids orphaning data — the old version
-would write bare usernames into the `public.users` table.
-
-```bash
-ansible-playbook -i $INVENTORY --tags=notifications deploy_it.yml
-```
-
-Run the merge again to catch anything written between the two deploys.
-
-```bash
-ansible-playbook -i $INVENTORY notifications_db_merge.yml
-```
-
-### Deploy the consolidated job-status service
-
-This deploys `job-status`, cleans out the retired `job-status-recorder`,
-`job-status-listener`, and `job-status-to-apps-adapter` services, and reconfigures batch
-analyses to send updates to `job-status`.
-
-```bash
-ansible-playbook -i $INVENTORY --tags=job-status deploy_it.yml
-ansible-playbook -i $INVENTORY --tags=networking,ingress,argo kubernetes.yml
-ansible-playbook -i $INVENTORY --tags=app-exposer deploy_it.yml
-```
-
-The `app-exposer` deploy also removes the retired `timelord` and `vice-status-listener`
-resources, whose work moved into `app-exposer` and `vice-operator` respectively. Neither
-is a deployable service any more, so neither has a tag of its own.
-
-### Deploy the consolidated subscriptions service
-
-`subscriptions` now incorporates `qms`.
-
-```bash
-# Deploy the new subscriptions service
-ansible-playbook -i $INVENTORY --tags=subscriptions deploy_it.yml
-
-# Point terrain at subscriptions instead of qms; also picks up any terrain updates
-ansible-playbook -i $INVENTORY --tags=terrain deploy_it.yml
-
-# Clean out the old qms service
-ansible-playbook -i $INVENTORY qms_cleanup.yml
-```
 
 ### Move group management off Grouper
 
