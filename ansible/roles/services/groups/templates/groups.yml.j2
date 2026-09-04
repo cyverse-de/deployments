@@ -18,21 +18,25 @@ userinfo:
   backend: "{{ groups_userinfo_backend }}"
 
 {% if groups_userinfo_backend == 'portal-conductor' %}
-# Read only under the portal-conductor backend: it queries the directory
-# directly, so the institution does not depend on a Keycloak attribute mapper.
+# It queries the directory directly, so the institution does not depend on a
+# Keycloak attribute mapper.
 portal-conductor:
   base-url: "{{ portal_conductor_url | string | regex_replace('\\/$', '') }}"
   username: "{{ portal_conductor_auth_username }}"
   password: "{{ portal_conductor_auth_password }}"
 
 {% endif %}
-# Keycloak supplies user attributes only -- names, email addresses, and
-# institutions. The service account needs to read users, not to manage groups.
+{% if groups_userinfo_backend == 'keycloak' %}
+# Keycloak supplies user attributes only -- names and email addresses. The
+# service account needs to read users, not to manage groups. It cannot supply
+# the institution: that lives in the directory's `o` attribute, which no
+# keycloak_config mapper brings into the realm.
 keycloak:
   base-url: "{{ keycloak_server_uri }}"
   realm: "{{ keycloak_realm_name }}"
   client-id: "{{ groups_keycloak_client_id }}"
   client-secret: "{{ groups_keycloak_client_secret }}"
+{% endif %}
 
 # Group authorization is delegated to the permissions service, where each group
 # is a resource of type "group".

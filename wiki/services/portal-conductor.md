@@ -20,11 +20,12 @@ repo is [cyverse-de/portal-conductor](https://github.com/cyverse-de/portal-condu
 and the image is `harbor.cyverse.org/de/portal-conductor`, pinned in
 `ansible/roles/services/portal-conductor/files/portal-conductor.json`.
 
-Its LDAP user endpoints are also read by the
-[groups](/services/groups.md) service when `groups_userinfo_backend` is
-`portal-conductor`: `POST /ldap/users/search` resolves a whole group's members
-in one request, and it reports the `o` attribute as the institution, which
-Keycloak omits because `keycloak_config` creates no attribute mapper for it.
+Its LDAP user endpoints are also how the [groups](/services/groups.md) service
+reads user attributes by default: `POST /ldap/users/search` resolves a whole
+group's members in one request, and it reports the `o` attribute as the
+institution, which Keycloak omits because `keycloak_config` creates no attribute
+mapper for it. That makes groups depend on this service for display data — a
+deliberate choice over mapping `o` into the Keycloak realm.
 
 Configuration: the role renders `templates/portal-conductor.json.j2` into the
 `portal-conductor-configs` secret (skipped when `load_configs` is false),

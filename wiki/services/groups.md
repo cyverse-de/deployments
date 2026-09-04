@@ -158,16 +158,21 @@ Configuration: the role renders `templates/groups.yml.j2` into the
 `dbms_connection_*`/`permissions_db_name` database settings.
 
 `groups_userinfo_backend` selects where the service reads display names,
-emails, and institutions: `keycloak` (the default) or `portal-conductor`. Both
-read the same people — Keycloak federates the directory
-[portal-conductor](/services/portal-conductor.md) queries directly — but the two
-differ in cost and in coverage. Keycloak has no bulk lookup by username, so
-resolving a member listing costs one request per member; portal-conductor
-answers the whole listing in one. Keycloak also reports an institution only if
-the realm carries an LDAP attribute mapper for the `o` attribute, and
-`keycloak_config` does not create one, so under the Keycloak backend every
-subject's institution is empty. Under `portal-conductor` it comes straight from
-the directory.
+emails, and institutions: `portal-conductor` (the default) or `keycloak`. Both
+read the same people — [portal-conductor](/services/portal-conductor.md) queries
+the directory Keycloak federates — but the two differ in cost and in coverage.
+Keycloak has no bulk lookup by username, so resolving a member listing costs one
+request per member; portal-conductor answers the whole listing in one.
+
+Keycloak also cannot report an institution. That value is the directory's `o`
+attribute, and reaching the realm would need a `user-attribute-ldap-mapper` for
+it, which [keycloak_config](/infrastructure/keycloak.md) deliberately does not
+create — the decision is to read this through portal-conductor rather than to
+map another attribute into Keycloak. Under the Keycloak backend every subject's
+institution is therefore empty, where [Grouper](/infrastructure/grouper.md)
+reported it because `iplant-groups` read the directory directly.
+
+Only the selected backend's settings are rendered into the config.
 
 Either way a directory outage degrades display data rather than authorization:
 members are reported by bare identifier and the listing still succeeds.
