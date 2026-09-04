@@ -157,6 +157,21 @@ Configuration: the role renders `templates/groups.yml.j2` into the
 `groups_user_suffix`, `groups_admin_users`, and the shared
 `dbms_connection_*`/`permissions_db_name` database settings.
 
+`groups_userinfo_backend` selects where the service reads display names,
+emails, and institutions: `keycloak` (the default) or `portal-conductor`. Both
+read the same people — Keycloak federates the directory
+[portal-conductor](/services/portal-conductor.md) queries directly — but the two
+differ in cost and in coverage. Keycloak has no bulk lookup by username, so
+resolving a member listing costs one request per member; portal-conductor
+answers the whole listing in one. Keycloak also reports an institution only if
+the realm carries an LDAP attribute mapper for the `o` attribute, and
+`keycloak_config` does not create one, so under the Keycloak backend every
+subject's institution is empty. Under `portal-conductor` it comes straight from
+the directory.
+
+Either way a directory outage degrades display data rather than authorization:
+members are reported by bare identifier and the listing still succeeds.
+
 `groups_user_suffix` is appended to a bare username to find the matching
 `public.users` row, because `subjects.subject_id` holds bare usernames while
 `public.users.username` carries a domain. A wrong value leaves those

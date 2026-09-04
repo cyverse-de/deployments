@@ -11,3 +11,11 @@ groups_pod_anti_affinity: true
 grouper_import_suspended: true
 grouper_import_schedule: "*/15 * * * *"
 grouper_import_phase: all
+
+# Where the groups service reads display names, emails, and institutions:
+# keycloak or portal-conductor. Both read the same directory -- Keycloak
+# federates the one portal-conductor queries -- but portal-conductor resolves a
+# whole member listing in one request where Keycloak costs one call per member,
+# and it reports the institution, which reaches Keycloak only through an LDAP
+# attribute mapper for `o` that this deployment does not configure.
+groups_userinfo_backend: keycloak

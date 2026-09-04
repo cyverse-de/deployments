@@ -13,6 +13,19 @@ db:
 users:
   suffix: "{{ groups_user_suffix }}"
 
+# Where user attributes come from. See groups_userinfo_backend.
+userinfo:
+  backend: "{{ groups_userinfo_backend }}"
+
+{% if groups_userinfo_backend == 'portal-conductor' %}
+# Read only under the portal-conductor backend: it queries the directory
+# directly, so the institution does not depend on a Keycloak attribute mapper.
+portal-conductor:
+  base-url: "{{ portal_conductor_url | string | regex_replace('\\/$', '') }}"
+  username: "{{ portal_conductor_auth_username }}"
+  password: "{{ portal_conductor_auth_password }}"
+
+{% endif %}
 # Keycloak supplies user attributes only -- names, email addresses, and
 # institutions. The service account needs to read users, not to manage groups.
 keycloak:
