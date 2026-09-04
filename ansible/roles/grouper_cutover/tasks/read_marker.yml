@@ -1,0 +1,28 @@
+---
+# Reads the single row of permissions.group_data_source. Imported by both
+# preflight and flip: --tags=flip on its own would otherwise die on an
+# undefined grouper_cutover_source, and indexing the result directly turns a
+# missing seed row into a list-index error rather than something actionable.
+- name: Read the group data source marker
+  community.postgresql.postgresql_query:
+    login_host: "{{ db_login_host }}"
+    login_port: "{{ pg_listen_port }}"
+    login_user: "{{ pg_login_user }}"
+    login_password: "{{ pg_login_password }}"
+    login_db: "{{ permissions_db_name }}"
+    query: SELECT source, changed_by FROM permissions.group_data_source
+  register: grouper_cutover_marker
+  changed_when: false
+
+- name: Fail if the marker row is missing
+  ansible.builtin.fail:
+    msg: >-
+      permissions.group_data_source holds
+      {{ grouper_cutover_marker.query_result | length }} rows, not 1. The
+      de-database migrations seed it with a single row; restore it before
+      running the cutover.
+  when: grouper_cutover_marker.query_result | length != 1
+
+- name: Record the marker
+  ansible.builtin.set_fact:
+    grouper_cutover_source: "{{ grouper_cutover_marker.query_result[0].source }}"

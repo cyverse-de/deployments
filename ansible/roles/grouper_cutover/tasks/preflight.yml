@@ -1,0 +1,135 @@
+---
+# Read-only. Everything here is safe to run at any point before the window, and
+# running it early is the point: each check that fails on the day is one that
+# could have been answered a week earlier.
+- name: Check that the cutover can proceed
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Require an operator name for the audit row
+      ansible.builtin.assert:
+        that:
+          - grouper_cutover_changed_by is search('\\S')
+        fail_msg: >-
+          grouper_cutover_changed_by is empty. It is recorded as who flipped the
+          marker and the column rejects whitespace, so pass it explicitly:
+          -e grouper_cutover_changed_by=<your-username>
+
+    # Asked separately from the row read below: Postgres parses a statement
+    # whole, so a query naming the table fails outright when the migrations have
+    # not run, and the operator gets "relation does not exist" instead of being
+    # told which playbook to run.
+    - name: Check that the group tables exist
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ permissions_db_name }}"
+        query: SELECT to_regclass('permissions.group_data_source') IS NOT NULL AS present
+      register: grouper_cutover_schema_check
+      changed_when: false
+
+    - name: Fail if the group tables are missing
+      ansible.builtin.fail:
+        msg: >-
+          permissions.group_data_source does not exist in the
+          {{ permissions_db_name }} database. Run the de-database migrations
+          before the cutover:
+          ansible-playbook -i <inventory> --tags=update-databases kubernetes.yml
+      when: not grouper_cutover_schema_check.query_result[0].present
+
+    - name: Read the group data source marker
+      ansible.builtin.import_tasks:
+        file: read_marker.yml
+
+    # An unsuspended CronJob is not merely noise after the flip: every scheduled
+    # run refuses and exits nonzero, which reads as a service failing rather than
+    # as a job doing what it was told.
+    - name: Read the grouper-import CronJob
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s_info:
+        api_version: batch/v1
+        kind: CronJob
+        name: grouper-import
+        namespace: "{{ ns }}"
+      register: grouper_cutover_cronjob
+
+    - name: Require the importer to be suspended
+      ansible.builtin.assert:
+        that:
+          - grouper_cutover_cronjob.resources | length > 0
+          - grouper_cutover_cronjob.resources[0].spec.suspend | default(false) | bool
+        fail_msg: >-
+          The grouper-import CronJob is missing or not suspended in namespace
+          {{ ns }}. Deploy the groups service, then suspend it:
+          kubectl -n {{ ns }} patch cronjob grouper-import -p '{"spec":{"suspend":true}}'
+
+    - name: Read the deployments the cutover depends on
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: "{{ item }}"
+        namespace: "{{ ns }}"
+      register: grouper_cutover_deployments
+      loop: "{{ grouper_cutover_required_deployments }}"
+
+    - name: Require those deployments to be serving
+      ansible.builtin.assert:
+        that:
+          - item.resources | length > 0
+          - (item.resources[0].status.availableReplicas | default(0) | int) > 0
+        fail_msg: >-
+          {{ item.item }} has no available replicas in namespace {{ ns }}. Deploy
+          it before flipping the marker: ansible-playbook -i <inventory>
+          --tags={{ grouper_cutover_required_deployments | join(',') }} deploy_it.yml
+      loop: "{{ grouper_cutover_deployments.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Count what the import landed
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ permissions_db_name }}"
+        query: >-
+          SELECT (SELECT count(*) FROM permissions.groups) AS group_count,
+                 (SELECT count(*) FROM permissions.groups
+                   WHERE legacy_name IS NOT NULL) AS imported_groups,
+                 (SELECT count(*) FROM permissions.groups
+                   WHERE group_type = 'community') AS communities,
+                 (SELECT count(*) FROM permissions.group_memberships) AS memberships,
+                 (SELECT count(*) FROM permissions.group_effective_members) AS effective_members
+      register: grouper_cutover_counts
+      changed_when: false
+
+    - name: Report what the cutover would flip
+      ansible.builtin.debug:
+        msg: >-
+          group_data_source is {{ grouper_cutover_source }} (set by
+          {{ grouper_cutover_marker.query_result[0].changed_by }});
+          {{ grouper_cutover_counts.query_result[0] }}
+
+    # A marker still reading grouper with an empty schema means the import has
+    # not run. Flipping here would cut the DE over to no group data at all.
+    - name: Require the import to have run
+      ansible.builtin.assert:
+        that:
+          - grouper_cutover_counts.query_result[0].imported_groups | int > 0
+          - grouper_cutover_counts.query_result[0].effective_members | int > 0
+        fail_msg: >-
+          The permissions schema holds
+          {{ grouper_cutover_counts.query_result[0].imported_groups }} imported groups
+          and {{ grouper_cutover_counts.query_result[0].effective_members }} effective
+          memberships. Run the import, and read its report, before the flip:
+          ansible-playbook -i <inventory> grouper_import.yml
+        success_msg: >-
+          {{ grouper_cutover_counts.query_result[0].imported_groups }} imported groups
+          ({{ grouper_cutover_counts.query_result[0].communities }} communities),
+          {{ grouper_cutover_counts.query_result[0].memberships }} direct memberships,
+          {{ grouper_cutover_counts.query_result[0].effective_members }} effective memberships.

@@ -28,6 +28,31 @@ configured for the DE realm. The key clients are:
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.
 
+### Which realm a service account's roles come from
+
+`keycloak_config` grants service-account roles from three separate lists, and
+picking the wrong one produces a client that authenticates successfully and then
+gets a 403 on every call — a failure that looks like a bad secret but is not.
+
+| Variable | Realm | Grants |
+|---|---|---|
+| `keycloak_config_service_account_roles` | DE | realm roles (e.g. `vice-operator`) |
+| `keycloak_config_client_service_account_roles` | DE | client roles (e.g. `realm-management` → `view-users`) |
+| `keycloak_config_master_service_account_roles` | master | client roles on `<realm>-realm` |
+
+The distinction that matters is where the service *logs in*. terrain's admin
+client uses the master list because terrain builds its token URL against
+`realms/master` by name; a client of the same name in the DE realm would
+authenticate from nothing terrain does.
+
+`keycloak_config_client_service_account_roles` is currently empty. The
+[groups](/services/groups.md) service used to hold `view-users` there to read
+user attributes, and reads them from
+[portal-conductor](/services/portal-conductor.md) instead. Note for whenever it
+is next used: `view-users` is a client role of the built-in `realm-management`
+client, not a realm role, so granting it by name in the realm-roles list
+silently matches nothing and the service account 403s on every call.
+
 ## Deployment
 
 Keycloak is installed by the `keycloak_install` role, which runs in `kubernetes.yml` under

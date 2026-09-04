@@ -65,6 +65,11 @@ terrain.jwt.signing-key.password = {{ jwt_signing_key_password }}
 # iplant-groups connection settings
 terrain.iplant-groups.base-url = {{ baseurls_iplant_groups|string|regex_replace("\/$","") }}
 
+# Groups service connection settings. The backend selects which of the two
+# clients above serves group requests; see terrain_groups_backend.
+terrain.groups.base-url = {{ baseurls_groups|string|regex_replace("\/$","") }}
+terrain.groups.backend  = {{ terrain_groups_backend }}
+
 # Permissions service connection settings
 terrain.permissions.base-url = {{ baseurls_permissions|string|regex_replace("\/$","") }}
 

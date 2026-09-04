@@ -1,0 +1,52 @@
+---
+# The one irreversible-feeling moment in the window. After this the importer
+# refuses to run -- reconciling to Grouper would delete anything created
+# natively -- so it must land after the import and before terrain is pointed at
+# the new backend.
+- name: Make the DE database authoritative for group data
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Read the group data source marker
+      ansible.builtin.import_tasks:
+        file: read_marker.yml
+
+    - name: Note that the marker has already been flipped
+      ansible.builtin.debug:
+        msg: >-
+          group_data_source already reads {{ grouper_cutover_source }}; leaving it
+          alone. Use --tags rollback to hand group data back to Grouper.
+      when: grouper_cutover_source != 'grouper'
+
+    # changed_at is maintained by trigger_group_data_source_changed_at, so
+    # setting it here would be overwritten anyway. The WHERE clause makes a
+    # second run a no-op rather than a second audit entry with a new timestamp.
+    - name: Flip the marker to native
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ permissions_db_name }}"
+        query: >-
+          UPDATE permissions.group_data_source
+             SET source = 'native', changed_by = %(changed_by)s, note = %(note)s
+           WHERE source = 'grouper'
+        named_args:
+          changed_by: "{{ grouper_cutover_changed_by }}"
+          note: "{{ grouper_cutover_note }}"
+      register: grouper_cutover_flip
+      when: grouper_cutover_source == 'grouper'
+
+    - name: Confirm exactly one row moved
+      ansible.builtin.assert:
+        that:
+          - grouper_cutover_flip.rowcount | default(0) | int == 1
+        fail_msg: >-
+          The flip updated {{ grouper_cutover_flip.rowcount | default(0) }} rows, not 1.
+          group_data_source is meant to hold a single row; check it by hand
+          before going any further.
+        success_msg: >-
+          group_data_source is now native, recorded against
+          {{ grouper_cutover_changed_by }}.
+      when: grouper_cutover_source == 'grouper'

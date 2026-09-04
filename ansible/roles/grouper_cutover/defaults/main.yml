@@ -1,0 +1,27 @@
+---
+# Recorded in the group_data_source row as who performed the cutover. Free text:
+# this is an operator, not a DE user or subject. The column rejects whitespace,
+# so preflight fails rather than letting an empty USER through.
+#
+# $USER is the workstation account, which is not necessarily the CyVerse
+# username; override it when they differ. A value containing spaces has to go
+# through the JSON form -- `-e key=value` splits on the first space and keeps
+# the head, silently recording a truncated name:
+#
+#     -e '{"grouper_cutover_changed_by": "First Last"}'
+grouper_cutover_changed_by: "{{ lookup('env', 'USER') }}"
+
+grouper_cutover_note: >-
+  Cutover {{ now(utc=true).strftime('%Y-%m-%d') }}: group data is now native to
+  the DE database.
+
+# Services that must be serving before the marker moves. Deploying them is what
+# creates the schema readers; flipping ahead of them leaves the DE reading group
+# data nothing is maintaining.
+grouper_cutover_required_deployments:
+  - groups
+  - permissions
+
+# Set to re-enable the Grouper importer during a rollback. See tasks/rollback.yml.
+grouper_cutover_rollback_note: >-
+  Rollback {{ now(utc=true).strftime('%Y-%m-%d') }}: Grouper is authoritative again.

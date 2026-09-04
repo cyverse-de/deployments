@@ -31,6 +31,7 @@ apps.workspace.metadata.category.attrs      = rdf:type, http://edamontology.org/
 apps.workspace.metadata.beta.attr.iri       = n2t.net/ark:/99152/h1459
 apps.workspace.metadata.beta.attr.label     = releaseStatus
 apps.workspace.metadata.beta.value          = beta
+apps.workspace.metadata.communities.attr    = {{ apps_communities_attr }}
 
 # The domain name to append to the user id to get the fully qualified user id.
 apps.uid.domain = {{ uid_domain }}
@@ -79,9 +80,9 @@ apps.analyses.base-url = {{ baseurls_analyses.rstrip("/")}}
 # The base URL for async-tasks.
 apps.async-tasks.base-url = {{ baseurls_async_tasks.rstrip("/")}}
 
-# The base URL for iplant-groups.
-apps.iplant-groups.base-url     = {{ baseurls_iplant_groups.rstrip("/")}}
-apps.iplant-groups.grouper-user = de_grouper
+# The base URL for the groups service.
+apps.groups.base-url = {{ baseurls_groups.rstrip("/")}}
+apps.groups.user     = de_grouper
 
 # Metadata connection settings
 apps.metadata.base-url = {{ baseurls_metadata.rstrip("/")}}

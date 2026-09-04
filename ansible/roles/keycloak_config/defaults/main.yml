@@ -128,6 +128,17 @@ keycloak_config_service_account_roles:
   - client_id: "{{ vice_api_keycloak_client_id }}"
     roles: [vice-operator]
 
+# Client roles granted to service accounts in this realm, as
+# {client_id, role_client_id, roles}. Separate from the list above because a
+# client role is scoped to the client that defines it: view-users belongs to
+# the built-in realm-management client, not to the realm, so granting it by
+# name alone finds no such realm role and the service account authenticates
+# fine and then 403s on every user lookup.
+#
+# Empty for now: the groups service used to hold view-users here to read user
+# attributes, and reads them from portal-conductor instead.
+keycloak_config_client_service_account_roles: []
+
 # ---------------------------------------------------------------------
 # master realm
 # ---------------------------------------------------------------------

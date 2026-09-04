@@ -1,3 +1,7 @@
 ---
 permissions_replicas: 2
 permissions_pod_anti_affinity: true
+
+# Caps subject expansion when a caller requests expand_groups on a resource's
+# permissions. Exceeding it is an error rather than a truncated list.
+permissions_max_expanded_subjects: 10000

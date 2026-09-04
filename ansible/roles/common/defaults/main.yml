@@ -123,6 +123,17 @@ agave_storage_system: replace_me
 agave_callback_base_uri: http://replace_me
 agave_read_timeout: 30000
 
+# The AVU attribute an app's community tag is stored under. The community-tag
+# migration must agree with apps on this, or it rewrites nothing and reports a
+# clean run, so both read it from here.
+apps_communities_attr: cyverse-community
+
+# Which store terrain reads groups from: "iplant-groups" (Grouper) or "groups".
+# Do not set this to "groups" until the apps image carries ID-based community
+# tags -- terrain's new backend does not block renames, so an older apps orphans
+# every tag on the first community rename, silently.
+terrain_groups_backend: iplant-groups
+
 # Base URLS for services within the K3s cluster
 baseurls_analyses: http://analyses
 baseurls_apps: http://apps
@@ -131,6 +142,7 @@ baseurls_async_tasks: http://async-tasks
 baseurls_dashboard_aggregator: http://dashboard-aggregator
 baseurls_data_info: http://data-info
 baseurls_grouper_web_services: http://grouper-ws/grouper-ws
+baseurls_groups: http://groups
 baseurls_info_typer: http://info-typer
 baseurls_iplant_email: http://notifications/mail
 baseurls_iplant_groups: http://iplant-groups
@@ -319,6 +331,24 @@ gocd_skaffold_url: https://storage.googleapis.com/skaffold/releases/latest/skaff
 
 # Grid Institutions CSV settings
 grid_csv_repo: https://data.cyverse.org/dav-anon/iplant/home/wregglej/grid_institutions/grid_institutions.zip
+
+# Groups service. Groups and membership live in the permissions schema of the DE
+# database; Keycloak supplies user attributes only, so this client needs to read
+# users rather than manage groups.
+
+# Appended to a bare username to find the matching public.users row. Must match
+# the suffix this deployment's DE usernames actually use: a wrong value leaves
+# subject-to-user correlations empty instead of failing.
+groups_user_suffix: "@iplantcollaborative.org"
+
+# Service accounts that bypass every per-group permission check in the groups
+# service, granting full administrative control over every group. This must
+# contain the account terrain, apps, and group-propagator call it as
+# (de_grouper), or those services see only what an ordinary user sees: apps
+# 500s resolving communities, and group-propagator receives withheld member
+# lists and would erase iRODS group ACLs if it did not refuse them.
+groups_admin_users:
+  - de_grouper
 
 # QA-specific settings
 qa_ceph_password: replace_me
@@ -1043,6 +1073,7 @@ source_repos:
   - dewey
   - formation
   - group-propagator
+  - groups
   - info-typer
   - infosquito2
   - iplant-groups

@@ -1,0 +1,52 @@
+---
+# Deploys the Grouper importer: the credentials it needs and a CronJob that runs
+# it. Separate from the service tasks so that deploying the groups service does
+# not imply running an import, and so the importer can be updated on its own.
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: create the grouper-import-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: grouper-import-configs
+            namespace: "{{ ns }}"
+          # The importer reads these as flags with GROUPS_IMPORT_* environment
+          # fallbacks, so credentials never appear in a command line that ps can
+          # read.
+          stringData:
+            GROUPS_IMPORT_GROUPER_URI: >-
+              postgresql://{{ grouper_db_user }}:{{ grouper_db_pass | urlencode }}@{{ grouper_db_host }}:{{ grouper_db_port }}/{{ grouper_db_name }}?sslmode=disable
+            GROUPS_IMPORT_GROUPER_PREFIX: "{{ grouper_folder_name_prefix }}"
+            GROUPS_IMPORT_DB_URI: >-
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ permissions_db_name }}?sslmode=disable
+            GROUPS_IMPORT_DB_SCHEMA: "permissions"
+            GROUPS_IMPORT_USER_SUFFIX: "{{ groups_user_suffix }}"
+            GROUPS_IMPORT_PERMISSIONS_BASE: "{{ baseurls_permissions | string | regex_replace('\\/$', '') }}"
+            GROUPS_IMPORT_PHASE: "{{ grouper_import_phase }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    # The importer ships in the groups image, but this CronJob is applied
+    # directly rather than through skaffold, so nothing substitutes the digest
+    # the way it does for the Deployment. Read it from the role's own build
+    # descriptor -- deploy-service reads {{ build_json_dir }}, which coincides
+    # with this path only at its default, so a build_json_dir override is not
+    # honored here. Without a digest the manifest's bare image name resolves
+    # to :latest, which is never pushed, and the job sits in ImagePullBackOff.
+    - name: read the groups build descriptor
+      run_once: true
+      ansible.builtin.set_fact:
+        grouper_import_image: >-
+          {{ (lookup('file', role_path ~ '/files/groups.json') | from_json).builds[0].tag }}
+
+    - name: deploy the grouper-import cronjob
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ns }}"
+        definition: "{{ lookup('template', 'k8s/grouper-import.yml.j2') | from_yaml }}"

@@ -4,7 +4,7 @@ title: Production Release Procedure
 description: The end-to-end production release run — maintenance mode, quiescing Data Store consumers, config and database updates, service deploys, and node updates.
 resource: /docs/production-release.md
 tags: [release, production, maintenance, deploy, ansible]
-timestamp: 2026-08-20T00:00:00Z
+timestamp: 2026-09-03T00:00:00Z
 ---
 
 A release is the set of git refs recorded across every service's build
@@ -54,10 +54,12 @@ with access to that cluster, and its kubeconfig.
    Grouper, QMS, Harbor, [Keycloak](/infrastructure/keycloak.md), the portal,
    and Grafana the inventory enables — see [PostgreSQL](/infrastructure/postgresql.md).
 5. **Run any one-time migrations.** Cutover steps that belong to a specific
-   release rather than to every release, such as
-   [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md).
-   `docs/production-release.md` carries these in a section that is deleted once
-   the release has shipped everywhere.
+   release rather than to every release. `docs/production-release.md` carries
+   each in a section that is deleted once it has shipped everywhere; the one
+   outstanding is
+   [Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md).
+   The notifications database merge, the job-status consolidation, and the
+   subscriptions/qms merge have all shipped to production and are gone from it.
 6. **Deploy the release's services.** Find them by searching the descriptors for
    the release tag, then deploy with `deploy_it.yml --tags <service>`. Every
    service is a tag on that playbook.

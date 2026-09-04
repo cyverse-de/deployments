@@ -278,6 +278,7 @@
     - role: services/kifshare
     - role: services/metadata
     - role: services/notifications
+    - role: services/groups
     - role: services/permissions
     - role: services/requests
     - role: services/resource-usage-api

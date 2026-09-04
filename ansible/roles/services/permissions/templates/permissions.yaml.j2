@@ -4,6 +4,22 @@ db:
   uri: "postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ permissions_db_name }}?sslmode=disable"
   schema: "permissions"
 
+# Appended to a bare username to find the matching public.users row when this
+# service creates a subject. Shares a value with the groups service; the two must
+# agree or they will correlate subjects differently.
+users:
+  suffix: "{{ groups_user_suffix }}"
+
+permissions:
+  # Caps how many subjects one resource's permissions may expand to when a caller
+  # asks for group expansion. de-users contains essentially every DE user, so an
+  # uncapped expansion of a public resource is unbounded work.
+  max_expanded_subjects: {{ permissions_max_expanded_subjects }}
+
+# Retained for rollback only. Builds from permissions#31 onwards ignore this
+# section -- the service reads group membership from the permissions schema and
+# no longer connects to Grouper -- but the previous image fails to start without
+# it. Remove once the rollback window has closed.
 grouperdb:
   uri: "postgresql://{{ grouper_db_user }}:{{ grouper_db_pass | urlencode }}@{{ grouper_db_host }}:{{ grouper_db_port }}/{{ grouper_db_name }}?sslmode=disable"
   folder_name_prefix: "{{ grouper_folder_name_prefix }}"

@@ -1,0 +1,38 @@
+---
+# Moves the DE's group data from Grouper to the permissions schema of the DE
+# database. The rows are already there by the time this runs -- grouper_import.yml
+# puts them there -- and this playbook flips the marker that decides which store
+# is authoritative, having first checked that everything the flip depends on is
+# in place.
+#
+#   ansible-playbook -i <inventory> grouper_cutover.yml --tags preflight
+#   ansible-playbook -i <inventory> grouper_cutover.yml
+#   ansible-playbook -i <inventory> grouper_cutover.yml --tags rollback
+#
+# ORDERING: the marker must move after the import and before terrain is pointed
+# at the new backend.
+#
+#   1. apply the de-database migrations (--tags=update-databases kubernetes.yml)
+#   2. deploy groups and permissions (--tags=groups,permissions deploy_it.yml)
+#   3. run grouper_import.yml and read its report
+#   4. run community_tags.yml -- after the import, whose legacy_name values are
+#      the mapping, and before the new apps image writes ID-based tags of its own
+#   5. run this playbook
+#   6. set terrain_groups_backend: groups in the inventory, re-run
+#      configure-services, and deploy terrain, apps, group-propagator, and sonora
+#
+# Flipping earlier than 3 cuts the DE over to group data nothing has populated.
+# Flipping later than 6 means terrain writes natively while the importer is still
+# willing to reconcile those writes away.
+#
+# The preflight tags are read-only and worth running well before the window:
+# every check that fails on the day is one that could have been answered a week
+# earlier. Step 4 is deliberately not checked here -- community_tags.yml reports
+# on its own rewrite, and re-deriving which tag values are rewritable would mean
+# a second copy of the classification rules in the community-tags command.
+- name: Cut group management over from Grouper to the DE database
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - role: grouper_cutover

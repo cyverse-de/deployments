@@ -1,0 +1,143 @@
+---
+# Rewrites the community tags on DE apps so they name a community by its ID
+# rather than by its name.
+#
+#   ansible-playbook -i <inventory> community_tags.yml -e dry_run=true
+#   ansible-playbook -i <inventory> community_tags.yml
+#
+# Run it once, after the group import and before apps starts writing tags of its
+# own. Running it again is a no-op: a value that is already a community ID is
+# left alone. Values naming a community that no longer exists are reported and
+# left exactly as they are -- they resolve to nothing, and deleting the rows
+# would discard the only remaining record of what an app was tagged with.
+#
+# The attribute must match apps' workspace.metadata.communities.attr, or this
+# rewrites nothing and reports a clean run.
+- name: Rewrite app community tags to community IDs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - role: common
+  vars:
+    dry_run: false
+    community_tags_job_name: "community-tags-manual"
+    community_tags_timeout: 1800
+  tasks:
+    # Read from the build descriptor rather than naming the image: this Job is
+    # applied directly, so nothing substitutes a digest the way skaffold does for
+    # a Deployment, and a bare name resolves to :latest, which is never pushed.
+    - name: read the groups build descriptor
+      ansible.builtin.set_fact:
+        groups_image: >-
+          {{ (lookup('file', playbook_dir ~ '/roles/services/groups/files/groups.json')
+              | from_json).builds[0].tag }}
+      when: groups_image is not defined
+
+    - name: remove any previous community-tags job
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s:
+        state: absent
+        api_version: batch/v1
+        kind: Job
+        name: "{{ community_tags_job_name }}"
+        namespace: "{{ ns }}"
+        wait: true
+
+    # Credentials come from the environment rather than the command line, so
+    # they are not visible to anyone who can read the process table in the pod.
+    - name: create the community-tags secret
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: community-tags-configs
+            namespace: "{{ ns }}"
+          stringData:
+            GROUPS_TAGS_DB_URI: >-
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
+            GROUPS_TAGS_METADATA_URI: >-
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ metadata_db_name }}?sslmode=disable
+            GROUPS_TAGS_ATTRIBUTE: "{{ apps_communities_attr }}"
+
+    - name: start the community-tags job
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ns }}"
+        definition:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "{{ community_tags_job_name }}"
+            namespace: "{{ ns }}"
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: community-tags
+                    image: "{{ groups_image }}"
+                    command:
+                      - community-tags
+                    args: "{{ ['-dry-run'] if (dry_run | bool) else [] }}"
+                    envFrom:
+                      - secretRef:
+                          name: community-tags-configs
+                    resources:
+                      requests:
+                        cpu: "100m"
+                        memory: "128Mi"
+                      limits:
+                        cpu: "1"
+                        memory: "512Mi"
+
+    # Not fatal on its own: see the same guard in grouper_import.yml. A rewrite
+    # that outlives its timeout still has an orphan list worth reading.
+    - name: wait for the rewrite to finish
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s_info:
+        api_version: batch/v1
+        kind: Job
+        name: "{{ community_tags_job_name }}"
+        namespace: "{{ ns }}"
+      register: community_tags_job
+      until: >-
+        (community_tags_job.resources[0].status.succeeded | default(0) | int) > 0
+        or (community_tags_job.resources[0].status.failed | default(0) | int) > 0
+      retries: "{{ (community_tags_timeout | int) // 10 }}"
+      delay: 10
+      failed_when: false
+
+    # The orphan list is the point of the run: those tag values name no
+    # community, and they are the apps that will not appear in any collection.
+    - name: show the report
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      ansible.builtin.command:
+        cmd: >-
+          kubectl --namespace {{ ns }} logs job/{{ community_tags_job_name }}
+      register: community_tags_log
+      changed_when: false
+
+    - name: report
+      ansible.builtin.debug:
+        var: community_tags_log.stdout_lines
+
+    - name: fail if the rewrite did not succeed
+      ansible.builtin.fail:
+        msg: >-
+          {{ 'the community-tag rewrite failed; see the report above'
+             if (community_tags_job.resources[0].status.failed | default(0) | int) > 0
+             else 'the community-tag rewrite did not finish within ' ~ community_tags_timeout ~ 's
+                   and may still be running; see the report above and
+                   kubectl --namespace ' ~ ns ~ ' get job/' ~ community_tags_job_name }}
+      when: (community_tags_job.resources[0].status.succeeded | default(0) | int) < 1
