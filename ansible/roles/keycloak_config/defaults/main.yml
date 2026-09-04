@@ -113,13 +113,6 @@ keycloak_config_clients:
     secret: "{{ formation_keycloak_client_secret }}"
     service_accounts: true
 
-  # The groups service reads user attributes -- names, email, institution --
-  # when it creates a subject. It authenticates against this realm rather than
-  # master, so the view-users grant below is a DE-realm client role.
-  - client_id: "{{ groups_keycloak_client_id }}"
-    secret: "{{ groups_keycloak_client_secret }}"
-    service_accounts: true
-
   # The user portal.
   - client_id: "{{ portal_keycloak_client }}"
     secret: "{{ portal_keycloak_secret }}"
@@ -142,13 +135,9 @@ keycloak_config_service_account_roles:
 # name alone finds no such realm role and the service account authenticates
 # fine and then 403s on every user lookup.
 #
-# view-users and no more, for the same reason it is enough for terrain: it
-# already implies query-users, and manage-users would let the DE rewrite the
-# directory it authenticates against.
-keycloak_config_client_service_account_roles:
-  - client_id: "{{ groups_keycloak_client_id }}"
-    role_client_id: realm-management
-    roles: [view-users]
+# Empty for now: the groups service used to hold view-users here to read user
+# attributes, and reads them from portal-conductor instead.
+keycloak_config_client_service_account_roles: []
 
 # ---------------------------------------------------------------------
 # master realm

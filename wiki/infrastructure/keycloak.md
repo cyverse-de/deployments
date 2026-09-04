@@ -24,7 +24,6 @@ configured for the DE realm. The key clients are:
 | VICE API | `vice_api_keycloak_client_id` | `vice_api_keycloak_client_secret` | [vice-operator](/services/vice-operator.md) API authentication |
 | VICE operator | `vice_operator_keycloak_client_id` | `vice_operator_keycloak_client_secret` | vice-operator internal auth |
 | Portal/formation | `formation_keycloak_client_id` | `formation_keycloak_client_secret` | [portal-conductor](/services/portal-conductor.md) |
-| Groups | `groups_keycloak_client_id` | `groups_keycloak_client_secret` | [groups](/services/groups.md) (reads user attributes) |
 
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.
@@ -43,10 +42,16 @@ gets a 403 on every call — a failure that looks like a bad secret but is not.
 
 The distinction that matters is where the service *logs in*. terrain's admin
 client uses the master list because terrain builds its token URL against
-`realms/master` by name. The groups service logs in against the DE realm and
-queries that same realm, so its client and its `view-users` grant both belong
-there — and `view-users` is a client role of the built-in `realm-management`
-client, not a realm role, so granting it by name alone silently matches nothing.
+`realms/master` by name; a client of the same name in the DE realm would
+authenticate from nothing terrain does.
+
+`keycloak_config_client_service_account_roles` is currently empty. The
+[groups](/services/groups.md) service used to hold `view-users` there to read
+user attributes, and reads them from
+[portal-conductor](/services/portal-conductor.md) instead. Note for whenever it
+is next used: `view-users` is a client role of the built-in `realm-management`
+client, not a realm role, so granting it by name in the realm-roles list
+silently matches nothing and the service account 403s on every call.
 
 ## Deployment
 

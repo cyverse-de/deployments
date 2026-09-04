@@ -335,8 +335,6 @@ grid_csv_repo: https://data.cyverse.org/dav-anon/iplant/home/wregglej/grid_insti
 # Groups service. Groups and membership live in the permissions schema of the DE
 # database; Keycloak supplies user attributes only, so this client needs to read
 # users rather than manage groups.
-groups_keycloak_client_id: replace_me
-groups_keycloak_client_secret: replace_me
 
 # Appended to a bare username to find the matching public.users row. Must match
 # the suffix this deployment's DE usernames actually use: a wrong value leaves

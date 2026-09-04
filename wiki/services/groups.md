@@ -157,24 +157,17 @@ Configuration: the role renders `templates/groups.yml.j2` into the
 `groups_user_suffix`, `groups_admin_users`, and the shared
 `dbms_connection_*`/`permissions_db_name` database settings.
 
-`groups_userinfo_backend` selects where the service reads display names,
-emails, and institutions: `portal-conductor` (the default) or `keycloak`. Both
-read the same people — [portal-conductor](/services/portal-conductor.md) queries
-the directory Keycloak federates — but the two differ in cost and in coverage.
-Keycloak has no bulk lookup by username, so resolving a member listing costs one
-request per member; portal-conductor answers the whole listing in one.
+Display names, emails, and institutions come from the DE's user directory, read
+through [portal-conductor](/services/portal-conductor.md)'s
+`POST /ldap/users/search`. One request resolves a whole member listing, where a
+per-user lookup would cost one request per member.
 
-Keycloak also cannot report an institution. That value is the directory's `o`
-attribute, and reaching the realm would need a `user-attribute-ldap-mapper` for
-it, which [keycloak_config](/infrastructure/keycloak.md) deliberately does not
-create — the decision is to read this through portal-conductor rather than to
-map another attribute into Keycloak. Under the Keycloak backend every subject's
-institution is therefore empty, where [Grouper](/infrastructure/grouper.md)
-reported it because `iplant-groups` read the directory directly.
-
-Only the selected backend's settings are rendered into the config.
-
-Either way a directory outage degrades display data rather than authorization:
+The institution is the directory's `o` attribute. Reaching it through
+[Keycloak](/infrastructure/keycloak.md) would need a `user-attribute-ldap-mapper`
+for `o`, which `keycloak_config` deliberately does not create — the decision is
+to read user attributes through portal-conductor rather than map another
+attribute into the realm. The groups service therefore holds no Keycloak client
+at all, and a directory outage degrades display data rather than authorization:
 members are reported by bare identifier and the listing still succeeds.
 
 `groups_user_suffix` is appended to a bare username to find the matching
