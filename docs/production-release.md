@@ -241,15 +241,13 @@ your `PATH`.
 Switches the DE's group data — collaborator lists, teams, communities, and the
 `de-users`/`workshop-users` system groups — from Grouper to the `permissions` schema of
 the DE database, served by the new `groups` service. Afterwards terrain, apps, and
-group-propagator do not talk to Grouper or `iplant-groups` at all.
+group-propagator do not talk to Grouper or `iplant-groups` at all. Everything ships in 
+a single maintenance window.
 
-Everything ships in this one window. Nothing runs against live traffic partway through,
-so there is no soak between the `permissions` deploy and the rest, and the
-`grouper-import` CronJob stays suspended throughout.
-
-The order below is load-bearing. The data source marker must flip *after* the import and
-*before* terrain is pointed at the new backend, and the community tag rewrite must run
-*after* the import and *before* the new `apps` image starts writing tags of its own.
+The order that the operations are listed is significant. The data source marker must 
+flip *after* the import and *before* terrain is pointed at  the new backend, and the 
+community tag rewrite must run *after* the import and *before*  the new `apps` image 
+starts writing tags of its own.
 
 #### Ahead of the maintenance day
 
