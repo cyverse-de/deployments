@@ -31,8 +31,11 @@
 # on its own rewrite, and re-deriving which tag values are rewritable would mean
 # a second copy of the classification rules in the community-tags command.
 - name: Cut group management over from Grouper to the DE database
-  hosts: localhost
+  # Runs on the control machine (connection: local); targeting k8s_controllers[0]
+  # instead of the implicit localhost is what resolves the inventory's group_vars.
+  hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
+  become: false
   roles:
     - role: grouper_cutover

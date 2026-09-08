@@ -4,7 +4,7 @@ title: Cutting Group Management Over from Grouper
 description: How grouper_cutover.yml flips the group_data_source marker that makes the DE database authoritative for group data, what it checks first, and how to hand group data back to Grouper.
 resource: /ansible/grouper_cutover.yml
 tags: [grouper, groups, migration, cutover, permissions, database]
-timestamp: 2026-09-03T00:00:00Z
+timestamp: 2026-09-08T00:00:00Z
 ---
 
 By the time this playbook runs, the DE's group data is already in the
@@ -56,7 +56,9 @@ reconcile those writes away.
 ## The plays
 
 Each is separately tagged (`preflight`, `flip`, `verify`, `rollback`).
-`rollback` also carries `never`, so a default run cannot reach it.
+Preflight also carries `flip`, so `--tags=flip` cannot reach the update with
+the guards skipped. `rollback` also carries `never`, so a default run cannot
+reach it.
 
 1. **Preflight** — read-only, and worth running a week early: every check that
    fails on the day is one that could have been answered sooner. It requires an

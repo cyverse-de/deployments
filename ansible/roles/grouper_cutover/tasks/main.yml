@@ -1,9 +1,12 @@
 ---
+# Tagged flip as well so --tags flip cannot reach the UPDATE with the guards
+# (importer suspended, deployments serving, import landed) skipped.
 - name: Check that the cutover can proceed
   ansible.builtin.import_tasks:
     file: preflight.yml
   tags:
     - preflight
+    - flip
 
 - name: Make the DE database authoritative for group data
   ansible.builtin.import_tasks:

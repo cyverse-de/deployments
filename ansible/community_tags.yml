@@ -14,9 +14,12 @@
 # The attribute must match apps' workspace.metadata.communities.attr, or this
 # rewrites nothing and reports a clean run.
 - name: Rewrite app community tags to community IDs
-  hosts: localhost
+  # Runs on the control machine (connection: local); targeting k8s_controllers[0]
+  # instead of the implicit localhost is what resolves the inventory's group_vars.
+  hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
+  become: false
   roles:
     - role: common
   vars:
@@ -43,6 +46,10 @@
         kind: Job
         name: "{{ community_tags_job_name }}"
         namespace: "{{ ns }}"
+        # The API server orphans a Job's pods by default; Foreground removes
+        # them too, so wait covers the pod and old logs do not pile up.
+        delete_options:
+          propagationPolicy: Foreground
         wait: true
 
     # Credentials come from the environment rather than the command line, so
@@ -60,9 +67,9 @@
             namespace: "{{ ns }}"
           stringData:
             GROUPS_TAGS_DB_URI: >-
-              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ de_db_name }}?sslmode=disable
             GROUPS_TAGS_METADATA_URI: >-
-              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ metadata_db_name }}?sslmode=disable
+              postgresql://{{ dbms_connection_user }}:{{ dbms_connection_pass | urlencode }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ metadata_db_name }}?sslmode=disable
             GROUPS_TAGS_ATTRIBUTE: "{{ apps_communities_attr }}"
 
     - name: start the community-tags job

@@ -14,9 +14,12 @@
 # refuses to run once group_data_source says this database is authoritative,
 # because reconciling after cutover would delete group data created natively.
 - name: Run the Grouper importer
-  hosts: localhost
+  # Runs on the control machine (connection: local); targeting k8s_controllers[0]
+  # instead of the implicit localhost is what resolves the inventory's group_vars.
+  hosts: k8s_controllers[0]
   connection: local
   gather_facts: false
+  become: false
   roles:
     - role: common
   vars:
@@ -44,6 +47,10 @@
         kind: Job
         name: "{{ import_job_name }}"
         namespace: "{{ ns }}"
+        # The API server orphans a Job's pods by default; Foreground removes
+        # them too, so wait covers the pod and old logs do not pile up.
+        delete_options:
+          propagationPolicy: Foreground
         wait: true
 
     - name: start the import job

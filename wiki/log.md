@@ -1,5 +1,13 @@
 # Wiki Update Log
 
+## 2026-09-08
+
+* **Update**: [Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md)
+  — the preflight checks now also carry the `flip` tag. `--tags=flip` used to
+  run the marker update alone, with the importer-suspended, deployments-serving,
+  and import-landed guards skipped, so it could cut the DE over to an empty
+  permissions schema without a message.
+
 ## 2026-09-03
 
 * **New**: [Cutting Group Management Over from Grouper](/playbooks/grouper-cutover.md)

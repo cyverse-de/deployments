@@ -1,8 +1,7 @@
 ---
-# Reads the single row of permissions.group_data_source. Imported by both
-# preflight and flip: --tags=flip on its own would otherwise die on an
-# undefined grouper_cutover_source, and indexing the result directly turns a
-# missing seed row into a list-index error rather than something actionable.
+# Reads the single row of permissions.group_data_source. Checking the row count
+# first turns a missing seed row into something actionable rather than a
+# list-index error.
 - name: Read the group data source marker
   community.postgresql.postgresql_query:
     login_host: "{{ db_login_host }}"

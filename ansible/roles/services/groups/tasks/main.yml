@@ -24,6 +24,10 @@
         project_name: groups
 
 - name: deploy the Grouper importer
-  ansible.builtin.include_tasks: import.yml
+  ansible.builtin.include_tasks:
+    file: import.yml
+    apply:
+      tags:
+        - grouper-import
   tags:
     - grouper-import
