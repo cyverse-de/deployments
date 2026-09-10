@@ -90,6 +90,26 @@ export NS=prod
 
 ### macOS note
 
+#### Using uv
+
+For the first run:
+
+```bash
+uv sync
+uv venv
+source .venv/bin/activate.bash
+```
+
+After that, you should be able to do:
+
+```bash
+uv sync
+source .venv/bin/activate.bash
+```
+
+Use `deactivate` to exit the virtual environment.
+
+#### System Python
 Installing the required Python libraries into Homebrew's Python can be cumbersome, so it is
 often easier to use the Python that ships with macOS. Install the dependencies with
 `/usr/bin/pip3` and tell Ansible to use that interpreter via an extra var:

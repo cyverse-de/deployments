@@ -1,0 +1,10 @@
+[project]
+name = "deployments"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "ansible>=14.4.0",
+    "ansible-lint>=26.8.0",
+    "kubernetes>=36.0.3",
+    "psycopg2-binary>=2.9.13",
+]
