@@ -2,6 +2,20 @@
 
 ## 2026-09-10
 
+* **Update**: [Harbor](/infrastructure/harbor.md) — documented that the CyVerse
+  registry runs in Harbor's `oidc_auth` mode, so `docker login` takes the per-user
+  CLI secret from the Harbor UI's User Profile page rather than an account
+  password. An account password fails with a bare `unauthorized:` and no detail,
+  as does a username that differs from the one Harbor derived from the OIDC
+  claim, so both are called out. Noted that the `harbor` role configures no
+  authentication mode at all — `auth_mode` is set in Harbor, not through
+  Ansible — and that automation should prefer a project-scoped robot account
+  over a personal CLI secret, which breaks when regenerated.
+  [Building and Deploying Services](/playbooks/build-and-deploy.md),
+  `ansible/BUILD_DEPLOY.md`, and the `building-de-service-images` and
+  `rebuilding-a-de-release` skills gained a pointer, since each told the reader
+  to have a `docker login` in place without saying how to get one.
+
 * **New**: [Running the Ansible Playbooks](/playbooks/running-ansible.md) — the
   repo root became a `uv` project (`pyproject.toml`, `uv.lock`) pinning
   `ansible`, `ansible-lint`, `kubernetes`, and `psycopg2-binary`, so

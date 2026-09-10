@@ -89,6 +89,8 @@ failed** summary and **exits non-zero if any service failed**.
   `clone_sources.yml`). If you cloned elsewhere, pass the same
   `-e source_repo_dir=<path>`.
 - For push builds, a `docker login` to the target registry already in place.
+  Harbor runs in OIDC mode: that login needs the CLI secret from the Harbor
+  UI's User Profile page, not an account password.
 
 ## Common Mistakes
 

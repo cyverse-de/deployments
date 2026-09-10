@@ -104,7 +104,10 @@ working tree alone. An interrupted run can leave a stale worktree entry behind
   only need `docker buildx` available. (Build-only/verify runs that don't push
   skip the cache export and work on any builder.)
 - A `docker login` to the target registry (default `harbor.cyverse.org`) must
-  already be in place — pushes use the ambient Docker credentials.
+  already be in place — pushes use the ambient Docker credentials. That Harbor
+  runs in OIDC mode, so the login takes the CLI secret from the Harbor UI's
+  User Profile page, not an account password; see
+  `wiki/infrastructure/harbor.md`.
 - The service source repos cloned under `source_repo_dir`
   (see [Cloning the source repositories](#cloning-the-source-repositories)).
 - For deploys, `KUBECONFIG` pointing at the target cluster.

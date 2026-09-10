@@ -50,7 +50,9 @@ ansible-playbook -i "$QA_INVENTORY" deploy_it.yml --tags app-exposer
 ## Key facts
 
 * Builds need Docker with BuildKit, skaffold on `PATH`, and an existing
-  `docker login` to the registry (default `harbor.cyverse.org`). A
+  `docker login` to the registry (default `harbor.cyverse.org`) — which runs
+  in OIDC mode, so that login needs the Harbor CLI secret rather than an
+  account password, see [Harbor](/infrastructure/harbor.md). A
   container-driver buildx builder (`de-builder`) is created and selected
   automatically.
 * Builds check out a temporary git worktree at `git_ref`; the source checkout

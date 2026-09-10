@@ -91,6 +91,8 @@ For each selected service the `build-service` role, entirely on localhost:
 - The service source repos cloned under `source_repo_dir` (run
   `ansible-playbook clone_sources.yml` if missing — no inventory needed).
 - For **push** builds, a `docker login` to the target registry already in place.
+  Harbor runs in OIDC mode: that login needs the CLI secret from the Harbor
+  UI's User Profile page, not an account password.
   A verify-only (`push_images=false`) build needs no login and no registry.
 - An `-i <inventory>` is required even though every task runs locally — the
   play targets `k8s_controllers[0]`. See **Choosing the Inventory** above; some
