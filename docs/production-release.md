@@ -58,7 +58,7 @@ directory with `main` up to date. Set the SSH variables for your local environme
 
 ```bash
 export K0S_SSH_USER=<your-username>
-export K0S_SSH_KEY_PATH=~/.ssh/id_rsa.pub
+export K0S_SSH_KEY_PATH=~/.ssh/id_rsa
 ```
 
 Your user needs passwordless SSH and sudo on the cluster nodes. The sudo half:
