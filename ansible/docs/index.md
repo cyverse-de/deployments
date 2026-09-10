@@ -9,6 +9,11 @@ Table of Contents:
 
 Operations and troubleshooting documentation is available in [docs/index.md](../../docs/index.md).
 
+## Running the playbooks
+
+Ansible can come from the repo's uv project (`uv run ansible-playbook ...`, no install step)
+or from a system install. See [Running the Playbooks](../README.md#running-the-playbooks).
+
 ## Required Git Repositories
 
 Deployments need this repository along with a single private repository:

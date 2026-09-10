@@ -4,7 +4,7 @@ title: Production Release Procedure
 description: The end-to-end production release run — maintenance mode, quiescing Data Store consumers, config and database updates, service deploys, and node updates.
 resource: /docs/production-release.md
 tags: [release, production, maintenance, deploy, ansible]
-timestamp: 2026-08-20T00:00:00Z
+timestamp: 2026-09-10T00:00:00Z
 ---
 
 A release is the set of git refs recorded across every service's build
@@ -27,7 +27,9 @@ its top-level directory. Tool versions are in
 [Deploying a Full DE Environment](/playbooks/full-deployment.md), which also
 explains why an inventory's `group_vars` can pin `kubeconfig` and silently beat
 your exported environment variable — confirm both agree on the same environment
-before running anything that mutates a cluster.
+before running anything that mutates a cluster. Set up the control machine's
+Ansible first if you have not already:
+[Running the Ansible Playbooks](/playbooks/running-ansible.md).
 
 If the release includes a `vice-operator` update, it also deploys into an AWS
 EKS cluster via `vice-operator-eks.yml`, which needs the `aws` CLI, an account

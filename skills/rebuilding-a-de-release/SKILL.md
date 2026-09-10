@@ -81,6 +81,9 @@ failed** summary and **exits non-zero if any service failed**.
 
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible: prefix each
+  command with `uv run` (e.g. `uv run ansible-playbook ...`). See
+  `wiki/playbooks/running-ansible.md`.
 - **Docker** with BuildKit and **skaffold** on `PATH`.
 - Source repos cloned under `source_repo_dir` (`cloning-de-source-repos` /
   `clone_sources.yml`). If you cloned elsewhere, pass the same

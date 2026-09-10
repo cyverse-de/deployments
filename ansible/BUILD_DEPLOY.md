@@ -92,6 +92,9 @@ working tree alone. An interrupted run can leave a stale worktree entry behind
 
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible — prefix each command
+  below with `uv run` (`uv run ansible-playbook ...`). See
+  [Running the Ansible Playbooks](../wiki/playbooks/running-ansible.md).
 - **Docker** with **BuildKit** available, and **skaffold** on `PATH`.
 - A **container-driver `buildx` builder** for push builds. Each service builds
   through a custom builder (`roles/build-service/files/buildx-build.sh`) that
@@ -124,8 +127,10 @@ ansible-playbook clone_sources.yml
   (`git fetch --tags --force origin`) since releases build from tags. The fetch
   is from `origin`, which must be the `cyverse-de` repository — see
   [Checkouts must have `origin` pointing at `cyverse-de`](#checkouts-must-have-origin-pointing-at-cyverse-de).
-- All repos live under the `cyverse-de` org. `source_repo_urls` exists for
-  per-repo exceptions and is currently empty.
+- All repos live under the `cyverse-de` org. `source_repo_urls` overrides the
+  clone URL per repo, including for a repo whose local directory name differs
+  from the repository's — currently only `data-info-next`, a second checkout of
+  the `data-info` repo.
 - Clones default to SSH (`git@github.com:cyverse-de`), so a GitHub SSH key must
   be configured. To clone over HTTPS instead, set
   `-e cyverse_repo_base=https://github.com/cyverse-de` (and a credential helper
@@ -271,7 +276,7 @@ digest recorded in the descriptor.
 | `services` | all | `build_release` | comma-separated subset to rebuild |
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | clone | default org base URL for clone URLs (SSH; override for HTTPS) |
 | `source_repos` | list in `common` | clone | repos to clone into `source_repo_dir` |
-| `source_repo_urls` | `{}` | clone | per-repo clone-URL overrides |
+| `source_repo_urls` | `{data-info-next: …/data-info}` | clone | per-repo clone-URL overrides |
 | `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; nothing overrides it |
 
 ## Notes and troubleshooting

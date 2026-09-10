@@ -84,6 +84,9 @@ For each selected service the `build-service` role, entirely on localhost:
 
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible: prefix each
+  command with `uv run` (e.g. `uv run ansible-playbook ...`). See
+  `wiki/playbooks/running-ansible.md`.
 - **Docker** with BuildKit and **skaffold** on `PATH`.
 - The service source repos cloned under `source_repo_dir` (run
   `ansible-playbook clone_sources.yml` if missing — no inventory needed).

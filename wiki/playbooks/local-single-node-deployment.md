@@ -4,7 +4,7 @@ title: Local Single-Node Deployment
 description: How to stand up a full DE from scratch on a freshly installed single-node k0s cluster with local.yml, using an in-cluster PostgreSQL and RabbitMQ, sslip.io hostnames on a pinned Traefik ClusterIP, a locally trusted CA, and a reused QA iRODS zone.
 resource: /ansible/local.yml
 tags: [local, development, k0s, single-node, ansible, sslip.io, dns, cloudnativepg]
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-09-10T00:00:00Z
 ---
 
 `local.yml` stands up a complete Discovery Environment — every service,
@@ -56,6 +56,8 @@ of their own, and node configuration applied at build time:
 - `ansible`, `kubectl` >= 1.31 (or `kustomize` >= 5.2), `helm` >= 3.16,
   `skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, `gpg` >= 2.1,
   `openssl` >= 1.1.1, `slappasswd`, and `uv` (for `import_apps.yml`).
+  `uv` can also supply Ansible itself, in place of a system install — see
+  [Running the Ansible Playbooks](/playbooks/running-ansible.md).
 - A pull robot account on the image registry.
 - The private `local-deployment` inventory repo.
 

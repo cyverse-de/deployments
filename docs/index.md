@@ -6,6 +6,11 @@ inventory setup), see [ansible/docs/index.md](../ansible/docs/index.md).
 
 ---
 
+Commands in these runbooks need an Ansible control machine. Ansible can come from the repo's
+uv project (`uv run ansible-playbook ...`, no install step) or from a system install; see
+[Ansible on the control machine](production-release.md#ansible-on-the-control-machine) and
+[ansible/README.md](../ansible/README.md#running-the-playbooks).
+
 ## Operations runbooks
 
 | Runbook | Covers |

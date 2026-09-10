@@ -4,7 +4,7 @@ title: General Operations Runbook
 description: Day-to-day DE cluster operations — health checks, restarts, scaling, rollbacks, config pushes, log access, and node maintenance.
 resource: /docs/ops-runbook.md
 tags: [operations, runbook, kubectl, deploy, rollback, logs, health]
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-09-10T00:00:00Z
 ---
 
 Quick reference for day-to-day DE cluster operations. For topic-specific procedures see:
@@ -24,6 +24,10 @@ export VICE_NS=vice-apps
 export DE_HOST=https://<de_hostname>  # from de_hostname in the inventory
 export RABBITMQ_HOST=<rabbitmq-host>  # from rabbitmq_host in the inventory
 ```
+
+Commands on this page assume an Ansible control environment is already set up;
+see [Running the Ansible Playbooks](/playbooks/running-ansible.md) for the uv,
+system-install, and macOS options.
 
 > **Kubeconfig resolution:** `KUBECONFIG` alone does not guarantee which cluster Ansible will
 > target. An inventory's `group_vars` can pin `kubeconfig` explicitly and silently win over

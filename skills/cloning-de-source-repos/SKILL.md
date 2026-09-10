@@ -8,11 +8,13 @@ description: Use when cloning the CyVerse DE service source repositories from th
 ## Overview
 
 Building DE service images needs each service's **source repo** checked out
-locally. The `clone_sources.yml` playbook clones all of them (~48 repos) into
+locally. The `clone_sources.yml` playbook clones all of them (33 repos) into
 `source_repo_dir`, skipping any already present. It runs entirely on localhost
 and needs **no inventory**.
 
-**Run the command from the `ansible/` directory.**
+**Run the command from the `ansible/` directory.** If `ansible-playbook` is not
+on `PATH`, prefix it with `uv run` to use the repo's uv-managed Ansible — see
+`wiki/playbooks/running-ansible.md`.
 
 ## When to Use
 
@@ -24,7 +26,7 @@ and needs **no inventory**.
 
 The repos land in `source_repo_dir`. Its default is the directory **containing**
 the deployments repo (so the checkouts are siblings), which is what builds
-expect — but cloning ~48 repos is a real filesystem side effect, so pick the
+expect — but cloning 33 repos is a real filesystem side effect, so pick the
 location deliberately:
 
 - If the request names a location, or one was agreed earlier in this session,
@@ -48,6 +50,9 @@ ansible-playbook clone_sources.yml -e source_repo_dir=<path>
 # clone over HTTPS instead of SSH
 ansible-playbook clone_sources.yml -e source_repo_dir=<path> \
   -e cyverse_repo_base=https://github.com/cyverse-de
+
+# with the repo's uv-managed Ansible, when ansible-playbook is not on PATH
+uv run ansible-playbook clone_sources.yml -e source_repo_dir=<path>
 ```
 
 ## What It Does
@@ -60,8 +65,9 @@ ansible-playbook clone_sources.yml -e source_repo_dir=<path> \
    tags/branches. Non-destructive: it updates refs only, not the tree.
 
 Clone URLs default to SSH (`git@github.com:cyverse-de/<repo>`). Per-repo
-overrides live in `source_repo_urls` (currently only `qms`, which is in the
-`cyverse` org).
+overrides live in `source_repo_urls`, which also covers repos whose local
+directory name differs from the repository's — currently only `data-info-next`,
+a second checkout of the `data-info` repo.
 
 ## Authentication
 
@@ -76,4 +82,4 @@ overrides live in `source_repo_urls` (currently only `qms`, which is in the
 | `source_repo_dir` | dir containing this repo (siblings) | Where the repos are cloned. |
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | Default org base URL; set to the HTTPS base for HTTPS clones. |
 | `source_repos` | list in `common` | The repos to clone. |
-| `source_repo_urls` | `{qms: cyverse/qms}` | Per-repo URL overrides for repos not under `cyverse_repo_base`. |
+| `source_repo_urls` | `{data-info-next: <base>/data-info}` | Per-repo URL overrides for repos not under `cyverse_repo_base`, or whose local directory name differs from the repo's. |

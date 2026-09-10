@@ -1,5 +1,24 @@
 # Wiki Update Log
 
+## 2026-09-10
+
+* **New**: [Running the Ansible Playbooks](/playbooks/running-ansible.md) — the
+  repo root became a `uv` project (`pyproject.toml`, `uv.lock`) pinning
+  `ansible`, `ansible-lint`, `kubernetes`, and `psycopg2-binary`, so
+  `uv run ansible-playbook …` now works from anywhere in the repo with no
+  install step. Recorded it alongside the two pre-existing options — a system
+  Ansible install and the macOS system-Python `ansible_python_interpreter`
+  override — since all three remain supported. Also captured that the `ansible`
+  PyPI bundle already ships `community.crypto` and `community.postgresql`, which
+  `ansible/requirements.yml` does not list, so under uv the `ansible-galaxy` run
+  only supplies the two Galaxy roles. Linked from the runbooks that invoke
+  `ansible-playbook` from a control machine:
+  [Building and Deploying Services](/playbooks/build-and-deploy.md),
+  [Deploying a Full DE Environment](/playbooks/full-deployment.md),
+  [Local Single-Node Deployment](/playbooks/local-single-node-deployment.md),
+  [General Operations Runbook](/playbooks/ops-runbook.md), and
+  [Production Release Procedure](/playbooks/production-release.md).
+
 ## 2026-09-01
 
 * **Update**: [Building and Deploying Services](/playbooks/build-and-deploy.md)

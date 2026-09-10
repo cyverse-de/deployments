@@ -4,7 +4,7 @@ title: Building and Deploying Services
 description: How service container images are built from source with build_it.yml and build_release.yml, and deployed with deploy_it.yml.
 resource: /ansible/BUILD_DEPLOY.md
 tags: [build, deploy, release, skaffold, ansible]
-timestamp: 2026-09-01T00:00:00Z
+timestamp: 2026-09-10T00:00:00Z
 ---
 
 This repo is the source of truth for build and deploy configuration: each
@@ -21,6 +21,10 @@ was built: the `tag` field is `<imageName>:<git-ref>@sha256:<digest>`, pinning
 both the ref and the immutable digest. Builds rewrite this file; deploys read
 it. A **release** is the set of git refs recorded across every service's
 descriptor.
+
+Commands below run from `ansible/` and need an Ansible control environment; see
+[Running the Ansible Playbooks](/playbooks/running-ansible.md) for the uv,
+system-install, and macOS options.
 
 ## Common commands
 

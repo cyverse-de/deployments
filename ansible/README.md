@@ -2,6 +2,38 @@
 
 For an overview of the required repositories, CI builds, and the production deployment process, see [docs/index.md](docs/index.md). For building service images from source, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
+## Running the Playbooks
+
+The playbooks run from a control machine — your workstation, not a cluster node.
+Three ways to get one, all supported; the wiki page
+[Running the Ansible Playbooks](../wiki/playbooks/running-ansible.md) covers them in full.
+
+**The uv-managed project (recommended).** The repo root is a [uv](https://docs.astral.sh/uv/)
+project: `pyproject.toml` declares Ansible plus the `kubernetes` and `psycopg2-binary`
+libraries the `kubernetes.core` and PostgreSQL modules import, and `uv.lock` pins the
+versions. `uv run` syncs the environment on demand, so there is no install step and no
+activation — prefix any command with it:
+
+```bash
+uv run ansible-playbook -i <inventory> kubernetes.yml
+```
+
+It locates the project by walking up from the working directory, so it works unchanged from
+this `ansible/` directory. For a shell where plain `ansible-playbook` works, activate the
+environment instead:
+
+```bash
+uv sync
+source .venv/bin/activate          # bash/zsh; .venv/bin/activate.fish for fish
+```
+
+**A system Ansible install.** Homebrew, `pipx`, or a distribution package. Install
+`kubernetes` and `psycopg2-binary` into the same interpreter Ansible runs under. The bare
+`ansible-playbook` examples throughout this file assume this setup.
+
+**The macOS system Python.** See [docs/production-release.md](../docs/production-release.md)
+for installing the libraries into `/usr/bin/python3` and pointing Ansible at that interpreter.
+
 ## Required Ansible Collections
 
 - community.crypto
@@ -9,7 +41,10 @@ For an overview of the required repositories, CI builds, and the production depl
 - kubernetes.core
 - ansible.posix
 
-These (and the required roles) can be installed with `ansible-galaxy install -r requirements.yml`.
+These (and the required roles) can be installed with `ansible-galaxy install -r requirements.yml`
+(`uv run ansible-galaxy install -r requirements.yml` under the uv project). Note that the `ansible`
+PyPI package the uv project installs is the full distribution rather than `ansible-core`, so it
+already ships all four collections — under uv, that command is only needed for the Galaxy roles.
 
 ## Required Local Tools
 

@@ -88,8 +88,12 @@ For each selected service, entirely on localhost with `KUBECONFIG` set:
 
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible: prefix each
+  command with `uv run` (e.g. `uv run ansible-playbook ...`). See
+  `wiki/playbooks/running-ansible.md`.
 - **skaffold** on `PATH` and the `kubernetes.core` Ansible collection installed
-  (`ansible-galaxy install -r requirements.yml`).
+  (`ansible-galaxy install -r requirements.yml`, or
+  `uv run ansible-galaxy install -r requirements.yml`).
 - `KUBECONFIG` pointing at the intended cluster (see **Choosing the
   Environment**).
 - The environment must already be **configured**: `deploy_it.yml` does **not**

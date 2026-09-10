@@ -20,6 +20,10 @@ export DE_HOST=https://<de_hostname>  # from de_hostname in the inventory
 export RABBITMQ_HOST=<rabbitmq-host>  # from rabbitmq_host in the inventory
 ```
 
+Commands here assume an Ansible control environment is already set up. If `ansible-playbook`
+is not on your `PATH`, prefix each command with `uv run` to use the repo's uv-managed Ansible;
+see [Ansible on the control machine](production-release.md#ansible-on-the-control-machine).
+
 > **Kubeconfig resolution:** `KUBECONFIG` alone does not guarantee which cluster Ansible will
 > target. An inventory's `group_vars` can pin `kubeconfig` explicitly and silently win over
 > your exported env var. Before any `ansible-playbook` or `kubectl` command that mutates a

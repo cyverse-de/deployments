@@ -88,28 +88,35 @@ Set the namespace you will be working in as well; the examples below use `$NS`.
 export NS=prod
 ```
 
-### macOS note
+### Ansible on the control machine
 
 #### Using uv
 
-For the first run:
+The repo root is a [uv](https://docs.astral.sh/uv/) project pinning Ansible and the Python
+libraries the `kubernetes.core` and PostgreSQL modules need. `uv run` syncs the environment
+on demand, so nothing has to be installed or activated first — prefix any command with it:
+
+```bash
+uv run ansible-playbook -i $INVENTORY --tags=configure-services kubernetes.yml
+```
+
+uv finds the project by walking up from the working directory, so this works from `ansible/`
+as well as the repo root.
+
+To get a shell where plain `ansible-playbook` works instead, activate the environment.
+`uv sync` creates `.venv/` and installs the locked dependencies:
 
 ```bash
 uv sync
-uv venv
-source .venv/bin/activate.bash
+source .venv/bin/activate          # bash/zsh
+source .venv/bin/activate.fish     # fish
 ```
 
-After that, you should be able to do:
+Use `deactivate` to exit the virtual environment. Re-run `uv sync` after pulling changes to
+`pyproject.toml` or `uv.lock`.
 
-```bash
-uv sync
-source .venv/bin/activate.bash
-```
+#### System Python (macOS note)
 
-Use `deactivate` to exit the virtual environment.
-
-#### System Python
 Installing the required Python libraries into Homebrew's Python can be cumbersome, so it is
 often easier to use the Python that ships with macOS. Install the dependencies with
 `/usr/bin/pip3` and tell Ansible to use that interpreter via an extra var:

@@ -4,13 +4,15 @@ title: Deploying a Full DE Environment
 description: How to deploy a complete Discovery Environment with kubernetes.yml, from kubeconfig generation through database setup and service rollout.
 resource: /ansible/kubernetes.yml
 tags: [deploy, kubernetes, ansible, k0s, environment]
-timestamp: 2026-07-31T12:00:00Z
+timestamp: 2026-09-10T00:00:00Z
 ---
 
 `kubernetes.yml` is the top-level playbook for standing up and maintaining a
 full DE environment. You need the `deployments` repo and the private inventory
 repo. Required tools: `ansible`, `kubectl` >= 1.29, `helm` >= 3.16,
-`skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, and `k0sctl`.
+`skaffold`, `golang-migrate` >= 4.18, `psql` >= 14, and `k0sctl`. Ansible can
+come from the repo's uv project instead of a system install — see
+[Running the Ansible Playbooks](/playbooks/running-ansible.md).
 
 ## Get a kubeconfig
 
