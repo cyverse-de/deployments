@@ -1,5 +1,15 @@
 # Wiki Update Log
 
+## 2026-09-23
+
+* **Update**: [Keycloak](/infrastructure/keycloak.md) — added the Grafana client to
+  the secret-rotation table, with a note that its secret is not pushed by
+  `configure-services`: re-run `grafana.yml` and restart the Grafana Deployment.
+  [Certificate Management](/playbooks/certificate-management.md) gained the Grafana
+  TLS certificate in its inventory and namespace notes. The source docs
+  (`docs/keycloak.md`, `docs/certificate-management.md`) and `ansible/README.md`
+  were updated to match.
+
 ## 2026-09-22
 
 * **Update**: [Grafana](/infrastructure/grafana.md) — documented

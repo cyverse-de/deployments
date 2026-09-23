@@ -173,12 +173,20 @@ separate read-only role:
 ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
 ```
 
-Grafana is not exposed outside the cluster. Reach it by port-forwarding and logging in as `grafana_admin_user`, then
-create real accounts from there:
+By default Grafana is not exposed outside the cluster. Reach it by port-forwarding and logging in as
+`grafana_admin_user`, then create real accounts from there:
 
 ```bash
 kubectl -n grafana port-forward svc/grafana 3000:80
 ```
+
+To expose it, set `grafana_external_access: true`, `grafana_hostname`, and `grafana_keycloak_client_secret`. The role
+then serves Grafana at `grafana_hostname` through its own Gateway and HTTPRoute, with login through Keycloak limited to
+users whose `entitlement` claim includes one of the `admin_groups`. Everyone let in is a Viewer unless they belong to
+one of `grafana_oauth_admin_groups` or `grafana_oauth_editor_groups`. The hostname needs a DNS record pointing at the
+proxy. The Keycloak client is created automatically only in local deployments; elsewhere, create a confidential client
+named `grafana_keycloak_client_id` (default `grafana`) in the DE realm with the standard flow enabled and the redirect
+URI `https://<grafana_hostname>/*`.
 
 Dashboards live in `roles/grafana/files/dashboards/` and are provisioned from a ConfigMap. To change one, edit it in the
 browser, export the JSON through Share → Export, and write it back over the file.
