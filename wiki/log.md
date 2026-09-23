@@ -1,5 +1,16 @@
 # Wiki Update Log
 
+## 2026-09-22
+
+* **Update**: [Grafana](/infrastructure/grafana.md) — documented
+  `grafana_external_access`, which serves Grafana at `grafana_hostname` through
+  its own Gateway and HTTPRoute and adds Keycloak login restricted to users whose
+  `entitlement` claim includes one of `admin_groups`, with optional Admin and
+  Editor group mappings. Notes that the Keycloak client has to be created by hand
+  outside local deployments, and that group changes only apply at the next login.
+  [Keycloak](/infrastructure/keycloak.md) gained the Grafana client in its
+  client table.
+
 ## 2026-09-10
 
 * **Update**: [Harbor](/infrastructure/harbor.md) — documented that the CyVerse

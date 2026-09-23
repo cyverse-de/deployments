@@ -4,7 +4,7 @@ title: Keycloak
 description: Keycloak administration for the DE — deployment, health checks, client secret rotation, admin users, impersonation, and diagnosing authentication failures.
 resource: /docs/keycloak.md
 tags: [keycloak, authentication, oidc, ldap, secrets, kubernetes.yml]
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-09-22T00:00:00Z
 ---
 
 Keycloak handles all DE authentication. This page covers common administration tasks:
@@ -24,6 +24,7 @@ configured for the DE realm. The key clients are:
 | VICE API | `vice_api_keycloak_client_id` | `vice_api_keycloak_client_secret` | [vice-operator](/services/vice-operator.md) API authentication |
 | VICE operator | `vice_operator_keycloak_client_id` | `vice_operator_keycloak_client_secret` | vice-operator internal auth |
 | Portal/formation | `formation_keycloak_client_id` | `formation_keycloak_client_secret` | [portal-conductor](/services/portal-conductor.md) |
+| Grafana | `grafana_keycloak_client_id` | `grafana_keycloak_client_secret` | [Grafana](/infrastructure/grafana.md) login, when `grafana_external_access` is on |
 
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.

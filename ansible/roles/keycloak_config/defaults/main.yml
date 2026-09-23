@@ -123,6 +123,17 @@ keycloak_config_clients:
     standard_flow: true
     direct_access_grants: true
 
+# Grafana logs users in through this client when grafana_external_access is on.
+# It is appended to keycloak_config_clients only then, so a deployment without
+# an exposed Grafana doesn't get a client it has no use for.
+keycloak_config_grafana_client:
+  client_id: "{{ grafana_keycloak_client_id }}"
+  secret: "{{ grafana_keycloak_client_secret }}"
+  root_url: "{{ grafana_base_uri }}"
+  redirect_uris: ["{{ grafana_base_uri }}/*"]
+  web_origins: ["{{ grafana_base_uri }}"]
+  standard_flow: true
+
 # Realm roles granted to client service accounts, as {client_id, roles}.
 keycloak_config_service_account_roles:
   - client_id: "{{ vice_api_keycloak_client_id }}"

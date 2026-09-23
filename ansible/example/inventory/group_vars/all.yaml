@@ -569,6 +569,34 @@
 #   - logins
 #   - users
 
+# Expose Grafana at `grafana_hostname` through a Gateway, with login
+# through Keycloak. Only users whose `entitlement` claim includes one of
+# `admin_groups` can log in. keycloak_config creates the Keycloak client
+# only in local deployments; elsewhere create it by hand, with the redirect
+# URI `https://<grafana_hostname>/*` and standard flow enabled.
+# Default: false
+# grafana_external_access: false
+
+# Hostname Grafana is served at. Needs a DNS record pointing at the proxy.
+# Default: replace_me
+# grafana_hostname: grafana.example.org
+
+# The confidential Keycloak client Grafana logs users in through.
+# Default: grafana
+# grafana_keycloak_client_id: grafana
+
+# Secret for `grafana_keycloak_client_id`.
+# Default: replace_me
+# grafana_keycloak_client_secret: replace_me
+
+# Groups from `admin_groups` that get the Grafana Admin or Editor role.
+# Everyone else allowed in gets `grafana_oauth_default_role`. Editor and
+# Admin can run arbitrary SQL against the DE database through Explore.
+# Default: [] for both, Viewer
+# grafana_oauth_admin_groups: []
+# grafana_oauth_editor_groups: []
+# grafana_oauth_default_role: Viewer
+
 
 # ---------------------------------------------------------------------
 # User Portal database

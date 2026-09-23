@@ -833,6 +833,16 @@ grafana_ro_db_tables:
   - logins
   - users
 
+# External access to Grafana through a Gateway, with login through Keycloak.
+# Off by default, which leaves Grafana reachable only by port-forwarding. These
+# live in common because keycloak_config creates the Keycloak client from them
+# as well as the grafana role.
+grafana_external_access: false
+grafana_hostname: replace_me
+grafana_base_uri: "https://{{ grafana_hostname }}"
+grafana_keycloak_client_id: grafana
+grafana_keycloak_client_secret: replace_me
+
 # Gateway API CRD version
 gateway_api_crd_version: v1.5.1  # Keep in step with the Traefik version (v3.7 -> Gateway API v1.5.1)
 
