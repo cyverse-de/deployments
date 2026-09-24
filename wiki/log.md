@@ -2,6 +2,17 @@
 
 ## 2026-09-23
 
+* **Update**: [Grafana](/infrastructure/grafana.md) — added the DE Resource Usage
+  dashboard: jobs started and CPU hours consumed, stacked by job type. CPU hours are
+  recomputed from `jobs` with `resource-usage-api`'s formula and split into hourly
+  slices, so they can differ from what the subscriptions service billed; a job with no
+  end date counts only while `Running`, after stuck `Submitted` jobs put a false
+  192-hour daily baseline under QA. GPU hours are not recorded anywhere yet. The read-only role gained `job_types` and a column-level
+  grant on `jobs` (`grafana_ro_db_columns`) that keeps job parameters and paths out of
+  Explore. [PostgreSQL](/infrastructure/postgresql.md) describes the wider grant, and
+  [cert-manager](/infrastructure/cert-manager.md) now lists the Grafana certificate
+  that external access added.
+
 * **Update**: [Keycloak](/infrastructure/keycloak.md) — added the Grafana client to
   the secret-rotation table, with a note that its secret is not pushed by
   `configure-services`: re-run `grafana.yml` and restart the Grafana Deployment.

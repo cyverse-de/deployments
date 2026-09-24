@@ -80,6 +80,7 @@
               app: grafana
           data:
             de-logins.json: "{{ lookup('file', 'dashboards/de-logins.json') }}"
+            de-resource-usage.json: "{{ lookup('file', 'dashboards/de-resource-usage.json') }}"
 
     - name: Assemble the base grafana.ini and environment
       ansible.builtin.set_fact:
@@ -199,7 +200,7 @@
           grafana.ini: "{{ grafana_ini }}"
 
           # The DE database, queried with a role that can only SELECT from
-          # public.logins and public.users.
+          # grafana_ro_db_tables and grafana_ro_db_columns.
           datasources:
             datasources.yaml:
               apiVersion: 1

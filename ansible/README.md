@@ -116,7 +116,7 @@ The `condor.yml` playbook will install and configure a dedicated HTCondor cluste
 ## Cert-Manager
 
 The DE uses cert-manager to issue and renew the TLS certificates used inside the cluster — the Traefik default
-certificate, the DE UI, VICE wildcard, user portal, Keycloak, and Harbor certs. The `cert-manager` role installs the
+certificate, the DE UI, VICE wildcard, user portal, Keycloak, Harbor, and Grafana certs. The `cert-manager` role installs the
 chart under the `cert-manager` tag in `kubernetes.yml`, and the `cluster_issuers` role follows it under the
 `cert-issuers` tag to create the self-signed `default-cluster-issuer` plus, when `cert_manager_provider` is
 `letsencrypt`, a Let's Encrypt ClusterIssuer using the ACME dns01 solver against Route53. See
@@ -155,8 +155,9 @@ ansible-playbook -i <inventory> --tags keycloak kubernetes.yml
 
 ## Grafana
 
-Grafana provides metrics dashboards for the DE. It ships with a Postgres datasource pointed at the DE database and one
-dashboard covering logins and distinct users over time. Like Keycloak, the role runs in `kubernetes.yml` only when the
+Grafana provides metrics dashboards for the DE. It ships with a Postgres datasource pointed at the DE database and two
+dashboards: DE Logins, covering logins and distinct users over time, and DE Resource Usage, covering jobs started and CPU
+hours consumed. Like Keycloak, the role runs in `kubernetes.yml` only when the
 `grafana` tag is passed explicitly, and there is a standalone playbook for deploying it on its own:
 
 ```bash

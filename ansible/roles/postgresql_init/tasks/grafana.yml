@@ -84,7 +84,7 @@
         - grafana
         - update-databases
 
-    - name: Grant the grafana read-only user access to the login tables
+    - name: Grant the grafana read-only user access to the dashboard tables
       community.postgresql.postgresql_privs:
         login_host: "{{ groups['dbms'][0] }}"
         port: "{{ pg_listen_port }}"
@@ -96,6 +96,25 @@
         objs: "{{ grafana_ro_db_tables | join(',') }}"
         privs: SELECT
         role: "{{ grafana_ro_db_user }}"
+      tags:
+        - grafana
+        - update-databases
+
+    # postgresql_privs has no column-level grants, so these are plain SQL. GRANT
+    # is idempotent, but the task reports changed on every run.
+    - name: Grant the grafana read-only user access to the dashboard columns
+      community.postgresql.postgresql_query:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        query: >-
+          GRANT SELECT ({{ item.value | join(', ') }})
+          ON public.{{ item.key }} TO {{ grafana_ro_db_user }}
+      loop: "{{ grafana_ro_db_columns | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
       tags:
         - grafana
         - update-databases

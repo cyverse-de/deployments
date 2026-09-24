@@ -564,10 +564,26 @@
 
 # Tables in the DE database's public schema that `grafana_ro_db_user` is
 # granted SELECT on. Add a table here if a new dashboard needs it.
-# Default: [logins, users]
+# Default: [logins, users, job_types]
 # grafana_ro_db_tables:
 #   - logins
 #   - users
+#   - job_types
+
+# Tables `grafana_ro_db_user` is granted SELECT on by column rather than
+# whole, as {table: [columns]}. Keeps job parameters, names, and paths
+# out of reach of anyone with Explore in Grafana.
+# Default: jobs, limited to the columns below
+# grafana_ro_db_columns:
+#   jobs:
+#     - id
+#     - job_type_id
+#     - parent_id
+#     - user_id
+#     - status
+#     - start_date
+#     - end_date
+#     - millicores_reserved
 
 # Expose Grafana at `grafana_hostname` through a Gateway, with login
 # through Keycloak. Only users whose `entitlement` claim includes one of

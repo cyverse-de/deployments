@@ -1,0 +1,446 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Jobs started and CPU hours consumed in the Discovery Environment, from public.jobs in the DE database. A job is counted on the day it started; high-throughput batch parents are left out, so a batch counts once per child that ran. CPU hours are millicores_reserved / 1000 times run time -- the formula resource-usage-api bills with -- split into hourly slices so a job running across midnight counts on both days. A job with no end date counts up to now only while its status is Running; one stuck in any other status (Submitted, say) is left out rather than charged forever. They are computed here, not read from the subscriptions service, so they can differ from what users were billed when a usage report failed. Jobs from before millicores_reserved existed show no CPU hours. GPU hours are not recorded anywhere yet. All times are the DE database server's local time (America/Phoenix): jobs.start_date and end_date are timestamps without time zone and are read literally, and the hidden db_timezone variable says what \"now\" is for running jobs. The dashboard timezone is pinned to UTC so a daily bucket is a database calendar day; do not switch it to browser time.",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "de-postgres"
+      },
+      "description": "Jobs started over the selected time range, excluding high-throughput batch parents.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "de-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Jobs started\"\n  FROM jobs j\n WHERE $__timeFilter(j.start_date AT TIME ZONE 'UTC')\n   AND NOT EXISTS (SELECT 1 FROM jobs c WHERE c.parent_id = j.id)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Jobs started",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "de-postgres"
+      },
+      "description": "CPU hours consumed within the selected time range, including jobs still Running up to now.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "de-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH bounds AS (\n  SELECT $__timeFrom()::timestamptz AT TIME ZONE 'UTC' AS range_from,\n         $__timeTo()::timestamptz AT TIME ZONE 'UTC' AS range_to,\n         now() AT TIME ZONE '$db_timezone' AS db_now\n), reserved AS (\n  SELECT j.job_type_id,\n         j.millicores_reserved / 1000.0 AS cores,\n         j.start_date AS started,\n         coalesce(j.end_date, b.db_now) AS ended,\n         b.range_from,\n         b.range_to\n    FROM jobs j, bounds b\n   WHERE j.millicores_reserved > 0\n     AND (j.end_date IS NOT NULL OR j.status = 'Running')\n     AND j.start_date < b.range_to\n     AND coalesce(j.end_date, b.db_now) > b.range_from\n), hours AS (\n  SELECT r.job_type_id,\n         h AS hour,\n         r.cores * extract(epoch FROM least(r.ended, h + interval '1 hour', r.range_to)\n                                    - greatest(r.started, h, r.range_from)) / 3600 AS cpu_hours\n    FROM reserved r\n   CROSS JOIN LATERAL generate_series(date_trunc('hour', greatest(r.started, r.range_from)),\n                                      least(r.ended, r.range_to),\n                                      interval '1 hour') AS h\n)\nSELECT coalesce(sum(cpu_hours), 0) AS \"CPU hours\"\n  FROM hours",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "CPU hours",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "de-postgres"
+      },
+      "description": "Jobs started per bucket, stacked by job type. Empty buckets are filled with zero.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "mappings": [],
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "de-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(j.start_date AT TIME ZONE 'UTC', $bucket, 0),\n       t.name AS metric,\n       count(*) AS value\n  FROM jobs j\n  JOIN job_types t ON t.id = j.job_type_id\n WHERE $__timeFilter(j.start_date AT TIME ZONE 'UTC')\n   AND NOT EXISTS (SELECT 1 FROM jobs c WHERE c.parent_id = j.id)\n GROUP BY 1, 2\n ORDER BY 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Jobs started by job type",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "de-postgres"
+      },
+      "description": "CPU hours consumed per bucket, stacked by job type. A job contributes to every bucket it ran in, in proportion to the time it ran there.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "de-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH bounds AS (\n  SELECT $__timeFrom()::timestamptz AT TIME ZONE 'UTC' AS range_from,\n         $__timeTo()::timestamptz AT TIME ZONE 'UTC' AS range_to,\n         now() AT TIME ZONE '$db_timezone' AS db_now\n), reserved AS (\n  SELECT j.job_type_id,\n         j.millicores_reserved / 1000.0 AS cores,\n         j.start_date AS started,\n         coalesce(j.end_date, b.db_now) AS ended,\n         b.range_from,\n         b.range_to\n    FROM jobs j, bounds b\n   WHERE j.millicores_reserved > 0\n     AND (j.end_date IS NOT NULL OR j.status = 'Running')\n     AND j.start_date < b.range_to\n     AND coalesce(j.end_date, b.db_now) > b.range_from\n), hours AS (\n  SELECT r.job_type_id,\n         h AS hour,\n         r.cores * extract(epoch FROM least(r.ended, h + interval '1 hour', r.range_to)\n                                    - greatest(r.started, h, r.range_from)) / 3600 AS cpu_hours\n    FROM reserved r\n   CROSS JOIN LATERAL generate_series(date_trunc('hour', greatest(r.started, r.range_from)),\n                                      least(r.ended, r.range_to),\n                                      interval '1 hour') AS h\n)\nSELECT $__timeGroupAlias(h.hour AT TIME ZONE 'UTC', $bucket, 0),\n       t.name AS metric,\n       sum(h.cpu_hours) AS value\n  FROM hours h\n  JOIN job_types t ON t.id = h.job_type_id\n GROUP BY 1, 2\n ORDER BY 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "CPU hours by job type",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 41,
+  "tags": [
+    "de",
+    "jobs",
+    "cpu"
+  ],
+  "templating": {
+    "list": [
+      {
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "text": "1d",
+          "value": "1d"
+        },
+        "label": "Bucket",
+        "name": "bucket",
+        "options": [
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          },
+          {
+            "selected": false,
+            "text": "6h",
+            "value": "6h"
+          },
+          {
+            "selected": true,
+            "text": "1d",
+            "value": "1d"
+          },
+          {
+            "selected": false,
+            "text": "7d",
+            "value": "7d"
+          },
+          {
+            "selected": false,
+            "text": "30d",
+            "value": "30d"
+          }
+        ],
+        "query": "1h,6h,1d,7d,30d",
+        "refresh": 2,
+        "type": "interval"
+      },
+      {
+        "description": "Time zone the DE database stores job timestamps in; used to find \"now\" for running jobs.",
+        "hide": 2,
+        "label": "Database time zone",
+        "name": "db_timezone",
+        "query": "America/Phoenix",
+        "skipUrlSync": true,
+        "type": "constant",
+        "current": {
+          "text": "America/Phoenix",
+          "value": "America/Phoenix"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "America/Phoenix",
+            "value": "America/Phoenix"
+          }
+        ]
+      }
+    ]
+  },
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "DE Resource Usage",
+  "uid": "de-resource-usage",
+  "version": 1,
+  "weekStart": ""
+}

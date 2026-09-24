@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-09-23T00:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -56,7 +56,8 @@ feature toggle is enabled.
 
 The Grafana pass is the one that also grants privileges rather than just creating
 a role and a database: alongside the `grafana` owner it creates a `grafana_ro`
-role with `SELECT` on `public.logins` and `public.users` in the `de` database and
+role with `SELECT` on `public.logins`, `public.users`, and `public.job_types` in the `de`
+database, plus `SELECT` on a fixed set of `public.jobs` columns (`grafana_ro_db_columns`), and
 nothing else, which is what Grafana queries the DE data through.
 
 This pass needs the `migrate` command (golang-migrate) on the control host's

@@ -1,10 +1,10 @@
 ---
 type: Service
 title: Grafana
-description: Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and a provisioned logins dashboard, installed only when the grafana tag is named explicitly, and optionally exposed through a Gateway with Keycloak login limited to DE admin groups.
+description: Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and provisioned logins and resource-usage dashboards, installed only when the grafana tag is named explicitly, and optionally exposed through a Gateway with Keycloak login limited to DE admin groups.
 resource: /ansible/roles/grafana
 tags: [grafana, metrics, dashboards, observability, postgresql, keycloak, gateway-api, kubernetes.yml]
-timestamp: 2026-09-22T00:00:00Z
+timestamp: 2026-09-23T00:00:00Z
 ---
 
 Grafana provides metrics dashboards for the DE. Like [Jaeger](/infrastructure/jaeger.md), it
@@ -45,11 +45,17 @@ migrations. The pod is disposable; deleting it loses nothing.
 - `grafana_db_user` (default `grafana`) owns the `grafana` state database.
 - `grafana_ro_db_user` (default `grafana_ro`) is what Grafana queries the DE database with.
   It gets `CONNECT` on `de`, `USAGE` on the `public` schema, and `SELECT` on exactly the
-  tables in `grafana_ro_db_tables` (`logins` and `users`) — nothing else.
+  tables in `grafana_ro_db_tables` (`logins`, `users`, and `job_types`), plus the columns in
+  `grafana_ro_db_columns` — nothing else.
 
 The read-only role matters because anyone holding the Grafana admin password can run
 arbitrary SQL through the datasource's explore UI. Add a table to `grafana_ro_db_tables` when
-a new dashboard needs it rather than widening the grant.
+a new dashboard needs it rather than widening the grant. A table whose other columns have
+no business in a dashboard goes in `grafana_ro_db_columns` instead: `jobs` is granted only
+`id`, `job_type_id`, `parent_id`, `user_id`, `status`, `start_date`, `end_date`, and
+`millicores_reserved`, which keeps `submission` (full job parameters and input paths), job
+names, descriptions, and result folders out of reach. `postgresql_privs` has no column-level
+grants, so that task is a plain `GRANT` and reports changed on every run.
 
 ## Access
 
@@ -114,8 +120,8 @@ Keycloak identities.
 
 The DE datasource is provisioned from the role, and the dashboards pin it per
 panel. A datasource picker only appears in a dashboard's top bar when the
-dashboard declares a `datasource`-type template variable, and DE Logins declares
-only `bucket` — so the top bar shows Bucket and the time range, and nothing else.
+dashboard declares a `datasource`-type template variable, and neither DE dashboard
+does — so the top bar shows Bucket and the time range, and nothing else.
 That is deliberate: the dashboard's SQL is specific to the DE schema, so a picker
 whose only valid value is DE would be worse than none.
 
@@ -160,7 +166,7 @@ provider polls, so a re-run of the role takes effect within a few seconds withou
 
 ### DE Logins
 
-The one dashboard so far. It reads `public.logins` in the DE database and shows total logins
+It reads `public.logins` in the DE database and shows total logins
 and distinct users over the selected range, plus a time series of both bucketed by a `bucket`
 variable (1h / 6h / 1d / 7d / 30d). Both series are counts per bucket, so they share one axis.
 
@@ -183,6 +189,48 @@ Two things about the data are worth knowing before trusting the numbers:
 scan. That is fine at QA's scale and worth revisiting before pointing the dashboard at a
 production-sized table.
 
+### DE Resource Usage
+
+Jobs started and CPU hours consumed, from `public.jobs` and `public.job_types`: a stat for
+each over the selected range, and a stacked time series of each by job type (DE, Interactive,
+and so on), using the same `bucket` variable as DE Logins.
+
+- **Jobs started** counts jobs by `start_date`, leaving out high-throughput batch parents —
+  any job that some other job names as its `parent_id`. A batch's parent is a bookkeeping
+  row the `apps` service writes when the batch is submitted, so a batch counts once per child
+  that actually ran.
+- **CPU hours** is `millicores_reserved / 1000` times run time, the formula
+  `resource-usage-api` bills with. Each job is split into hourly slices clipped to the
+  dashboard's time range, so a job running across midnight counts on both days, the stat
+  total is exact even when the range starts mid-hour, and the cost of a refresh scales with
+  the job-hours in range rather than with the size of `jobs`. Failed and canceled jobs count
+  too; they held their reservation while they ran.
+- **A job with no `end_date` counts only while its status is `Running`**, up to now. Anything
+  else without an end date is left out. Jobs do get stranded in `Submitted` — QA had two from
+  December 2024 with 8 cores between them and no workflow behind them — and counting them as
+  running charged 192 CPU hours to every day since. `resource-usage-api` only bills a job
+  when it completes, so leaving them out also matches billing.
+
+What the numbers are not:
+
+- **Not what users were billed.** `resource-usage-api` reports CPU hours to the
+  [subscriptions](/services/subscriptions.md) service, which keeps them in the QMS database;
+  the DE database's `cpu_usage_events` table is no longer written. The dashboard recomputes
+  from `jobs`, so it can drift from billing wherever a usage report failed.
+- **No CPU hours before `millicores_reserved` existed.** Older jobs have 0 there and
+  contribute nothing, though they still count as started.
+- **No GPU hours.** Nothing records the GPUs a job was given: `app-exposer` stores
+  `millicores_reserved` on the job, but the GPU counts the `apps` service resolves at launch
+  are never saved. A GPU panel needs a `gpus_reserved` column from `de-database` and
+  `app-exposer` first.
+
+Timestamps follow the same rule as DE Logins: `jobs.start_date` comes from PostgreSQL's
+`now()` and `end_date` from the `apps` service, whose pod gets `TZ` from the `timezone`
+ConfigMap, so both hold `America/Phoenix` wall-clock time and are read literally. "Now" for a
+running job is `now() AT TIME ZONE '$db_timezone'`, where `db_timezone` is a hidden constant
+dashboard variable, rather than the database session's time zone, which nothing in this
+repo sets. Change the variable if the database's time zone ever does.
+
 # Citations
 
 [1] `ansible/roles/grafana/defaults/main.yml` — namespace, chart version, bootstrap admin, and resource defaults.
@@ -191,6 +239,9 @@ production-sized table.
 [4] `ansible/grafana.yml` — the standalone deployment playbook.
 [5] `ansible/kubernetes.yml` — the `grafana` tag and its `ansible_run_tags` guard.
 [6] `ansible/roles/postgresql_init/tasks/grafana.yml` — the state database and the two roles, including the read-only grants.
-[7] `ansible/roles/common/defaults/main.yml` — the `grafana` enable flag, the `grafana_db_*` / `grafana_ro_db_*` variables, and `grafana_external_access` with its hostname and Keycloak client.
+[7] `ansible/roles/common/defaults/main.yml` — the `grafana` enable flag, the `grafana_db_*` / `grafana_ro_db_*` variables (including `grafana_ro_db_columns`), and `grafana_external_access` with its hostname and Keycloak client.
 [8] `apps/src/apps/persistence/users.clj` — `upsert-login-record`, the only writer of `logins`.
 [9] `ansible/roles/keycloak_config/defaults/main.yml` — `keycloak_config_grafana_client`, the Keycloak client for local deployments.
+[10] `ansible/roles/grafana/files/dashboards/de-resource-usage.json` — the DE Resource Usage dashboard.
+[11] `resource-usage-api/cpuhours/cpuhours.go` — the CPU hours formula and its report to the subscriptions service.
+[12] `app-exposer/adapter/adapter.go` — where `millicores_reserved` is recorded on a job.
