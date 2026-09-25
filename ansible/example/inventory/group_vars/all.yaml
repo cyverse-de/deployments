@@ -585,6 +585,18 @@
 #     - end_date
 #     - millicores_reserved
 
+# Email domain that marks a user as University of Arizona in the
+# dashboards: a verified user portal address at this domain or any of its
+# subdomains. Read through grafana.ua_users, a view in the DE database
+# backed by postgres_fdw; it's only created when `portal` is true.
+# Default: arizona.edu
+# grafana_ua_email_domain: arizona.edu
+
+# Host the database server connects to for the portal database when
+# grafana.ua_users is read. The portal and DE databases share a server.
+# Default: localhost
+# grafana_portal_fdw_host: localhost
+
 # Expose Grafana at `grafana_hostname` through a Gateway, with login
 # through Keycloak. Only users whose `entitlement` claim includes one of
 # `admin_groups` can log in. keycloak_config creates the Keycloak client

@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Jobs started and CPU hours consumed in the Discovery Environment, from public.jobs in the DE database. A job is counted on the day it started; high-throughput batch parents are left out, so a batch counts once per child that ran. CPU hours are millicores_reserved / 1000 times run time -- the formula resource-usage-api bills with -- split into hourly slices so a job running across midnight counts on both days. A job with no end date counts up to now only while its status is Running; one stuck in any other status (Submitted, say) is left out rather than charged forever. They are computed here, not read from the subscriptions service, so they can differ from what users were billed when a usage report failed. Jobs from before millicores_reserved existed show no CPU hours. GPU hours are not recorded anywhere yet. All times are the DE database server's local time (America/Phoenix): jobs.start_date and end_date are timestamps without time zone and are read literally, and the hidden db_timezone variable says what \"now\" is for running jobs. The dashboard timezone is pinned to UTC so a daily bucket is a database calendar day; do not switch it to browser time.",
+  "description": "Jobs started and CPU hours consumed in the Discovery Environment, from public.jobs in the DE database. A job is counted on the day it started; high-throughput batch parents are left out, so a batch counts once per child that ran. CPU hours are millicores_reserved / 1000 times run time -- the formula resource-usage-api bills with -- split into hourly slices so a job running across midnight counts on both days. A job with no end date counts up to now only while its status is Running; one stuck in any other status (Submitted, say) is left out rather than charged forever. They are computed here, not read from the subscriptions service, so they can differ from what users were billed when a usage report failed. Jobs from before millicores_reserved existed show no CPU hours. GPU hours are not recorded anywhere yet. All times are the DE database server's local time (America/Phoenix): jobs.start_date and end_date are timestamps without time zone and are read literally, and the hidden db_timezone variable says what \"now\" is for running jobs. The dashboard timezone is pinned to UTC so a daily bucket is a database calendar day; do not switch it to browser time. Stats and the by-affiliation panels split users into University of Arizona and other users by joining grafana.ua_users, a view over the user portal database; see the grafana wiki page.",
   "editable": true,
   "graphTooltip": 1,
   "links": [],
@@ -12,7 +12,7 @@
         "type": "postgres",
         "uid": "de-postgres"
       },
-      "description": "Jobs started over the selected time range, excluding high-throughput batch parents.",
+      "description": "Jobs started over the selected time range, excluding high-throughput batch parents. Split into University of Arizona and other users. A user counts as University of Arizona if they have a verified email address in the user portal at arizona.edu or one of its subdomains (grafana.ua_users in the DE database).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -23,17 +23,48 @@
           "mappings": [],
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "University of Arizona"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#D6283C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Other"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4A7FD0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 12,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
-        "colorMode": "none",
+        "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -44,7 +75,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "12.3.1",
@@ -57,7 +88,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(*) AS \"Jobs started\"\n  FROM jobs j\n WHERE $__timeFilter(j.start_date AT TIME ZONE 'UTC')\n   AND NOT EXISTS (SELECT 1 FROM jobs c WHERE c.parent_id = j.id)",
+          "rawSql": "SELECT count(*) AS \"Total\",\n       count(*) FILTER (WHERE ua.username IS NOT NULL) AS \"University of Arizona\",\n       count(*) FILTER (WHERE ua.username IS NULL) AS \"Other\"\n  FROM jobs j\n  JOIN users u ON u.id = j.user_id\n  LEFT JOIN grafana.ua_users ua ON ua.username = u.username\n WHERE $__timeFilter(j.start_date AT TIME ZONE 'UTC')\n   AND NOT EXISTS (SELECT 1 FROM jobs c WHERE c.parent_id = j.id)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -85,7 +116,7 @@
         "type": "postgres",
         "uid": "de-postgres"
       },
-      "description": "CPU hours consumed within the selected time range, including jobs still Running up to now.",
+      "description": "CPU hours consumed within the selected time range, including jobs still Running up to now. Split into University of Arizona and other users. A user counts as University of Arizona if they have a verified email address in the user portal at arizona.edu or one of its subdomains (grafana.ua_users in the DE database).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -96,17 +127,48 @@
           "mappings": [],
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "University of Arizona"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#D6283C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Other"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4A7FD0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 6,
+        "w": 12,
+        "x": 12,
         "y": 0
       },
       "id": 2,
       "options": {
-        "colorMode": "none",
+        "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -117,7 +179,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "12.3.1",
@@ -130,7 +192,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH bounds AS (\n  SELECT $__timeFrom()::timestamptz AT TIME ZONE 'UTC' AS range_from,\n         $__timeTo()::timestamptz AT TIME ZONE 'UTC' AS range_to,\n         now() AT TIME ZONE '$db_timezone' AS db_now\n), reserved AS (\n  SELECT j.job_type_id,\n         j.millicores_reserved / 1000.0 AS cores,\n         j.start_date AS started,\n         coalesce(j.end_date, b.db_now) AS ended,\n         b.range_from,\n         b.range_to\n    FROM jobs j, bounds b\n   WHERE j.millicores_reserved > 0\n     AND (j.end_date IS NOT NULL OR j.status = 'Running')\n     AND j.start_date < b.range_to\n     AND coalesce(j.end_date, b.db_now) > b.range_from\n), hours AS (\n  SELECT r.job_type_id,\n         h AS hour,\n         r.cores * extract(epoch FROM least(r.ended, h + interval '1 hour', r.range_to)\n                                    - greatest(r.started, h, r.range_from)) / 3600 AS cpu_hours\n    FROM reserved r\n   CROSS JOIN LATERAL generate_series(date_trunc('hour', greatest(r.started, r.range_from)),\n                                      least(r.ended, r.range_to),\n                                      interval '1 hour') AS h\n)\nSELECT coalesce(sum(cpu_hours), 0) AS \"CPU hours\"\n  FROM hours",
+          "rawSql": "WITH bounds AS (\n  SELECT $__timeFrom()::timestamptz AT TIME ZONE 'UTC' AS range_from,\n         $__timeTo()::timestamptz AT TIME ZONE 'UTC' AS range_to,\n         now() AT TIME ZONE '$db_timezone' AS db_now\n), reserved AS (\n  SELECT j.job_type_id,\n         ua.username IS NOT NULL AS is_ua,\n         j.millicores_reserved / 1000.0 AS cores,\n         j.start_date AS started,\n         coalesce(j.end_date, b.db_now) AS ended,\n         b.range_from,\n         b.range_to\n    FROM jobs j\n   CROSS JOIN bounds b\n    JOIN users u ON u.id = j.user_id\n    LEFT JOIN grafana.ua_users ua ON ua.username = u.username\n   WHERE j.millicores_reserved > 0\n     AND (j.end_date IS NOT NULL OR j.status = 'Running')\n     AND j.start_date < b.range_to\n     AND coalesce(j.end_date, b.db_now) > b.range_from\n), hours AS (\n  SELECT r.job_type_id,\n         r.is_ua,\n         h AS hour,\n         r.cores * extract(epoch FROM least(r.ended, h + interval '1 hour', r.range_to)\n                                    - greatest(r.started, h, r.range_from)) / 3600 AS cpu_hours\n    FROM reserved r\n   CROSS JOIN LATERAL generate_series(date_trunc('hour', greatest(r.started, r.range_from)),\n                                      least(r.ended, r.range_to),\n                                      interval '1 hour') AS h\n)\nSELECT coalesce(sum(cpu_hours), 0) AS \"Total\",\n       coalesce(sum(cpu_hours) FILTER (WHERE is_ua), 0) AS \"University of Arizona\",\n       coalesce(sum(cpu_hours) FILTER (WHERE NOT is_ua), 0) AS \"Other\"\n  FROM hours",
           "refId": "A",
           "sql": {
             "columns": [
@@ -152,6 +214,276 @@
       ],
       "title": "CPU hours",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "de-postgres"
+      },
+      "description": "Jobs started per bucket, stacked by the submitter's affiliation. Empty buckets are filled with zero. A user counts as University of Arizona if they have a verified email address in the user portal at arizona.edu or one of its subdomains (grafana.ua_users in the DE database).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "mappings": [],
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "University of Arizona"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#D6283C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Other"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4A7FD0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "de-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(j.start_date AT TIME ZONE 'UTC', $bucket, 0),\n       CASE WHEN ua.username IS NULL THEN 'Other' ELSE 'University of Arizona' END AS metric,\n       count(*) AS value\n  FROM jobs j\n  JOIN users u ON u.id = j.user_id\n  LEFT JOIN grafana.ua_users ua ON ua.username = u.username\n WHERE $__timeFilter(j.start_date AT TIME ZONE 'UTC')\n   AND NOT EXISTS (SELECT 1 FROM jobs c WHERE c.parent_id = j.id)\n GROUP BY 1, 2\n ORDER BY 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Jobs started by affiliation",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "de-postgres"
+      },
+      "description": "CPU hours consumed per bucket, stacked by the submitter's affiliation. A job contributes to every bucket it ran in, in proportion to the time it ran there. A user counts as University of Arizona if they have a verified email address in the user portal at arizona.edu or one of its subdomains (grafana.ua_users in the DE database).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "University of Arizona"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#D6283C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Other"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4A7FD0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "de-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH bounds AS (\n  SELECT $__timeFrom()::timestamptz AT TIME ZONE 'UTC' AS range_from,\n         $__timeTo()::timestamptz AT TIME ZONE 'UTC' AS range_to,\n         now() AT TIME ZONE '$db_timezone' AS db_now\n), reserved AS (\n  SELECT j.job_type_id,\n         ua.username IS NOT NULL AS is_ua,\n         j.millicores_reserved / 1000.0 AS cores,\n         j.start_date AS started,\n         coalesce(j.end_date, b.db_now) AS ended,\n         b.range_from,\n         b.range_to\n    FROM jobs j\n   CROSS JOIN bounds b\n    JOIN users u ON u.id = j.user_id\n    LEFT JOIN grafana.ua_users ua ON ua.username = u.username\n   WHERE j.millicores_reserved > 0\n     AND (j.end_date IS NOT NULL OR j.status = 'Running')\n     AND j.start_date < b.range_to\n     AND coalesce(j.end_date, b.db_now) > b.range_from\n), hours AS (\n  SELECT r.job_type_id,\n         r.is_ua,\n         h AS hour,\n         r.cores * extract(epoch FROM least(r.ended, h + interval '1 hour', r.range_to)\n                                    - greatest(r.started, h, r.range_from)) / 3600 AS cpu_hours\n    FROM reserved r\n   CROSS JOIN LATERAL generate_series(date_trunc('hour', greatest(r.started, r.range_from)),\n                                      least(r.ended, r.range_to),\n                                      interval '1 hour') AS h\n)\nSELECT $__timeGroupAlias(h.hour AT TIME ZONE 'UTC', $bucket, 0),\n       CASE WHEN h.is_ua THEN 'University of Arizona' ELSE 'Other' END AS metric,\n       sum(h.cpu_hours) AS value\n  FROM hours h\n GROUP BY 1, 2\n ORDER BY 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "CPU hours by affiliation",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -207,7 +539,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 14
       },
       "id": 3,
       "options": {
@@ -310,7 +642,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 26
       },
       "id": 4,
       "options": {

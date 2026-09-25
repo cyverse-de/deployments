@@ -118,3 +118,49 @@
       tags:
         - grafana
         - update-databases
+
+    # The dashboards split usage into University of Arizona and other users by
+    # verified email address, which lives in the portal database. postgres_fdw
+    # exposes just that in the DE database as grafana.ua_users; see the template
+    # for why the objects are laid out the way they are. It needs the portal
+    # database to exist, so it's skipped when this deployment doesn't have one.
+    - name: Install postgres_fdw in the de database
+      when: portal and install_exts is defined and install_exts
+      community.postgresql.postgresql_ext:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        name: postgres_fdw
+      tags:
+        - grafana
+        - update-databases
+
+    # Reports changed on every run, because the view is dropped and recreated.
+    # no_log because the module returns the executed query, which includes the
+    # user mapping's password.
+    - name: Create the University of Arizona user view for grafana
+      when: portal
+      no_log: true
+      community.postgresql.postgresql_query:
+        login_host: "{{ groups['dbms'][0] }}"
+        port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        query: "{{ lookup('template', 'grafana_ua_users.sql.j2') }}"
+        named_args:
+          host: "{{ grafana_portal_fdw_host }}"
+          port: "{{ pg_listen_port | string }}"
+          dbname: "{{ portal_db_name }}"
+          user: "{{ pg_login_user }}"
+          password: "{{ pg_login_password }}"
+          uid_domain: "{{ uid_domain }}"
+          # Two strings rather than a list: the module renders a list as an array
+          # literal with the quotes left inside each element.
+          domain_pattern: "%@{{ grafana_ua_email_domain | lower }}"
+          subdomain_pattern: "%.{{ grafana_ua_email_domain | lower }}"
+      tags:
+        - grafana
+        - update-databases

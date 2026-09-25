@@ -1,5 +1,15 @@
 # Wiki Update Log
 
+## 2026-09-25
+
+* **Update**: [Grafana](/infrastructure/grafana.md) — both dashboards now split usage into
+  University of Arizona and other users (a verified portal email at `arizona.edu` or a
+  subdomain), with fixed colors and new by-affiliation panels. The portal data reaches the
+  DE datasource through `postgres_fdw` and a `grafana.ua_users` view in a `grafana` schema
+  of the DE database; nothing is created in the portal database, and `grafana_ro` can read
+  the view but not the email addresses behind it. [PostgreSQL](/infrastructure/postgresql.md)
+  mentions the new schema in its Grafana pass.
+
 ## 2026-09-23
 
 * **Update**: [Grafana](/infrastructure/grafana.md) — added the DE Resource Usage
