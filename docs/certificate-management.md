@@ -19,11 +19,12 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt or self-signed CA) | VICE apps inaccessible if Traefik is directly exposed |
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
+| Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
 | Traefik default TLS | `traefik` | cert-manager self-signed CA (always) | Internal routing breaks |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
-controls the issuer for the DE UI, VICE, portal, and Keycloak certificates. Internal-only
+controls the issuer for the DE UI, VICE, portal, Keycloak, and Grafana certificates. Internal-only
 certificates (Traefik and portal-conductor) are always self-signed regardless of this
 setting.
 
@@ -77,7 +78,8 @@ kubectl -n $NS describe certificate <name>
 Look at the `Status.Conditions` section. If `Ready` is `False`, the `Message` field explains why.
 
 > **Note:** Most certificates are in `$NS`, but Keycloak certificates are in the `keycloak`
-> namespace. Use `kubectl -n keycloak get certificates` for those.
+> namespace and Grafana's are in the `grafana` namespace. Use
+> `kubectl -n keycloak get certificates` or `kubectl -n grafana get certificates` for those.
 
 ### Decode the actual certificate to see expiry
 

@@ -1,5 +1,47 @@
 # Wiki Update Log
 
+## 2026-09-25
+
+* **Update**: [Grafana](/infrastructure/grafana.md) — both dashboards now split usage into
+  University of Arizona and other users (a verified portal email at `arizona.edu` or a
+  subdomain), with fixed colors and new by-affiliation panels. The portal data reaches the
+  DE datasource through `postgres_fdw` and a `grafana.ua_users` view in a `grafana` schema
+  of the DE database; nothing is created in the portal database, and `grafana_ro` can read
+  the view but not the email addresses behind it. [PostgreSQL](/infrastructure/postgresql.md)
+  mentions the new schema in its Grafana pass.
+
+## 2026-09-23
+
+* **Update**: [Grafana](/infrastructure/grafana.md) — added the DE Resource Usage
+  dashboard: jobs started and CPU hours consumed, stacked by job type. CPU hours are
+  recomputed from `jobs` with `resource-usage-api`'s formula and split into hourly
+  slices, so they can differ from what the subscriptions service billed; a job with no
+  end date counts only while `Running`, after stuck `Submitted` jobs put a false
+  192-hour daily baseline under QA. GPU hours are not recorded anywhere yet. The read-only role gained `job_types` and a column-level
+  grant on `jobs` (`grafana_ro_db_columns`) that keeps job parameters and paths out of
+  Explore. [PostgreSQL](/infrastructure/postgresql.md) describes the wider grant, and
+  [cert-manager](/infrastructure/cert-manager.md) now lists the Grafana certificate
+  that external access added.
+
+* **Update**: [Keycloak](/infrastructure/keycloak.md) — added the Grafana client to
+  the secret-rotation table, with a note that its secret is not pushed by
+  `configure-services`: re-run `grafana.yml` and restart the Grafana Deployment.
+  [Certificate Management](/playbooks/certificate-management.md) gained the Grafana
+  TLS certificate in its inventory and namespace notes. The source docs
+  (`docs/keycloak.md`, `docs/certificate-management.md`) and `ansible/README.md`
+  were updated to match.
+
+## 2026-09-22
+
+* **Update**: [Grafana](/infrastructure/grafana.md) — documented
+  `grafana_external_access`, which serves Grafana at `grafana_hostname` through
+  its own Gateway and HTTPRoute and adds Keycloak login restricted to users whose
+  `entitlement` claim includes one of `admin_groups`, with optional Admin and
+  Editor group mappings. Notes that the Keycloak client has to be created by hand
+  outside local deployments, and that group changes only apply at the next login.
+  [Keycloak](/infrastructure/keycloak.md) gained the Grafana client in its
+  client table.
+
 ## 2026-09-10
 
 * **Update**: [Harbor](/infrastructure/harbor.md) — documented that the CyVerse
