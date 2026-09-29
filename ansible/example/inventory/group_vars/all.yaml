@@ -564,10 +564,66 @@
 
 # Tables in the DE database's public schema that `grafana_ro_db_user` is
 # granted SELECT on. Add a table here if a new dashboard needs it.
-# Default: [logins, users]
+# Default: [logins, users, job_types]
 # grafana_ro_db_tables:
 #   - logins
 #   - users
+#   - job_types
+
+# Tables `grafana_ro_db_user` is granted SELECT on by column rather than
+# whole, as {table: [columns]}. Keeps job parameters, names, and paths
+# out of reach of anyone with Explore in Grafana.
+# Default: jobs, limited to the columns below
+# grafana_ro_db_columns:
+#   jobs:
+#     - id
+#     - job_type_id
+#     - parent_id
+#     - user_id
+#     - status
+#     - start_date
+#     - end_date
+#     - millicores_reserved
+
+# Email domain that marks a user as University of Arizona in the
+# dashboards: a verified user portal address at this domain or any of its
+# subdomains. Read through grafana.ua_users, a view in the DE database
+# backed by postgres_fdw; it's only created when `portal` is true.
+# Default: arizona.edu
+# grafana_ua_email_domain: arizona.edu
+
+# Host the database server connects to for the portal database when
+# grafana.ua_users is read. The portal and DE databases share a server.
+# Default: localhost
+# grafana_portal_fdw_host: localhost
+
+# Expose Grafana at `grafana_hostname` through a Gateway, with login
+# through Keycloak. Only users whose `entitlement` claim includes one of
+# `admin_groups` can log in. keycloak_config creates the Keycloak client
+# only in local deployments; elsewhere create it by hand, with the redirect
+# URI `https://<grafana_hostname>/*` and standard flow enabled.
+# Default: false
+# grafana_external_access: false
+
+# Hostname Grafana is served at. Needs a DNS record pointing at the proxy.
+# Default: replace_me
+# grafana_hostname: grafana.example.org
+
+# The confidential Keycloak client Grafana logs users in through.
+# Default: grafana
+# grafana_keycloak_client_id: grafana
+
+# Secret for `grafana_keycloak_client_id`.
+# Default: replace_me
+# grafana_keycloak_client_secret: replace_me
+
+# Groups from `admin_groups` that get the Grafana Admin or Editor role.
+# Everyone else allowed in gets `grafana_oauth_default_role`. Editor and
+# Admin can run arbitrary SQL against the DE database through Explore.
+# Default: [] for both, Viewer
+# grafana_oauth_admin_groups: []
+# grafana_oauth_editor_groups: []
+# grafana_oauth_default_role: Viewer
 
 
 # ---------------------------------------------------------------------

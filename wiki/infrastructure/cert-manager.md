@@ -4,11 +4,11 @@ title: cert-manager
 description: How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed and Let's Encrypt certificates.
 resource: /ansible/roles/cert-manager
 tags: [cert-manager, tls, certificates, letsencrypt, issuers, kubernetes.yml]
-timestamp: 2026-07-29T00:00:00Z
+timestamp: 2026-09-23T00:00:00Z
 ---
 
 cert-manager issues and renews the TLS certificates used inside the cluster — the Traefik default
-certificate, the DE UI, VICE wildcard, user portal, Keycloak, and Harbor certs. For the full
+certificate, the DE UI, VICE wildcard, user portal, Keycloak, Harbor, and (when exposed) Grafana certs. For the full
 certificate inventory and expiry procedures, see
 [Certificate Management](/playbooks/certificate-management.md).
 

@@ -224,7 +224,10 @@
           # shows for every one of these clients.
           post.logout.redirect.uris: "+"
         state: present
-      loop: "{{ keycloak_config_clients }}"
+      loop: >-
+        {{ keycloak_config_clients
+           + ([keycloak_config_grafana_client]
+              if (grafana | bool and grafana_external_access | bool) else []) }}
       loop_control:
         label: "{{ item.client_id }}"
       no_log: true

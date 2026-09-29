@@ -1,10 +1,10 @@
 ---
 type: Service
 title: Grafana
-description: Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and a provisioned logins dashboard, installed only when the grafana tag is named explicitly.
+description: Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and provisioned logins and resource-usage dashboards that split usage into University of Arizona and other users, installed only when the grafana tag is named explicitly, and optionally exposed through a Gateway with Keycloak login limited to DE admin groups.
 resource: /ansible/roles/grafana
-tags: [grafana, metrics, dashboards, observability, postgresql, kubernetes.yml]
-timestamp: 2026-07-29T00:00:00Z
+tags: [grafana, metrics, dashboards, observability, postgresql, keycloak, gateway-api, kubernetes.yml]
+timestamp: 2026-09-25T00:00:00Z
 ---
 
 Grafana provides metrics dashboards for the DE. Like [Jaeger](/infrastructure/jaeger.md), it
@@ -45,16 +45,75 @@ migrations. The pod is disposable; deleting it loses nothing.
 - `grafana_db_user` (default `grafana`) owns the `grafana` state database.
 - `grafana_ro_db_user` (default `grafana_ro`) is what Grafana queries the DE database with.
   It gets `CONNECT` on `de`, `USAGE` on the `public` schema, and `SELECT` on exactly the
-  tables in `grafana_ro_db_tables` (`logins` and `users`) — nothing else.
+  tables in `grafana_ro_db_tables` (`logins`, `users`, and `job_types`), plus the columns in
+  `grafana_ro_db_columns` — nothing else.
 
 The read-only role matters because anyone holding the Grafana admin password can run
 arbitrary SQL through the datasource's explore UI. Add a table to `grafana_ro_db_tables` when
-a new dashboard needs it rather than widening the grant.
+a new dashboard needs it rather than widening the grant. A table whose other columns have
+no business in a dashboard goes in `grafana_ro_db_columns` instead: `jobs` is granted only
+`id`, `job_type_id`, `parent_id`, `user_id`, `status`, `start_date`, `end_date`, and
+`millicores_reserved`, which keeps `submission` (full job parameters and input paths), job
+names, descriptions, and result folders out of reach. `postgresql_privs` has no column-level
+grants, so that task is a plain `GRANT` and reports changed on every run.
+
+`grafana_ro` also gets `SELECT` on one view outside `public`, `grafana.ua_users`; see
+[University of Arizona affiliation](#university-of-arizona-affiliation).
+
+## University of Arizona affiliation
+
+Both dashboards split their stats into University of Arizona and other users, and each has
+panels stacked by affiliation. A user counts as University of Arizona if they have a verified
+user portal email address at `grafana_ua_email_domain` (`arizona.edu`) or any of its
+subdomains, so `@email.arizona.edu` counts and `@notarizona.edu` doesn't. The address has to be
+verified, but it doesn't have to be current: someone who has left the university and still
+has a verified address is counted. The self-selected GRID institution would be the
+alternative; it was passed over because it's self-declared.
+
+Verified addresses live in the portal database, not the DE database, and a Grafana panel
+queries one datasource. Rather than a second datasource and a join in the browser,
+`postgresql_init` builds a `grafana` schema in the DE database with `postgres_fdw`, from
+`ansible/roles/postgresql_init/templates/grafana_ua_users.sql.j2`:
+
+- a `grafana_portal` foreign server pointing at the portal database on the same PostgreSQL
+  server (`grafana_portal_fdw_host`, default `localhost`, and `pg_listen_port`), and a user
+  mapping for the admin role (`pg_login_user`) that connects as that role;
+- foreign tables `grafana.portal_users` (`account_user`: `id`, `username`) and
+  `grafana.portal_email_addresses` (`account_emailaddress`: `user_id`, `email`, `verified`);
+- the view `grafana.ua_users(username)`, the matching portal usernames with `@<uid_domain>`
+  appended so they compare equal to `users.username` in the DE database.
+
+The dashboards `LEFT JOIN` `grafana.ua_users` on `users.username`. The layout keeps both
+databases' ownership clean:
+
+- **Nothing is created in the portal database.** PostgreSQL refuses to drop or alter a
+  column a view depends on, so a view there could make a later portal2 migration fail over
+  an object nobody remembers. Foreign tables don't create that dependency. If the portal
+  schema changes, the portal is unaffected and the affiliation panels fail with a query
+  error instead.
+- **Grafana can't read email addresses.** The foreign tables and view belong to the admin
+  role, and a view reads foreign tables through its owner's user mapping. `grafana_ro` has
+  `SELECT` on the view only, and gets permission denied on the foreign tables.
+- **Nothing touches DE migrations.** Everything is in the `grafana` schema, which the DE
+  migrations never use; `DROP SCHEMA grafana CASCADE` plus `DROP SERVER grafana_portal
+  CASCADE` removes all of it.
+
+The task runs only when `portal` is true, since it needs the portal database, and
+`postgres_fdw` is installed only when `install_exts` is. Without the view the affiliation
+panels show an error while the rest of each dashboard still works. The view and foreign
+tables are dropped and recreated on every run, so a change to the domain or the column
+lists always takes effect; the task has `no_log` because the module echoes the executed SQL,
+user mapping password included. To change the affiliation rule — to use the GRID
+institution, say — edit the view in the template and re-run `--tags grafana`.
+
+The panels use fixed colors from field overrides matched on the series name: University of
+Arizona is `#D6283C` and Other is `#4A7FD0`. Grafana's series palette would otherwise assign
+colors by order.
 
 ## Access
 
-Grafana is not exposed outside the cluster — no Certificate, no Gateway, no HTTPRoute. Reach
-it by port-forwarding:
+By default Grafana is not exposed outside the cluster — no Certificate, no Gateway, no
+HTTPRoute. Reach it by port-forwarding:
 
 ```bash
 kubectl -n grafana port-forward svc/grafana 3000:80
@@ -65,12 +124,57 @@ Secret via the chart's `admin.existingSecret`). That account is a bootstrap cred
 shared login: use it once to create real administrator accounts, then leave it alone.
 Self-service signup is off (`grafana_allow_sign_up: false`) and anonymous access is disabled.
 
+### External access through Keycloak
+
+Setting `grafana_external_access: true` serves Grafana at `grafana_hostname` and adds
+"Sign in with CyVerse", Grafana's `generic_oauth` login against the DE realm in
+[Keycloak](/infrastructure/keycloak.md). The role then also creates:
+
+- a `grafana-tls` Certificate in the `grafana` namespace — from a namespace-local CA with
+  `cert_manager_provider: selfsigned`, from the Let's Encrypt ClusterIssuer otherwise (see
+  [cert-manager](/infrastructure/cert-manager.md));
+- a `grafana` Gateway with one HTTPS listener on 8443 and an HTTPRoute to the `grafana`
+  Service, the same shape as Keycloak's own Gateway (see
+  [Ingress and Gateway Routing](/infrastructure/ingress.md));
+- a `grafana-oauth` Secret holding `grafana_keycloak_client_secret`, injected as
+  `GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` so it stays out of the `grafana.ini` ConfigMap.
+
+[HAProxy](/infrastructure/haproxy.md) passes 443 through to Traefik untouched, so the only
+change outside Kubernetes is a DNS record for `grafana_hostname` pointing at the proxy.
+
+Who gets in is decided by the `entitlement` claim — the same bare LDAP group names terrain
+checks for the DE admin pages. `grafana_oauth_allowed_groups` defaults to `admin_groups`;
+a user whose claim contains none of them is refused at login. Everyone admitted gets
+`grafana_oauth_default_role` (Viewer) unless they are in `grafana_oauth_admin_groups`
+(Admin) or `grafana_oauth_editor_groups` (Editor), checked in that order. Both lists are
+empty by default. Editor and Admin can use Explore, which means arbitrary SQL through the DE
+datasource, so grant them deliberately.
+
+Group membership and role are only evaluated at login. Someone removed from an allowed
+group keeps their Grafana session until it ends, which `grafana_login_maximum_lifetime_duration`
+caps at 10 hours (Grafana's own default is 30 days).
+
+The Keycloak client (`grafana_keycloak_client_id`, default `grafana`) is created by
+`keycloak_config`, which only runs from `local.yml`. In QA and production create it by hand
+in the DE realm: a confidential client with the standard flow enabled, redirect URI
+`https://<grafana_hostname>/*`, and web origin `https://<grafana_hostname>`. The `profile`
+client scope already carries the `entitlement` mapper, so nothing else is needed. Copy its
+secret into `grafana_keycloak_client_secret`.
+
+If Keycloak serves a certificate Grafana does not trust, the token exchange fails after the
+Keycloak login page. `grafana_oauth_tls_skip_verify: true` works around that for a
+self-signed test deployment only.
+
+The local login form stays available, so the bootstrap admin remains a way in if Keycloak is
+down. Accounts created by hand before external access was enabled are not merged with the
+Keycloak identities.
+
 ## Where the datasource is (there is no picker)
 
 The DE datasource is provisioned from the role, and the dashboards pin it per
 panel. A datasource picker only appears in a dashboard's top bar when the
-dashboard declares a `datasource`-type template variable, and DE Logins declares
-only `bucket` — so the top bar shows Bucket and the time range, and nothing else.
+dashboard declares a `datasource`-type template variable, and neither DE dashboard
+does — so the top bar shows Bucket and the time range, and nothing else.
 That is deliberate: the dashboard's SQL is specific to the DE schema, so a picker
 whose only valid value is DE would be worse than none.
 
@@ -115,9 +219,12 @@ provider polls, so a re-run of the role takes effect within a few seconds withou
 
 ### DE Logins
 
-The one dashboard so far. It reads `public.logins` in the DE database and shows total logins
-and distinct users over the selected range, plus a time series of both bucketed by a `bucket`
-variable (1h / 6h / 1d / 7d / 30d). Both series are counts per bucket, so they share one axis.
+It reads `public.logins` in the DE database and shows total logins
+and distinct users over the selected range, each split into University of Arizona and other
+users, plus a time series of both bucketed by a `bucket` variable (1h / 6h / 1d / 7d / 30d).
+Both series are counts per bucket, so they share one axis. Below it, logins and distinct users
+are each stacked by affiliation; a user has exactly one affiliation, so the top of each stack
+is the total.
 
 Two things about the data are worth knowing before trusting the numbers:
 
@@ -138,13 +245,63 @@ Two things about the data are worth knowing before trusting the numbers:
 scan. That is fine at QA's scale and worth revisiting before pointing the dashboard at a
 production-sized table.
 
+### DE Resource Usage
+
+Jobs started and CPU hours consumed, from `public.jobs` and `public.job_types`: a stat for
+each over the selected range, split into University of Arizona and other users; a stacked
+time series of each by the submitter's affiliation; and a stacked time series of each by job
+type (DE, Interactive, and so on). All use the same `bucket` variable as DE Logins. The
+job-type panels stay unsplit, since job type times affiliation would double the series.
+
+- **Jobs started** counts jobs by `start_date`, leaving out high-throughput batch parents —
+  any job that some other job names as its `parent_id`. A batch's parent is a bookkeeping
+  row the `apps` service writes when the batch is submitted, so a batch counts once per child
+  that actually ran.
+- **CPU hours** is `millicores_reserved / 1000` times run time, the formula
+  `resource-usage-api` bills with. Each job is split into hourly slices clipped to the
+  dashboard's time range, so a job running across midnight counts on both days, the stat
+  total is exact even when the range starts mid-hour, and the cost of a refresh scales with
+  the job-hours in range rather than with the size of `jobs`. Failed and canceled jobs count
+  too; they held their reservation while they ran.
+- **A job with no `end_date` counts only while its status is `Running`**, up to now. Anything
+  else without an end date is left out. Jobs do get stranded in `Submitted` — QA had two from
+  December 2024 with 8 cores between them and no workflow behind them — and counting them as
+  running charged 192 CPU hours to every day since. `resource-usage-api` only bills a job
+  when it completes, so leaving them out also matches billing.
+
+What the numbers are not:
+
+- **Not what users were billed.** `resource-usage-api` reports CPU hours to the
+  [subscriptions](/services/subscriptions.md) service, which keeps them in the QMS database;
+  the DE database's `cpu_usage_events` table is no longer written. The dashboard recomputes
+  from `jobs`, so it can drift from billing wherever a usage report failed.
+- **No CPU hours before `millicores_reserved` existed.** Older jobs have 0 there and
+  contribute nothing, though they still count as started.
+- **No GPU hours.** Nothing records the GPUs a job was given: `app-exposer` stores
+  `millicores_reserved` on the job, but the GPU counts the `apps` service resolves at launch
+  are never saved. A GPU panel needs a `gpus_reserved` column from `de-database` and
+  `app-exposer` first.
+
+Timestamps follow the same rule as DE Logins: `jobs.start_date` comes from PostgreSQL's
+`now()` and `end_date` from the `apps` service, whose pod gets `TZ` from the `timezone`
+ConfigMap, so both hold `America/Phoenix` wall-clock time and are read literally. "Now" for a
+running job is `now() AT TIME ZONE '$db_timezone'`, where `db_timezone` is a hidden constant
+dashboard variable, rather than the database session's time zone, which nothing in this
+repo sets. Change the variable if the database's time zone ever does.
+
 # Citations
 
 [1] `ansible/roles/grafana/defaults/main.yml` — namespace, chart version, bootstrap admin, and resource defaults.
-[2] `ansible/roles/grafana/tasks/main.yml` — namespace, secrets, dashboard ConfigMap, Helm values, and readiness wait.
+[2] `ansible/roles/grafana/tasks/main.yml` — namespace, secrets, dashboard ConfigMap, Helm values, readiness wait, and the optional Keycloak login, Certificate, Gateway, and HTTPRoute.
 [3] `ansible/roles/grafana/files/dashboards/de-logins.json` — the DE Logins dashboard.
 [4] `ansible/grafana.yml` — the standalone deployment playbook.
 [5] `ansible/kubernetes.yml` — the `grafana` tag and its `ansible_run_tags` guard.
-[6] `ansible/roles/postgresql_init/tasks/grafana.yml` — the state database and the two roles, including the read-only grants.
-[7] `ansible/roles/common/defaults/main.yml` — the `grafana` enable flag and the `grafana_db_*` / `grafana_ro_db_*` variables.
+[6] `ansible/roles/postgresql_init/tasks/grafana.yml` — the state database and the two roles, including the read-only grants, and the `postgres_fdw` tasks behind `grafana.ua_users`.
+[7] `ansible/roles/common/defaults/main.yml` — the `grafana` enable flag, the `grafana_db_*` / `grafana_ro_db_*` variables (including `grafana_ro_db_columns`), `grafana_ua_email_domain` and `grafana_portal_fdw_host`, and `grafana_external_access` with its hostname and Keycloak client.
 [8] `apps/src/apps/persistence/users.clj` — `upsert-login-record`, the only writer of `logins`.
+[9] `ansible/roles/keycloak_config/defaults/main.yml` — `keycloak_config_grafana_client`, the Keycloak client for local deployments.
+[10] `ansible/roles/grafana/files/dashboards/de-resource-usage.json` — the DE Resource Usage dashboard.
+[11] `resource-usage-api/cpuhours/cpuhours.go` — the CPU hours formula and its report to the subscriptions service.
+[12] `app-exposer/adapter/adapter.go` — where `millicores_reserved` is recorded on a job.
+[13] `ansible/roles/postgresql_init/templates/grafana_ua_users.sql.j2` — the `grafana` schema: the foreign server, user mapping, foreign tables, and `grafana.ua_users`.
+[14] `portal2/migrations/00001_initial.up.sql` — `account_user` and `account_emailaddress`, the portal tables the foreign tables read.

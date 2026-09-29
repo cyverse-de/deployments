@@ -20,10 +20,40 @@ grafana_chart_version: "10.5.15"
 grafana_admin_user: admin
 grafana_admin_password: Ch@ng3M3
 
+# Unless grafana_external_access is on (see roles/common/defaults/main.yml),
 # Grafana is not exposed outside the cluster. Reach it with:
 #   kubectl -n grafana port-forward svc/grafana 3000:80
-# Self-service signup stays off; accounts are created by an administrator.
+# Self-service signup stays off; accounts are created by an administrator. This
+# governs the local login form only: Keycloak logins create their own accounts.
 grafana_allow_sign_up: false
+
+# ---------------------------------------------------------------------
+# External access (grafana_external_access)
+# ---------------------------------------------------------------------
+# Only users whose entitlement claim includes one of these groups can log in
+# through Keycloak. Defaults to the groups that can reach the DE admin pages.
+grafana_oauth_allowed_groups: "{{ admin_groups.split(',') | map('trim') | reject('equalto', '') | list }}"
+
+# Grafana role for a Keycloak login, checked in order: a member of any
+# grafana_oauth_admin_groups is an Admin, then grafana_oauth_editor_groups gives
+# Editor, and anyone else who got past grafana_oauth_allowed_groups gets
+# grafana_oauth_default_role. The role is re-synced on every login. Editor and
+# Admin can use Explore, which runs arbitrary SQL through the DE datasource.
+grafana_oauth_admin_groups: []
+grafana_oauth_editor_groups: []
+grafana_oauth_default_role: Viewer
+
+# Group membership is only checked at login, so this bounds how long someone
+# removed from an allowed group keeps access. Matches Keycloak's default SSO
+# session max lifespan; Grafana's own default is 30 days.
+grafana_login_maximum_lifetime_duration: 10h
+
+# Skips verifying Keycloak's certificate on the token exchange. Only for a
+# Keycloak serving a self-signed certificate; never in production.
+grafana_oauth_tls_skip_verify: false
+
+grafana_cert_duration: "8766h" # 1 year
+grafana_cert_renew_before: "240h" # 10 days
 
 # PostgreSQL feature level Grafana targets for the DE datasource. This is a
 # floor, not the server's actual version -- Grafana uses it to decide which SQL

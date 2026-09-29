@@ -825,13 +825,48 @@ grafana_db_user: grafana
 grafana_db_password: Ch@ng3M3
 
 # Read-only role Grafana uses to query the DE database for the dashboards. It is
-# granted SELECT on grafana_ro_db_tables and nothing else -- add a table here if
-# a new dashboard needs it.
+# granted SELECT on grafana_ro_db_tables and grafana_ro_db_columns and nothing
+# else -- add a table or column here if a new dashboard needs it.
 grafana_ro_db_user: grafana_ro
 grafana_ro_db_password: Ch@ng3M3
 grafana_ro_db_tables:
   - logins
   - users
+  - job_types
+
+# Tables granted by column rather than whole, as {table: [columns]}. jobs is
+# here because the rest of it -- submission (full job parameters and input
+# paths), job names, descriptions, result folders -- has no place in a dashboard,
+# and anyone with Explore in Grafana can read whatever this role can.
+grafana_ro_db_columns:
+  jobs:
+    - id
+    - job_type_id
+    - parent_id
+    - user_id
+    - status
+    - start_date
+    - end_date
+    - millicores_reserved
+
+# The dashboards count a user as University of Arizona when they have a verified
+# user portal email address at this domain or one of its subdomains. It's read
+# from the portal database through grafana.ua_users, a view in the DE database
+# that grafana_ro can select from; the portal database itself is left untouched.
+# grafana_portal_fdw_host is the host the database server uses to reach the
+# portal database -- itself, since postgresql_init puts both on groups['dbms'][0].
+grafana_ua_email_domain: arizona.edu
+grafana_portal_fdw_host: localhost
+
+# External access to Grafana through a Gateway, with login through Keycloak.
+# Off by default, which leaves Grafana reachable only by port-forwarding. These
+# live in common because keycloak_config creates the Keycloak client from them
+# as well as the grafana role.
+grafana_external_access: false
+grafana_hostname: replace_me
+grafana_base_uri: "https://{{ grafana_hostname }}"
+grafana_keycloak_client_id: grafana
+grafana_keycloak_client_secret: replace_me
 
 # Gateway API CRD version
 gateway_api_crd_version: v1.5.1  # Keep in step with the Traefik version (v3.7 -> Gateway API v1.5.1)
