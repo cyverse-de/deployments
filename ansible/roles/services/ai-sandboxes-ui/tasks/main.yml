@@ -1,0 +1,31 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: create the ai-sandboxes-ui-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: ai-sandboxes-ui-configs
+            namespace: "{{ ns }}"
+          stringData:
+            AI2S_TERRAIN_BASE_URL: "{{ ai2s_terrain_base_url }}"
+            AI2S_KEYCLOAK_ISSUER: "{{ ai2s_keycloak_issuer }}"
+            AI2S_KEYCLOAK_CLIENT_ID: "{{ ai2s_keycloak_client_id }}"
+            AI2S_KEYCLOAK_CLIENT_SECRET: "{{ ai2s_keycloak_client_secret }}"
+            AI2S_ADMIN_GROUPS: "{{ ai2s_admin_groups }}"
+            NEXTAUTH_URL: "{{ ai2s_nextauth_url }}"
+            NEXTAUTH_SECRET: "{{ ai2s_nextauth_secret }}"
+            AI2S_LOG_LEVEL: "{{ ai2s_log_level }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: ai-sandboxes-ui

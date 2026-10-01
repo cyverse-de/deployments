@@ -1953,6 +1953,63 @@
 # vice_operator_swagger_client_secret: replace_me
 # vice_api_keycloak_client_secret: replace_me
 
+# Operators app-exposer schedules analyses onto. Each entry registers a
+# vice-operator instance: name (unique label), url (how app-exposer reaches
+# it, often in-cluster), base_url (public URL), tls_skip_verify, and
+# priority (lower wins). The default is empty — a deployment building the
+# database from nothing needs at least the local operator. Add the EKS
+# operator here to route analyses to the AI Discovery Lab cluster.
+# Default: []
+# vice_operators_values:
+#   - name: local
+#     url: http://vice-operator:10000
+#     base_url: "https://{{ vice_base_domain }}"
+#     tls_skip_verify: false
+#     priority: 0
+#   - name: eks-lab-aws
+#     url: "https://operator.lab-aws.responsibleai.arizona.edu"
+#     base_url: "https://lab-aws.responsibleai.arizona.edu"
+#     tls_skip_verify: false
+#     priority: 0
+
+
+# =====================================================================
+# AI Discovery Lab (ai-sandboxes-ui)
+# =====================================================================
+# The AI Discovery Lab is an alternate web UI for the DE, deployed as a
+# Next.js app (ai-sandboxes-ui). It authenticates via Keycloak and
+# proxies API calls to Terrain. Deployed with `--tags ai-sandboxes-ui`
+# in deploy_it.yml.
+#
+# Most defaults derive from the global Keycloak and Terrain settings.
+# Set the Keycloak client and NextAuth secrets for a real deployment.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+# Keycloak client the AI Discovery Lab authenticates with.
+# Default: ai-sandboxes
+# ai2s_keycloak_client_id: ai-sandboxes
+# ai2s_keycloak_client_secret: replace_me
+
+# Comma-separated Keycloak entitlement roles that grant admin in the DL UI.
+# Default: replace_me
+# ai2s_admin_groups: developers,support
+
+# Public URL of the AI Discovery Lab (required by NextAuth in production).
+# Default: replace_me
+# ai2s_nextauth_url: https://lab-aws.responsibleai.arizona.edu
+
+# NextAuth session encryption secret (generate with `openssl rand -base64 32`).
+# Default: replace_me
+# ai2s_nextauth_secret: replace_me
+
+# Log level for the AI Discovery Lab.
+# Default: info
+# ai2s_log_level: info
+
 
 # =====================================================================
 # Secrets loader
@@ -2006,6 +2063,10 @@
 # without a `_pod_anti_affinity` line have no anti-affinity rule to
 # toggle.
 # =====================================================================
+
+# ai-sandboxes-ui
+# ai_sandboxes_ui_replicas: 1
+# ai_sandboxes_ui_pod_anti_affinity: true
 
 # analyses
 # analyses_replicas: 2
@@ -2154,10 +2215,9 @@
 # EKS VICE Operator (AI Discovery Lab)
 # =====================================================================
 # These variables apply only to the vice-operator-eks role
-# (vice-operator-eks.yml), which bootstraps an EKS cluster with
-# cert-manager and Traefik. By default it issues certificates through
-# Let's Encrypt + Route 53 DNS-01; set eks_cert_provider to 'external'
-# when a third party (e.g. UITS) supplies the TLS certificate instead.
+# (vice-operator-eks.yml), which is run against a separate inventory
+# (the "sandbox inventory") — not this one. They are documented here
+# for reference; set them in the sandbox inventory's group_vars.
 
 # Override cert strategy for externally provisioned certificates:
 # eks_cert_provider: external

@@ -1,0 +1,9 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: ai-sandboxes-ui
+manifests:
+  rawYaml:
+    - k8s/ai-sandboxes-ui.yml
+deploy:
+  kubectl: {}
