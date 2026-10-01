@@ -31,3 +31,109 @@
         tasks_from: main
       vars:
         project_name: ai-sandboxes-ui
+
+    # --- Gateway / TLS / HTTPRoute ---
+    # Skipped when ai2s_hostname has not been configured; the service is
+    # reachable only by port-forward until a hostname is set.
+    - name: expose ai-sandboxes-ui through a gateway
+      when: ai2s_hostname not in ['', 'replace_me']
+      block:
+        - name: create the ai-sandboxes-ui self-signed CA certificate
+          when: cert_manager_provider == 'selfsigned'
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: ai-sandboxes-ui-selfsigned-ca
+                namespace: "{{ ns }}"
+              spec:
+                isCA: true
+                commonName: ai-sandboxes-ui-selfsigned-ca
+                secretName: ai-sandboxes-ui-selfsigned-ca
+                duration: "{{ ai2s_tls_cert_duration }}"
+                renewBefore: "{{ ai2s_tls_cert_renew_before }}"
+                privateKey:
+                  algorithm: ECDSA
+                  size: 256
+                issuerRef:
+                  name: default-cluster-issuer
+                  kind: ClusterIssuer
+                  group: cert-manager.io
+
+        - name: create the ai-sandboxes-ui CA issuer
+          when: cert_manager_provider == 'selfsigned'
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: cert-manager.io/v1
+              kind: Issuer
+              metadata:
+                name: ai-sandboxes-ui-ca-issuer
+                namespace: "{{ ns }}"
+              spec:
+                ca:
+                  secretName: ai-sandboxes-ui-selfsigned-ca
+
+        - name: create the ai-sandboxes-ui TLS certificate
+          when: cert_manager_provider != 'external'
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: "{{ ai2s_tls_cert_name }}"
+                namespace: "{{ ns }}"
+              spec:
+                secretName: "{{ ai2s_tls_cert_name }}"
+                duration: "{{ ai2s_tls_cert_duration }}"
+                renewBefore: "{{ ai2s_tls_cert_renew_before }}"
+                issuerRef:
+                  name: "{{ 'ai-sandboxes-ui-ca-issuer' if cert_manager_provider == 'selfsigned' else cert_manager_le_issuer_name }}"
+                  kind: "{{ 'Issuer' if cert_manager_provider == 'selfsigned' else 'ClusterIssuer' }}"
+                commonName: "{{ ai2s_hostname }}"
+                dnsNames:
+                  - "{{ ai2s_hostname }}"
+
+        - name: create the gateway for ai-sandboxes-ui
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: Gateway
+              metadata:
+                name: ai-sandboxes-ui
+                namespace: "{{ ns }}"
+              spec:
+                gatewayClassName: "{{ gateway_class_name }}"
+                listeners:
+                  - hostname: "{{ ai2s_hostname }}"
+                    name: ai-sandboxes-ui-https
+                    port: 8443
+                    protocol: HTTPS
+                    tls:
+                      certificateRefs:
+                        - kind: Secret
+                          group: ""
+                          name: "{{ ai2s_tls_cert_name }}"
+
+        - name: create the route for ai-sandboxes-ui
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: HTTPRoute
+              metadata:
+                name: ai-sandboxes-ui
+                namespace: "{{ ns }}"
+              spec:
+                hostnames:
+                  - "{{ ai2s_hostname }}"
+                parentRefs:
+                  - name: ai-sandboxes-ui
+                rules:
+                  - backendRefs:
+                      - name: ai-sandboxes-ui
+                        port: 80

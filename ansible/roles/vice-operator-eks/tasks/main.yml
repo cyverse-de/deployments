@@ -13,9 +13,10 @@
       - eks_external_cert_file | length > 0
       - eks_external_key_file | length > 0
     fail_msg: >-
-      eks_cert_provider is 'external' but eks_external_cert_file or
-      eks_external_key_file is empty. Set both to readable PEM file paths
-      on the Ansible controller.
+      eks_cert_provider is 'external' but eks_external_cert_file
+      is '{{ eks_external_cert_file }}' and eks_external_key_file
+      is '{{ eks_external_key_file }}'. Both must be non-empty paths
+      to PEM files on the Ansible controller.
 
 - delegate_to: localhost
   environment:

@@ -1989,6 +1989,13 @@
 # shipped — uncomment a line to override the default.
 # =====================================================================
 
+# Public hostname the AI Discovery Lab is served at. Setting this enables
+# the Gateway, TLS certificate, and HTTPRoute for the service. Leave at
+# the default (replace_me) to skip routing (the app is then reachable
+# only by port-forward).
+# Default: replace_me
+# ai2s_hostname: lab.example.org
+
 # Keycloak client the AI Discovery Lab authenticates with.
 # Default: ai-sandboxes
 # ai2s_keycloak_client_id: ai-sandboxes
@@ -1998,10 +2005,6 @@
 # Default: replace_me
 # ai2s_admin_groups: developers,support
 
-# Public URL of the AI Discovery Lab (required by NextAuth in production).
-# Default: replace_me
-# ai2s_nextauth_url: https://lab-aws.responsibleai.arizona.edu
-
 # NextAuth session encryption secret (generate with `openssl rand -base64 32`).
 # Default: replace_me
 # ai2s_nextauth_secret: replace_me
@@ -2009,6 +2012,11 @@
 # Log level for the AI Discovery Lab.
 # Default: info
 # ai2s_log_level: info
+
+# TLS certificate name for the AI Discovery Lab Gateway. In external mode,
+# pre-create a kubernetes.io/tls Secret with this name in the DE namespace.
+# Default: ai-sandboxes-ui-tls
+# ai2s_tls_cert_name: ai-sandboxes-ui-tls
 
 
 # =====================================================================
