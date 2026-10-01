@@ -1,5 +1,6 @@
 # services
 
+* [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) - AI Discovery Lab web UI, a Next.js app that authenticates via Keycloak and proxies API calls to terrain.
 * [analyses](/services/analyses.md) - HTTP API over the DE database that serves analysis (job) records to other DE services.
 * [app-exposer](/services/app-exposer.md) - In-cluster API that launches and manages VICE and batch analyses, exposing them via Kubernetes resources and enforcing their time limits.
 * [apps](/services/apps.md) - Clojure service managing DE app definitions, categories, and job submission, backed by the DE database.

@@ -497,6 +497,108 @@
                   - name: user-portal
                     port: 3000
 
+    # --- AI Discovery Lab (ai-sandboxes-ui) ---
+    # Gated on ai_sandboxes_ui_enabled because this service is optional;
+    # the hostname gate prevents creating ingress when the operator has
+    # not chosen a public hostname yet.
+    - name: Create the locally signed TLS certificate for the AI Discovery Lab
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
+        - cert_manager_provider == 'selfsigned'
+      kubernetes.core.k8s:
+        name: "{{ ai2s_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ ai2s_tls_cert_name }}"
+          spec:
+            secretName: "{{ ai2s_tls_cert_name }}"
+            duration: "{{ ai2s_tls_cert_duration }}"
+            renewBefore: "{{ ai2s_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ de_tls_issuer_name }}"
+              kind: Issuer
+            commonName: "{{ ai2s_hostname }}"
+            dnsNames:
+              - localhost
+              - "{{ ai2s_hostname }}"
+
+    - name: Create the TLS certificate for the AI Discovery Lab using letsencrypt
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
+        - cert_manager_provider == 'letsencrypt'
+      kubernetes.core.k8s:
+        name: "{{ ai2s_tls_cert_name }}"
+        namespace: "{{ ns }}"
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ ai2s_tls_cert_name }}"
+          spec:
+            secretName: "{{ ai2s_tls_cert_name }}"
+            duration: "{{ ai2s_tls_cert_duration }}"
+            renewBefore: "{{ ai2s_tls_cert_renew_before }}"
+            issuerRef:
+              name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ ai2s_hostname }}"
+            dnsNames:
+              - "{{ ai2s_hostname }}"
+
+    - name: Define the gateway for the AI Discovery Lab
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
+          metadata:
+            name: ai-sandboxes-ui
+            namespace: "{{ ns }}"
+          spec:
+            gatewayClassName: "{{ gateway_class_name }}"
+            listeners:
+              - hostname: "{{ ai2s_hostname }}"
+                name: ai-sandboxes-ui-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ ai2s_tls_cert_name }}"
+
+    - name: Define the route for the AI Discovery Lab
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
+          metadata:
+            name: ai-sandboxes-ui
+            namespace: "{{ ns }}"
+          spec:
+            hostnames:
+              - "{{ ai2s_hostname }}"
+            parentRefs:
+              - name: ai-sandboxes-ui
+            rules:
+              - backendRefs:
+                  - name: ai-sandboxes-ui
+                    port: 80
+
     - name: Define the self-signed CA certificate for VICE
       when: cert_manager_provider == 'selfsigned'
       kubernetes.core.k8s:

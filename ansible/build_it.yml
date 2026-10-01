@@ -27,6 +27,12 @@
   become: false
   tasks:
     - ansible.builtin.include_role:
+        name: services/ai-sandboxes-ui
+        tasks_from: build
+        apply:
+          tags: ai-sandboxes-ui
+      tags: ai-sandboxes-ui
+    - ansible.builtin.include_role:
         name: services/maintenance-page
         tasks_from: build
         apply:

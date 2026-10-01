@@ -3,8 +3,8 @@ type: Runbook
 title: Certificate Management
 description: TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 resource: /docs/certificate-management.md
-tags: [tls, certificates, cert-manager, letsencrypt, haproxy, keycloak]
-timestamp: 2026-09-23T00:00:00Z
+tags: [tls, certificates, cert-manager, letsencrypt, haproxy, keycloak, eks, external]
+timestamp: 2026-10-01T00:00:00Z
 ---
 
 This runbook covers the TLS certificates used by the DE, how they are issued and renewed,
@@ -28,7 +28,8 @@ the cert-manager certificates become user-facing.
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
 | Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
-| Traefik default TLS | `traefik` | cert-manager self-signed CA (always) | Internal routing breaks |
+| Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
+| EKS Traefik TLS (`*.vice_base_domain`) | `traefik` (EKS) | cert-manager LE or externally provisioned (see section 8) | VICE apps on the EKS cluster inaccessible |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
@@ -269,8 +270,31 @@ If the request is stuck in a failed state, delete it — cert-manager will creat
 kubectl -n $NS delete certificaterequest <name>
 ```
 
+## 8. EKS clusters — externally provisioned certificates
+
+The `vice-operator-eks` role (used by `vice-operator-eks.yml`) supports a second certificate
+mode for EKS clusters where the certificate is supplied by an external authority (for example,
+UITS) rather than issued through Let's Encrypt.
+
+Set `eks_cert_provider: external` when the organisation's CA team provides the wildcard
+certificate for the VICE domain and Let's Encrypt is not permitted or Route 53 DNS-01 is not
+available. cert-manager is still installed in this mode (it may be needed for internal
+self-signed certificates), but no Let's Encrypt ClusterIssuer or cert-manager Certificate
+objects are created. Add the following to your EKS inventory's `group_vars`:
+
+```yaml
+eks_cert_provider: external
+eks_external_cert_file: /path/to/uits-cert-chain.pem
+eks_external_key_file: /path/to/uits-private-key.pem
+```
+
+The role creates a `kubernetes.io/tls` Secret named `{{ traefik_cert_name }}` from the
+provided PEM files. Traefik's Helm values already reference this secret name, so no Helm
+changes are needed. To rotate, update the PEM files and re-run the playbook.
+
 # Citations
 
 [1] `docs/certificate-management.md` — source document for this page.
 [2] `ansible/tls_certs_main.yml` — playbook that deploys the HAProxy combined certificate.
 [3] `ansible/roles/cert-manager/` — role that installs cert-manager and its issuers.
+[4] `ansible/roles/vice-operator-eks/` — EKS role with `eks_cert_provider` support.

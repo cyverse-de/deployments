@@ -1,0 +1,9 @@
+---
+- name: build the ai-sandboxes-ui image
+  ansible.builtin.include_role:
+    name: build-service
+    tasks_from: main
+  vars:
+    project_name: ai-sandboxes-ui
+  tags:
+    - build

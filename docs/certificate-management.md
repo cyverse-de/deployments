@@ -20,7 +20,8 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
 | Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
-| Traefik default TLS | `traefik` | cert-manager self-signed CA (always) | Internal routing breaks |
+| Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
+| EKS Traefik TLS (`*.vice_base_domain`) | `traefik` (EKS) | cert-manager LE or externally provisioned (see section 8) | VICE apps on the EKS cluster inaccessible |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
@@ -273,3 +274,61 @@ If the request is stuck in a failed state, delete it — cert-manager will creat
 ```bash
 kubectl -n $NS delete certificaterequest <name>
 ```
+
+---
+
+## 8. EKS clusters — externally provisioned certificates
+
+The `vice-operator-eks` role (used by `vice-operator-eks.yml`) supports a second certificate
+mode for EKS clusters where the certificate is supplied by an external authority (for example,
+UITS) rather than issued through Let's Encrypt.
+
+### When to use
+
+Set `eks_cert_provider: external` when:
+
+- The organisation's CA team provides the wildcard certificate for the VICE domain.
+- Let's Encrypt is not permitted or Route 53 DNS-01 is not available.
+
+cert-manager is still installed in this mode (it may be needed for internal self-signed
+certificates), but no Let's Encrypt ClusterIssuer or cert-manager Certificate objects are
+created.
+
+### Configuration
+
+Add the following to your EKS inventory's `group_vars`:
+
+```yaml
+eks_cert_provider: external
+eks_external_cert_file: /path/to/uits-cert-chain.pem
+eks_external_key_file: /path/to/uits-private-key.pem
+```
+
+The PEM files must be readable on the Ansible controller at playbook run time. The certificate
+chain file should contain the leaf certificate followed by any intermediate CA certificates.
+
+### How it works
+
+When `eks_cert_provider` is `external`, the role:
+
+1. Installs cert-manager as usual (Helm chart + CRD wait).
+2. **Skips** creation of the Route 53 credentials Secret and the Let's Encrypt ClusterIssuer.
+3. **Skips** creation of the cert-manager `Certificate` object for Traefik.
+4. **Creates** a `kubernetes.io/tls` Secret named `{{ traefik_cert_name }}` (default:
+   `traefik-tls`) in the Traefik namespace, containing the provided cert and key.
+
+Traefik's Helm values already reference `{{ traefik_cert_name }}` as
+`tlsStore.default.defaultCertificate.secretName`, so no Helm value changes are needed — Traefik
+picks up the externally provided certificate the same way it would a cert-manager-issued one.
+
+### Rotating certificates
+
+To rotate the certificate, update the PEM files on the Ansible controller and re-run the
+playbook:
+
+```bash
+ansible-playbook -i /path/to/inventory vice-operator-eks.yml --tags vice-operator-eks
+```
+
+The `kubernetes.core.k8s` task with `state: present` will update the Secret in place. Traefik
+watches its TLS secret and picks up changes automatically.

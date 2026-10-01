@@ -283,6 +283,22 @@ vice_tls_cert_name: "vice-tls"
 vice_tls_cert_duration: "2160h"
 vice_tls_cert_renew_before: "240h"
 
+# --- AI Discovery Lab (ai-sandboxes-ui) ---
+ai2s_hostname: replace_me
+ai2s_base_uri: "https://{{ ai2s_hostname }}"
+ai2s_terrain_base_url: "{{ baseurls_terrain }}"
+ai2s_keycloak_issuer: "{{ keycloak_server_uri }}/realms/{{ keycloak_realm_name }}"
+ai2s_keycloak_client_id: ai-sandboxes
+ai2s_keycloak_client_secret: replace_me
+ai2s_admin_groups: replace_me
+ai2s_nextauth_url: "{{ ai2s_base_uri }}"
+ai2s_nextauth_secret: replace_me
+ai2s_log_level: info
+ai2s_log_label: ai-sandboxes-ui
+ai2s_tls_cert_name: ai-sandboxes-ui-tls
+ai2s_tls_cert_duration: "2160h"
+ai2s_tls_cert_renew_before: "240h"
+
 # Docker related settings
 docker_tag: latest
 docker_trusted_registries:
@@ -1063,6 +1079,7 @@ cyverse_repo_base: "git@github.com:cyverse-de"
 # Repos to clone into source_repo_dir (the local dir name == the entry). Most
 # live under cyverse_repo_base; entries in source_repo_urls override the URL.
 source_repos:
+  - ai-sandboxes-ui
   - analyses
   - app-exposer
   - apps
