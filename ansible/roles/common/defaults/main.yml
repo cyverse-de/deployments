@@ -1073,6 +1073,7 @@ cyverse_repo_base: "git@github.com:cyverse-de"
 # Repos to clone into source_repo_dir (the local dir name == the entry). Most
 # live under cyverse_repo_base; entries in source_repo_urls override the URL.
 source_repos:
+  - ai-sandboxes-ui
   - analyses
   - app-exposer
   - apps
