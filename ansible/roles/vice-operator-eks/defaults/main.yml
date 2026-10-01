@@ -19,6 +19,18 @@ cert_manager_le_aws_access_key_id: replace_me
 cert_manager_le_aws_secret_access_key: replace_me
 cert_manager_le_aws_creds_secret_name: cert-manager-letsencrypt-aws-creds
 
+# Certificate strategy: letsencrypt | external.
+#   letsencrypt - cert-manager issues certs via LE + Route 53 DNS-01 (current behavior)
+#   external    - admin pre-creates the TLS secret from provided cert/key files;
+#                 cert-manager is still installed but no LE issuer or Certificate
+#                 objects are created.
+eks_cert_provider: letsencrypt
+
+# --- External certificate settings (eks_cert_provider: external) ---
+# Paths on the Ansible controller to the PEM-encoded certificate chain and private key.
+eks_external_cert_file: ""
+eks_external_key_file: ""
+
 # --- Traefik ---
 traefik_namespace: traefik
 traefik_chart_version: ""

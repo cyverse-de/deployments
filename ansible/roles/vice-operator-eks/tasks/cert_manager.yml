@@ -39,6 +39,7 @@
         - cert-manager-cainjector
 
     - name: create the route53 credentials secret
+      when: eks_cert_provider == 'letsencrypt'
       kubernetes.core.k8s:
         state: present
         definition:
@@ -53,6 +54,7 @@
             secret-access-key: "{{ cert_manager_le_aws_secret_access_key | b64encode }}"
 
     - name: create the Let's Encrypt ClusterIssuer
+      when: eks_cert_provider == 'letsencrypt'
       kubernetes.core.k8s:
         state: present
         definition:

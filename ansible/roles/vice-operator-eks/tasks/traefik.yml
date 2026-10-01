@@ -16,6 +16,7 @@
         api_version: v1
 
     - name: create the TLS Certificate for traefik
+      when: eks_cert_provider != 'external'
       kubernetes.core.k8s:
         state: present
         definition:
@@ -36,6 +37,21 @@
             dnsNames:
               - "{{ vice_base_domain }}"
               - "{{ vice_wildcard_fqdn }}"
+
+    - name: create the TLS secret from externally provisioned certificates
+      when: eks_cert_provider == 'external'
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ traefik_cert_name }}"
+            namespace: "{{ traefik_namespace }}"
+          type: kubernetes.io/tls
+          data:
+            tls.crt: "{{ lookup('file', eks_external_cert_file) | b64encode }}"
+            tls.key: "{{ lookup('file', eks_external_key_file) | b64encode }}"
 
     - name: add the traefik helm repo
       kubernetes.core.helm_repository:

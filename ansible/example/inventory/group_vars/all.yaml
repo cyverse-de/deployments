@@ -2148,3 +2148,18 @@
 
 # vice-operator
 # vice_operator_replicas: 1
+
+
+# =====================================================================
+# EKS VICE Operator (AI Discovery Lab)
+# =====================================================================
+# These variables apply only to the vice-operator-eks role
+# (vice-operator-eks.yml), which bootstraps an EKS cluster with
+# cert-manager and Traefik. By default it issues certificates through
+# Let's Encrypt + Route 53 DNS-01; set eks_cert_provider to 'external'
+# when a third party (e.g. UITS) supplies the TLS certificate instead.
+
+# Override cert strategy for externally provisioned certificates:
+# eks_cert_provider: external
+# eks_external_cert_file: /path/to/uits-cert-chain.pem
+# eks_external_key_file: /path/to/uits-private-key.pem
