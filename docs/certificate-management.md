@@ -20,7 +20,8 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
 | Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
-| Traefik default TLS | `traefik` | cert-manager self-signed CA (always) | Internal routing breaks |
+| Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
+| EKS Traefik TLS (`*.vice_base_domain`) | `traefik` (EKS) | cert-manager LE or externally provisioned (see section 8) | VICE apps on the EKS cluster inaccessible |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)

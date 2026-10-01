@@ -5,6 +5,7 @@
   block:
     - name: create the ai-sandboxes-ui-configs secret
       run_once: true
+      no_log: true
       kubernetes.core.k8s:
         state: present
         definition:
@@ -22,6 +23,7 @@
             NEXTAUTH_URL: "{{ ai2s_nextauth_url }}"
             NEXTAUTH_SECRET: "{{ ai2s_nextauth_secret }}"
             AI2S_LOG_LEVEL: "{{ ai2s_log_level }}"
+            AI2S_LOG_LABEL: "{{ ai2s_log_label }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:

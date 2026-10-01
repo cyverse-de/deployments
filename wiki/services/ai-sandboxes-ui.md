@@ -35,6 +35,19 @@ Key variables (defaults in `roles/common/defaults/main.yml`):
 - `ai2s_nextauth_url` — must be set (the public URL of the app)
 - `ai2s_nextauth_secret` — must be set (generate with `openssl rand -base64 32`)
 - `ai2s_log_level` — default `info`
+- `ai2s_log_label` — default `ai-sandboxes-ui`
+
+## Prerequisites
+
+Before the app can authenticate, a Keycloak client must exist in the realm:
+
+- **Client ID:** the value of `ai2s_keycloak_client_id` (default `ai-sandboxes`)
+- **Valid redirect URI:** `${NEXTAUTH_URL}/api/auth/callback/keycloak`
+  (e.g. `https://lab.example.org/api/auth/callback/keycloak`)
+- **Standard flow** enabled
+
+Create the client in Keycloak and set `ai2s_keycloak_client_secret` to the generated secret
+before deploying.
 
 ## Deploying
 

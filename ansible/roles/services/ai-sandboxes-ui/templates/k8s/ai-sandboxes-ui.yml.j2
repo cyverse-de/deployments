@@ -29,8 +29,10 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       restartPolicy: Always
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
       volumes:
 {% include 'partials/de_ca_volume.j2' %}
+{% endif %}
       containers:
         - name: ai-sandboxes-ui
           image: harbor.cyverse.org/de/ai-sandboxes-ui
@@ -90,6 +92,11 @@ spec:
                 secretKeyRef:
                   name: ai-sandboxes-ui-configs
                   key: AI2S_LOG_LEVEL
+            - name: AI2S_LOG_LABEL
+              valueFrom:
+                secretKeyRef:
+                  name: ai-sandboxes-ui-configs
+                  key: AI2S_LOG_LABEL
           ports:
             - name: listen-port
               containerPort: 3000
@@ -97,7 +104,6 @@ spec:
             httpGet:
               path: /
               port: 3000
-            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 10
           startupProbe:
@@ -112,11 +118,12 @@ spec:
             httpGet:
               path: /
               port: 3000
-            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 10
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
           volumeMounts:
 {% include 'partials/de_ca_volume_mount.j2' %}
+{% endif %}
 ---
 apiVersion: v1
 kind: Service

@@ -16,7 +16,7 @@
         api_version: v1
 
     - name: create the TLS Certificate for traefik
-      when: eks_cert_provider != 'external'
+      when: eks_cert_provider == 'letsencrypt'
       kubernetes.core.k8s:
         state: present
         definition:
@@ -40,6 +40,7 @@
 
     - name: create the TLS secret from externally provisioned certificates
       when: eks_cert_provider == 'external'
+      no_log: true
       kubernetes.core.k8s:
         state: present
         definition:
