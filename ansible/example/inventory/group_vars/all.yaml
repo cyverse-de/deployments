@@ -2072,7 +2072,8 @@
 # toggle.
 # =====================================================================
 
-# ai-sandboxes-ui
+# ai-sandboxes-ui (off by default; set to true to deploy)
+# ai_sandboxes_ui_enabled: true
 # ai_sandboxes_ui_replicas: 1
 # ai_sandboxes_ui_pod_anti_affinity: true
 

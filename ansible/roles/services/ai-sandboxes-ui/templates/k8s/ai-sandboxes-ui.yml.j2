@@ -52,51 +52,9 @@ spec:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: AI2S_TERRAIN_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_TERRAIN_BASE_URL
-            - name: AI2S_KEYCLOAK_ISSUER
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_KEYCLOAK_ISSUER
-            - name: AI2S_KEYCLOAK_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_KEYCLOAK_CLIENT_ID
-            - name: AI2S_KEYCLOAK_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_KEYCLOAK_CLIENT_SECRET
-            - name: AI2S_ADMIN_GROUPS
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_ADMIN_GROUPS
-            - name: NEXTAUTH_URL
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: NEXTAUTH_URL
-            - name: NEXTAUTH_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: NEXTAUTH_SECRET
-            - name: AI2S_LOG_LEVEL
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_LOG_LEVEL
-            - name: AI2S_LOG_LABEL
-              valueFrom:
-                secretKeyRef:
-                  name: ai-sandboxes-ui-configs
-                  key: AI2S_LOG_LABEL
+          envFrom:
+            - secretRef:
+                name: ai-sandboxes-ui-configs
           ports:
             - name: listen-port
               containerPort: 3000

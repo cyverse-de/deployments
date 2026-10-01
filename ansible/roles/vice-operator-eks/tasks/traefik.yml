@@ -54,6 +54,15 @@
             tls.crt: "{{ lookup('file', eks_external_cert_file) | b64encode }}"
             tls.key: "{{ lookup('file', eks_external_key_file) | b64encode }}"
 
+    - name: remove the stale cert-manager Certificate when switching to external
+      when: eks_cert_provider == 'external'
+      kubernetes.core.k8s:
+        state: absent
+        api_version: cert-manager.io/v1
+        kind: Certificate
+        name: "{{ traefik_cert_name }}"
+        namespace: "{{ traefik_namespace }}"
+
     - name: add the traefik helm repo
       kubernetes.core.helm_repository:
         name: traefik

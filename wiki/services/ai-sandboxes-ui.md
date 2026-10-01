@@ -52,19 +52,20 @@ before deploying.
 
 ## Routing and TLS
 
-When `ai2s_hostname` is set (anything other than the `replace_me` default), the role
-automatically creates:
+When `ai_sandboxes_ui_enabled` is true and `ai2s_hostname` is set, the
+`kubernetes_ingress` role (in `gateway_api.yml`, alongside the DE, portal, and VICE
+Gateways) creates:
 
-1. A **TLS certificate** — issued by cert-manager (selfsigned CA chain or Let's Encrypt,
-   depending on `cert_manager_provider`). In `external` mode, no certificate is created;
-   the admin must pre-create a `kubernetes.io/tls` Secret named `{{ ai2s_tls_cert_name }}`
+1. A **TLS certificate** — issued by cert-manager using the DE's CA issuer (selfsigned mode)
+   or the Let's Encrypt ClusterIssuer. In `external` mode, no certificate is created; the
+   admin must pre-create a `kubernetes.io/tls` Secret named `{{ ai2s_tls_cert_name }}`
    (default: `ai-sandboxes-ui-tls`) in the DE namespace before the Gateway listener will
    serve TLS.
 2. A **Gateway** named `ai-sandboxes-ui` with an HTTPS listener on port 8443.
 3. An **HTTPRoute** that sends all traffic for the hostname to the `ai-sandboxes-ui` Service.
 
-When `ai2s_hostname` is left at `replace_me`, no Gateway or TLS resources are created and
-the service is reachable only by `kubectl port-forward`.
+When `ai2s_hostname` is left at `replace_me` or the service is not enabled, no Gateway or
+TLS resources are created and the service is reachable only by `kubectl port-forward`.
 
 A DNS record pointing `ai2s_hostname` at the load balancer (HAProxy, NLB, or whatever
 fronts Traefik) is needed for external access.
@@ -79,7 +80,8 @@ See [Building and Deploying Services](/playbooks/build-and-deploy.md).
 
 # Citations
 
-[1] `ansible/roles/services/ai-sandboxes-ui/tasks/main.yml` — creates the config secret, deploys via skaffold, and provisions the Gateway/TLS/HTTPRoute.
+[1] `ansible/roles/services/ai-sandboxes-ui/tasks/main.yml` — creates the config secret and deploys via skaffold.
 [2] `ansible/roles/services/ai-sandboxes-ui/templates/k8s/ai-sandboxes-ui.yml.j2` — Deployment/Service manifest, port 3000, env-var config, probes.
-[3] `ansible/roles/services/ai-sandboxes-ui/defaults/main.yml` — `ai_sandboxes_ui_replicas`, `ai_sandboxes_ui_pod_anti_affinity` defaults.
+[3] `ansible/roles/services/ai-sandboxes-ui/defaults/main.yml` — `ai_sandboxes_ui_enabled`, `ai_sandboxes_ui_replicas`, `ai_sandboxes_ui_pod_anti_affinity` defaults.
 [4] `ansible/roles/common/defaults/main.yml` — `ai2s_*` variable defaults.
+[5] `ansible/roles/kubernetes_ingress/tasks/gateway_api.yml` — Gateway, TLS certificate, and HTTPRoute for the AI Discovery Lab.
