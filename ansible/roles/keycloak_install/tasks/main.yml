@@ -54,6 +54,8 @@
           - keycloak.{{ keycloak_namespace }}.svc
           - keycloak.{{ keycloak_namespace }}
           - keycloak
+        tls_certificate_pem: "{{ keycloak_cert_pem }}"
+        tls_certificate_key_pem: "{{ keycloak_cert_key_pem }}"
 
     - name: Install the keycloak deployment
       kubernetes.core.k8s:
