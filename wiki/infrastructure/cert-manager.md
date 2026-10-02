@@ -4,7 +4,7 @@ title: cert-manager
 description: How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed and Let's Encrypt certificates.
 resource: /ansible/roles/cert-manager
 tags: [cert-manager, tls, certificates, letsencrypt, issuers, kubernetes.yml]
-timestamp: 2026-10-01T00:00:00Z
+timestamp: 2026-10-02T00:00:00Z
 ---
 
 cert-manager issues and renews the TLS certificates used inside the cluster — the Traefik default
@@ -40,7 +40,8 @@ Traefik's — can be issued right away. It creates:
   It also means whoever can read secrets in the `cert-manager` namespace holds the CA, so it
   belongs on a workstation rather than a shared cluster.
 - A Let's Encrypt ClusterIssuer (name from `cert_manager_le_issuer_name`, default `letsencrypt`),
-  created only when `cert_manager_provider` is `letsencrypt`. It uses the ACME `dns01` solver
+  created only when at least one endpoint's provider is `letsencrypt` (see
+  [Choosing a provider per endpoint](#choosing-a-provider-per-endpoint)). It uses the ACME `dns01` solver
   against AWS Route53, so the role also creates a Secret in the `cert-manager` namespace holding
   `cert_manager_le_aws_access_key_id` / `cert_manager_le_aws_secret_access_key`.
 
@@ -53,13 +54,13 @@ namespace to exist first.
 Every role that needs a certificate for a public endpoint — `kubernetes_ingress` (DE, user
 portal, AI Discovery Lab, VICE), `harbor`, `keycloak_install`, and `grafana` — creates it by
 including the `tls_certificate` role rather than writing its own Certificate tasks. The caller
-passes the Certificate/Secret name, namespace, hostnames, and durations, and the role
-creates what `cert_manager_provider` calls for:
+passes the Certificate/Secret name, namespace, hostnames, durations, and its endpoint's
+provider, and the role creates what that provider calls for:
 
-- `selfsigned` — a leaf Certificate signed by a namespaced `Issuer`. When the caller passes
-  `tls_certificate_ca_name`, the role first creates the CA Certificate (chained off
-  `default-cluster-issuer`) and that Issuer; otherwise it signs with an Issuer an earlier
-  call created, which is how the portal and AI Discovery Lab certificates share the DE's.
+- `selfsigned` — a CA Certificate (chained off `default-cluster-issuer`), a namespaced
+  `Issuer` backed by it, and a leaf Certificate signed by that Issuer. The portal and AI
+  Discovery Lab pass the DE's CA and Issuer names, so the three share one chain, and
+  whichever of them is self-signed creates it even when the DE itself is not.
   The leaf also covers `localhost` unless the caller overrides
   `tls_certificate_selfsigned_dns_names` (Keycloak adds its in-cluster service names;
   Grafana leaves `localhost` out).
@@ -68,15 +69,35 @@ creates what `cert_manager_provider` calls for:
 - `external` — nothing; an admin supplies the TLS Secret.
 
 The role fails before creating anything if the provider is not one of these three.
-`tls_certificate_provider` defaults to `cert_manager_provider`, so every endpoint currently
-follows the deployment-wide setting.
+
+## Choosing a provider per endpoint
+
+Each public endpoint has its own provider variable, defaulting to `cert_manager_provider`, so
+a deployment can mix providers — for example, Let's Encrypt for CyVerse hostnames and
+`external` for a University of Arizona hostname whose certificate the university issues:
+
+| Variable | Endpoint |
+|---|---|
+| `de_tls_provider` | `de_hostname` |
+| `user_portal_tls_provider` | `portal_hostname` |
+| `vice_tls_provider` | `vice_wildcard_fqdn` |
+| `ai2s_tls_provider` | `ai2s_hostname` |
+| `harbor_tls_provider` | `harbor_fqdn` |
+| `keycloak_tls_provider` | `keycloak_hostname` |
+| `grafana_tls_provider` | `grafana_hostname` |
+
+`cert_manager_endpoint_providers` collects all seven, and `cluster_issuers` creates the Let's
+Encrypt ClusterIssuer and its Route53 Secret when the list contains `letsencrypt`. For an
+`external` endpoint, the admin creates the TLS Secret; the example group_vars list each
+endpoint's Secret name and namespace.
 
 ## Key variables
 
 All defaults live in `ansible/roles/common/defaults/main.yml` (every role depends on `common`):
 
-- `cert_manager_provider` — `selfsigned` (default) or `letsencrypt`; derived from the legacy
-  `cert_manager_use_letsencrypt` boolean for backward compatibility.
+- `cert_manager_provider` — `selfsigned` (default), `letsencrypt`, or `external`; derived from
+  the legacy `cert_manager_use_letsencrypt` boolean for backward compatibility. It is the
+  default for each endpoint's `*_tls_provider`.
 - `cluster_issuer_default_type` — `selfSigned` (default) or `ca`. Orthogonal to
   `cert_manager_provider`: it changes what the `selfsigned` chain's root *is*, not which issuer the
   endpoint certificates reference.
@@ -88,8 +109,8 @@ All defaults live in `ansible/roles/common/defaults/main.yml` (every role depend
 - `cert_manager_le_issuer_email` (defaults to `email_dest`) and
   `cert_manager_le_issuer_acme_server` (the production Let's Encrypt v2 endpoint).
 
-Operators should note that choosing `letsencrypt` changes which issuer the DE, VICE, portal, and
-Harbor certificates reference throughout the deployment, not just this role.
+Operators should note that `cert_manager_provider` changes which issuer every endpoint
+certificate references, not just this role's issuers, unless an endpoint overrides it.
 
 # Citations
 
@@ -99,3 +120,4 @@ Harbor certificates reference throughout the deployment, not just this role.
 [4] `ansible/roles/common/defaults/main.yml` — `cert_manager_*` variable defaults.
 [5] `ansible/roles/k8s_de_reqs/tasks/issuers.yml` — namespaced `default-issuer` in the DE namespace.
 [6] `ansible/roles/tls_certificate/` — the shared endpoint-certificate role and its parameters.
+[7] `ansible/example/inventory/group_vars/all.yaml` — the per-endpoint provider overrides and the Secrets an `external` endpoint needs.

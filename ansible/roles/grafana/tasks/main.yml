@@ -262,6 +262,7 @@
             name: tls_certificate
           vars:
             tls_certificate_name: grafana-tls
+            tls_certificate_provider: "{{ grafana_tls_provider }}"
             tls_certificate_namespace: "{{ grafana_namespace }}"
             tls_certificate_hostnames:
               - "{{ grafana_hostname }}"

@@ -4,7 +4,7 @@ title: Keycloak
 description: Keycloak administration for the DE — deployment, health checks, client secret rotation, admin users, impersonation, and diagnosing authentication failures.
 resource: /docs/keycloak.md
 tags: [keycloak, authentication, oidc, ldap, secrets, kubernetes.yml]
-timestamp: 2026-09-23T00:00:00Z
+timestamp: 2026-10-02T00:00:00Z
 ---
 
 Keycloak handles all DE authentication. This page covers common administration tasks:
@@ -44,10 +44,11 @@ The role (see `ansible/roles/keycloak_install/tasks/main.yml`):
 - Creates the `keycloak_namespace` namespace (default: `keycloak`) and a `dbuser` Secret
   from `keycloak_db_username` / `keycloak_db_password`; the database host is the first
   member of the `[dbms]` inventory group — see [PostgreSQL](/infrastructure/postgresql.md).
-- Provisions the `kc-tls` certificate via cert-manager. With
-  `cert_manager_provider: selfsigned` it first creates a `kc-selfsigned-ca` CA Certificate
-  and a `kc-ca-issuer` Issuer; with `letsencrypt` it issues `kc-tls` for
-  `keycloak_hostname` from the Let's Encrypt ClusterIssuer. Durations come from
+- Provisions the `kc-tls` certificate via cert-manager, per `keycloak_tls_provider` (default
+  `cert_manager_provider`). With `selfsigned` it first creates a `kc-selfsigned-ca` CA
+  Certificate and a `kc-ca-issuer` Issuer; with `letsencrypt` it issues `kc-tls` for
+  `keycloak_hostname` from the Let's Encrypt ClusterIssuer; with `external` an admin supplies
+  the `kc-tls` Secret. Durations come from
   `keycloak_cert_duration` (1 year) and `keycloak_cert_renew_before` — see
   [Certificate Management](/playbooks/certificate-management.md).
 - Deploys a single-replica Deployment running

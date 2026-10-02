@@ -1,5 +1,17 @@
 # Wiki Update Log
 
+## 2026-10-02
+
+* **Update**: [cert-manager](/infrastructure/cert-manager.md) — each public endpoint can now
+  override `cert_manager_provider` with its own `*_tls_provider` variable, so a deployment can
+  use Let's Encrypt for some hostnames and externally issued certificates for others. The Let's
+  Encrypt ClusterIssuer is created when any endpoint uses it, and the portal and AI Discovery
+  Lab create the DE's self-signed chain themselves when they need it.
+  [Certificate Management](/playbooks/certificate-management.md),
+  [Harbor](/infrastructure/harbor.md), [Keycloak](/infrastructure/keycloak.md),
+  [Grafana](/infrastructure/grafana.md), and [Ingress](/infrastructure/ingress.md) name the
+  per-endpoint variable.
+
 ## 2026-10-01
 
 * **Update**: [cert-manager](/infrastructure/cert-manager.md) — described the new shared

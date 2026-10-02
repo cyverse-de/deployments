@@ -58,7 +58,7 @@
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
-  when: cert_manager_provider == 'letsencrypt'
+  when: "'letsencrypt' in cert_manager_endpoint_providers"
   block:
     - name: Create the route53 credentials secret
       kubernetes.core.k8s:

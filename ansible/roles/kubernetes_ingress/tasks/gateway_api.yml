@@ -9,6 +9,7 @@
         name: tls_certificate
       vars:
         tls_certificate_name: "{{ de_tls_cert_name }}"
+        tls_certificate_provider: "{{ de_tls_provider }}"
         tls_certificate_namespace: "{{ ns }}"
         tls_certificate_hostnames:
           - "{{ de_hostname }}"
@@ -337,18 +338,22 @@
       # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
       when: gateway_provider not in ["traefik"]
 
-    # Signed by the DE's self-signed issuer, created along with the DE certificate.
+    # Shares the DE's self-signed chain.
     - name: Create the TLS certificate for the user portal
       ansible.builtin.include_role:
         name: tls_certificate
       vars:
         tls_certificate_name: "{{ user_portal_tls_cert_name }}"
+        tls_certificate_provider: "{{ user_portal_tls_provider }}"
         tls_certificate_namespace: "{{ ns }}"
         tls_certificate_hostnames:
           - "{{ portal_hostname }}"
         tls_certificate_duration: "{{ user_portal_tls_cert_duration }}"
         tls_certificate_renew_before: "{{ user_portal_tls_cert_renew_before }}"
         tls_certificate_issuer_name: "{{ de_tls_issuer_name }}"
+        tls_certificate_ca_name: "{{ de_tls_ca_name }}"
+        tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
+        tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
 
     - name: Define the gateway for the user portal
       kubernetes.core.k8s:
@@ -407,12 +412,16 @@
         name: tls_certificate
       vars:
         tls_certificate_name: "{{ ai2s_tls_cert_name }}"
+        tls_certificate_provider: "{{ ai2s_tls_provider }}"
         tls_certificate_namespace: "{{ ns }}"
         tls_certificate_hostnames:
           - "{{ ai2s_hostname }}"
         tls_certificate_duration: "{{ ai2s_tls_cert_duration }}"
         tls_certificate_renew_before: "{{ ai2s_tls_cert_renew_before }}"
         tls_certificate_issuer_name: "{{ de_tls_issuer_name }}"
+        tls_certificate_ca_name: "{{ de_tls_ca_name }}"
+        tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
+        tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
 
     - name: Define the gateway for the AI Discovery Lab
       when:
@@ -466,6 +475,7 @@
         name: tls_certificate
       vars:
         tls_certificate_name: "{{ vice_tls_cert_name }}"
+        tls_certificate_provider: "{{ vice_tls_provider }}"
         tls_certificate_namespace: "{{ ns }}"
         tls_certificate_hostnames:
           - "{{ vice_wildcard_fqdn }}"
