@@ -274,6 +274,8 @@
             tls_certificate_ca_renew_before: "{{ grafana_cert_renew_before }}"
             tls_certificate_selfsigned_dns_names:
               - "{{ grafana_hostname }}"
+            tls_certificate_pem: "{{ grafana_cert_pem }}"
+            tls_certificate_key_pem: "{{ grafana_cert_key_pem }}"
 
         - name: Create the gateway for grafana
           kubernetes.core.k8s:
