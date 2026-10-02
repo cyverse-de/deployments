@@ -68,7 +68,7 @@ provider, and the role creates what that provider calls for:
   hostnames, the first being the common name.
 - `external` — nothing; an admin supplies the TLS Secret.
 
-The role fails before creating anything if the provider is not one of these three.
+The role fails before creating anything if its provider is not one of these three.
 
 ## Choosing a provider per endpoint
 
@@ -86,8 +86,12 @@ a deployment can mix providers — for example, Let's Encrypt for CyVerse hostna
 | `keycloak_tls_provider` | `keycloak_hostname` |
 | `grafana_tls_provider` | `grafana_hostname` |
 
-`cert_manager_endpoint_providers` collects all seven, and `cluster_issuers` creates the Let's
-Encrypt ClusterIssuer and its Route53 Secret when the list contains `letsencrypt`. For an
+`cert_manager_endpoint_provider_settings` maps each of the seven variables to its value.
+`cluster_issuers` first checks those values and `cert_manager_provider` against
+`cert_manager_supported_providers`, and fails on any it doesn't recognize, naming the
+variable. That catches a typo in, say, `harbor_tls_provider` on any run that includes the
+issuers, without waiting for the explicitly tagged `harbor` role to run. It then creates the
+Let's Encrypt ClusterIssuer and its Route53 Secret when any endpoint uses `letsencrypt`. For an
 `external` endpoint, the admin creates the TLS Secret; the example group_vars list each
 endpoint's Secret name and namespace.
 

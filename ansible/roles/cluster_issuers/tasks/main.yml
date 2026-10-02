@@ -1,4 +1,22 @@
 ---
+# The roles that create the endpoint certificates check their own provider, but
+# some of them (harbor, keycloak_install, grafana) run only when their tag is
+# given explicitly, so a typo there could otherwise go unnoticed for a long time.
+# cert_manager_provider is checked too, even when every endpoint overrides it.
+- name: Validate the certificate providers
+  vars:
+    cluster_issuers_invalid_providers: >-
+      {{ {'cert_manager_provider': cert_manager_provider}
+         | combine(cert_manager_endpoint_provider_settings) | dict2items
+         | rejectattr('value', 'in', cert_manager_supported_providers) | items2dict }}
+  ansible.builtin.assert:
+    that: cluster_issuers_invalid_providers | length == 0
+    fail_msg: >-
+      Unsupported certificate provider(s): {{ cluster_issuers_invalid_providers }}.
+      Each must be one of {{ cert_manager_supported_providers | join(', ') }}; the
+      per-endpoint *_tls_provider variables default to cert_manager_provider.
+    quiet: true
+
 - name: Apply cluster-scoped self-signed issuer
   delegate_to: localhost
   environment:

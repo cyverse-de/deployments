@@ -10,7 +10,8 @@
   [Certificate Management](/playbooks/certificate-management.md),
   [Harbor](/infrastructure/harbor.md), [Keycloak](/infrastructure/keycloak.md),
   [Grafana](/infrastructure/grafana.md), and [Ingress](/infrastructure/ingress.md) name the
-  per-endpoint variable.
+  per-endpoint variable. `cluster_issuers` validates every provider variable up front so a
+  typo in a rarely run endpoint's provider is caught early.
 
 ## 2026-10-01
 

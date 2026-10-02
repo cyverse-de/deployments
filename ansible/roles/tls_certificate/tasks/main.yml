@@ -5,14 +5,15 @@
       - tls_certificate_name | length > 0
       - tls_certificate_namespace | length > 0
       - tls_certificate_hostnames | length > 0
-      - tls_certificate_provider in ['selfsigned', 'letsencrypt', 'external']
+      - tls_certificate_provider in cert_manager_supported_providers
       - >-
         tls_certificate_provider != 'selfsigned' or
         (tls_certificate_ca_name | length > 0 and tls_certificate_issuer_name | length > 0)
     fail_msg: >-
       tls_certificate needs tls_certificate_name, tls_certificate_namespace, and
-      tls_certificate_hostnames; tls_certificate_provider must be 'selfsigned',
-      'letsencrypt', or 'external' (got '{{ tls_certificate_provider }}'); and the
+      tls_certificate_hostnames; tls_certificate_provider must be one of
+      {{ cert_manager_supported_providers | join(', ') }} (got
+      '{{ tls_certificate_provider }}'); and the
       selfsigned provider also needs tls_certificate_ca_name and
       tls_certificate_issuer_name.
     quiet: true
