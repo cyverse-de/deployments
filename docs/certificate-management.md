@@ -25,9 +25,12 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
-controls the issuer for the DE UI, VICE, portal, Keycloak, and Grafana certificates. Internal-only
-certificates (Traefik and portal-conductor) are always self-signed regardless of this
-setting.
+controls the issuer for the DE UI, VICE, portal, AI Discovery Lab, Harbor, Keycloak, and Grafana
+certificates. Each of those endpoints can override it with its own `*_tls_provider` variable
+(`de_tls_provider`, `user_portal_tls_provider`, `vice_tls_provider`, `ai2s_tls_provider`,
+`harbor_tls_provider`, `keycloak_tls_provider`, `grafana_tls_provider`). Internal-only
+certificates (Traefik and portal-conductor) are always self-signed regardless of these
+settings.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
 certificates for the DE UI and VICE are not directly user-facing — HAProxy presents its

@@ -921,6 +921,25 @@
 # Default: selfsigned (or letsencrypt if cert_manager_use_letsencrypt is true)
 # cert_manager_provider: external
 #
+# Each public endpoint can override cert_manager_provider with its own
+# variable, which takes the same values. Use these when the hostnames don't
+# all come from the same place — for example, CyVerse hostnames issued by
+# Let's Encrypt alongside a University of Arizona hostname whose certificate
+# the university issues. The Let's Encrypt ClusterIssuer is created when any
+# endpoint uses letsencrypt.
+# Default: "{{ cert_manager_provider }}" for each
+# cert_manager_provider: letsencrypt
+# ai2s_tls_provider: external
+#
+# The full set, with the endpoint each one covers:
+#   de_tls_provider           de_hostname
+#   user_portal_tls_provider  portal_hostname
+#   vice_tls_provider         vice_wildcard_fqdn
+#   ai2s_tls_provider         ai2s_hostname
+#   harbor_tls_provider       harbor_fqdn
+#   keycloak_tls_provider     keycloak_hostname
+#   grafana_tls_provider      grafana_hostname
+#
 # Orthogonal to the above: cluster_issuer_default_type decides what the
 # `selfsigned` chain's root actually is. `selfSigned` (the default) has
 # cert-manager generate a throwaway root, so clients must be told to trust
@@ -955,8 +974,9 @@
 # de_ca_bundle_configmap: de-ca-bundle
 # de_ca_bundle_file: /path/to/rootCA.pem
 #
-# In `external` mode you must create these `kubernetes.io/tls` secrets
-# before HTTPS will serve — a Gateway listener whose secret is missing
+# For each endpoint whose provider is `external`, you must create its
+# `kubernetes.io/tls` secret from this list before HTTPS will serve for that
+# hostname — a Gateway listener whose secret is missing
 # simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
 # not matter:
 #

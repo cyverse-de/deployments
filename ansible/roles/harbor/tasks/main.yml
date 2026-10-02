@@ -16,6 +16,7 @@
     name: tls_certificate
   vars:
     tls_certificate_name: "{{ harbor_tls_cert_name }}"
+    tls_certificate_provider: "{{ harbor_tls_provider }}"
     tls_certificate_namespace: "{{ harbor_namespace }}"
     tls_certificate_hostnames:
       - "{{ harbor_fqdn }}"

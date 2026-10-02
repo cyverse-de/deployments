@@ -166,6 +166,32 @@ cert_manager_use_letsencrypt: false
 # compatibility. Set explicitly to 'external' for third-party-CA deployments.
 cert_manager_provider: "{{ 'letsencrypt' if cert_manager_use_letsencrypt | default(false) else 'selfsigned' }}"
 
+# The values cert_manager_provider and the per-endpoint providers below accept.
+cert_manager_supported_providers: [selfsigned, letsencrypt, external]
+
+# Per-endpoint overrides of cert_manager_provider, for deployments whose hostnames don't all come from the same
+# place — for example, CyVerse hostnames from Let's Encrypt and University of Arizona hostnames from the university's
+# CA. Each takes the same values as cert_manager_provider.
+de_tls_provider: "{{ cert_manager_provider }}"
+user_portal_tls_provider: "{{ cert_manager_provider }}"
+vice_tls_provider: "{{ cert_manager_provider }}"
+ai2s_tls_provider: "{{ cert_manager_provider }}"
+harbor_tls_provider: "{{ cert_manager_provider }}"
+keycloak_tls_provider: "{{ cert_manager_provider }}"
+grafana_tls_provider: "{{ cert_manager_provider }}"
+
+# Every endpoint's provider, keyed by the variable that sets it, so that cluster_issuers can validate them all up front
+# and create the issuers an endpoint depends on when any endpoint uses them.
+cert_manager_endpoint_provider_settings:
+  de_tls_provider: "{{ de_tls_provider }}"
+  user_portal_tls_provider: "{{ user_portal_tls_provider }}"
+  vice_tls_provider: "{{ vice_tls_provider }}"
+  ai2s_tls_provider: "{{ ai2s_tls_provider }}"
+  harbor_tls_provider: "{{ harbor_tls_provider }}"
+  keycloak_tls_provider: "{{ keycloak_tls_provider }}"
+  grafana_tls_provider: "{{ grafana_tls_provider }}"
+cert_manager_endpoint_providers: "{{ cert_manager_endpoint_provider_settings.values() | list }}"
+
 cert_manager_le_aws_region: us-east-1
 cert_manager_le_aws_access_key_id: replace_me
 cert_manager_le_aws_secret_access_key: replace_me

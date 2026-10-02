@@ -4,7 +4,7 @@ title: Certificate Management
 description: TLS certificate inventory for the DE, how certs are issued and renewed, and what to do when one has expired or is about to.
 resource: /docs/certificate-management.md
 tags: [tls, certificates, cert-manager, letsencrypt, haproxy, keycloak, eks, external]
-timestamp: 2026-10-01T00:00:00Z
+timestamp: 2026-10-02T00:00:00Z
 ---
 
 This runbook covers the TLS certificates used by the DE, how they are issued and renewed,
@@ -33,9 +33,11 @@ the cert-manager certificates become user-facing.
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
-controls the issuer for the DE UI, VICE, portal, [Keycloak](/infrastructure/keycloak.md), and
-[Grafana](/infrastructure/grafana.md) certificates. Internal-only certificates (Traefik and portal-conductor) are
-always self-signed regardless of this setting.
+controls the issuer for the DE UI, VICE, portal, AI Discovery Lab, Harbor,
+[Keycloak](/infrastructure/keycloak.md), and [Grafana](/infrastructure/grafana.md) certificates.
+Each of those endpoints can override it with its own `*_tls_provider` variable — see
+[cert-manager](/infrastructure/cert-manager.md#choosing-a-provider-per-endpoint). Internal-only
+certificates (Traefik and portal-conductor) are always self-signed regardless of these settings.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
 certificates for the DE UI and VICE are not directly user-facing — HAProxy presents its own

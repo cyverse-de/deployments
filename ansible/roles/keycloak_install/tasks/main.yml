@@ -32,6 +32,7 @@
         name: tls_certificate
       vars:
         tls_certificate_name: kc-tls
+        tls_certificate_provider: "{{ keycloak_tls_provider }}"
         tls_certificate_namespace: "{{ keycloak_namespace }}"
         tls_certificate_hostnames:
           - "{{ keycloak_hostname }}"

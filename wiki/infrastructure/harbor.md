@@ -4,7 +4,7 @@ title: Harbor
 description: How the Harbor container registry is deployed via its Helm chart in kubernetes.yml, including TLS, Gateway/Ingress exposure, and its external PostgreSQL databases.
 resource: /ansible/roles/harbor
 tags: [harbor, registry, helm, tls, kubernetes.yml]
-timestamp: 2026-10-01T00:00:00Z
+timestamp: 2026-10-02T00:00:00Z
 ---
 
 Harbor is the container image registry for a DE deployment. The `harbor` role installs the
@@ -71,7 +71,8 @@ cluster's image-pull secret, built from `harbor_robot_name` and
 ## TLS and exposure
 
 The role requests the Harbor TLS certificate from [cert-manager](/infrastructure/cert-manager.md)
-through the shared `tls_certificate` role. With `cert_manager_provider: selfsigned` it builds a
+through the shared `tls_certificate` role. With `harbor_tls_provider` (default
+`cert_manager_provider`) set to `selfsigned` it builds a
 chain (CA certificate, a namespaced `Issuer`, then the `harbor-tls` certificate); with
 `letsencrypt` it requests `harbor-tls` directly from the `cert_manager_le_issuer_name`
 ClusterIssuer; with `external` it creates nothing and an admin supplies the `harbor-tls` Secret.
