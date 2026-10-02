@@ -133,7 +133,8 @@ Setting `grafana_external_access: true` serves Grafana at `grafana_hostname` and
 - a `grafana-tls` Certificate in the `grafana` namespace, per `grafana_tls_provider` (default
   `cert_manager_provider`) — from a namespace-local CA with `selfsigned`, or from the Let's Encrypt ClusterIssuer with
   `letsencrypt` (see [cert-manager](/infrastructure/cert-manager.md)). With `external` no
-  Certificate is created, and an admin supplies the `grafana-tls` Secret;
+  Certificate is created; the role writes `grafana_cert_pem` and `grafana_cert_key_pem` into
+  the `grafana-tls` Secret;
 - a `grafana` Gateway with one HTTPS listener on 8443 and an HTTPRoute to the `grafana`
   Service, the same shape as Keycloak's own Gateway (see
   [Ingress and Gateway Routing](/infrastructure/ingress.md));
