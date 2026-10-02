@@ -47,8 +47,8 @@ The role (see `ansible/roles/keycloak_install/tasks/main.yml`):
 - Provisions the `kc-tls` certificate via cert-manager, per `keycloak_tls_provider` (default
   `cert_manager_provider`). With `selfsigned` it first creates a `kc-selfsigned-ca` CA
   Certificate and a `kc-ca-issuer` Issuer; with `letsencrypt` it issues `kc-tls` for
-  `keycloak_hostname` from the Let's Encrypt ClusterIssuer; with `external` an admin supplies
-  the `kc-tls` Secret. Durations come from
+  `keycloak_hostname` from the Let's Encrypt ClusterIssuer; with `external` it writes
+  `keycloak_cert_pem` and `keycloak_cert_key_pem` into the `kc-tls` Secret. Durations come from
   `keycloak_cert_duration` (1 year) and `keycloak_cert_renew_before` — see
   [Certificate Management](/playbooks/certificate-management.md).
 - Deploys a single-replica Deployment running
