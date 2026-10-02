@@ -1,5 +1,13 @@
 # Wiki Update Log
 
+## 2026-10-01
+
+* **Update**: [cert-manager](/infrastructure/cert-manager.md) — described the new shared
+  `tls_certificate` role that the ingress, Harbor, Keycloak, and Grafana roles now use to
+  create their endpoint certificates. [Harbor](/infrastructure/harbor.md) cites it in place
+  of the removed `certs.yml`, and [Grafana](/infrastructure/grafana.md) notes that the
+  `external` provider no longer creates a Let's Encrypt certificate for Grafana.
+
 ## 2026-09-25
 
 * **Update**: [Grafana](/infrastructure/grafana.md) — both dashboards now split usage into

@@ -257,63 +257,22 @@
     - name: Expose grafana through a gateway
       when: grafana_external_access | bool
       block:
-        - name: Create the grafana self-signed CA certificate
-          when: cert_manager_provider == 'selfsigned'
-          kubernetes.core.k8s:
-            state: present
-            definition:
-              apiVersion: cert-manager.io/v1
-              kind: Certificate
-              metadata:
-                name: grafana-selfsigned-ca
-                namespace: "{{ grafana_namespace }}"
-              spec:
-                isCA: true
-                commonName: grafana-selfsigned-ca
-                secretName: grafana-selfsigned-ca
-                duration: "{{ grafana_cert_duration }}"
-                renewBefore: "{{ grafana_cert_renew_before }}"
-                privateKey:
-                  algorithm: ECDSA
-                  size: 256
-                issuerRef:
-                  name: default-cluster-issuer
-                  kind: ClusterIssuer
-                  group: cert-manager.io
-
-        - name: Create the grafana CA issuer
-          when: cert_manager_provider == 'selfsigned'
-          kubernetes.core.k8s:
-            state: present
-            definition:
-              apiVersion: cert-manager.io/v1
-              kind: Issuer
-              metadata:
-                name: grafana-ca-issuer
-                namespace: "{{ grafana_namespace }}"
-              spec:
-                ca:
-                  secretName: grafana-selfsigned-ca
-
         - name: Create the grafana TLS certificate
-          kubernetes.core.k8s:
-            state: present
-            definition:
-              apiVersion: cert-manager.io/v1
-              kind: Certificate
-              metadata:
-                name: grafana-tls
-                namespace: "{{ grafana_namespace }}"
-              spec:
-                secretName: grafana-tls
-                duration: "{{ grafana_cert_duration }}"
-                renewBefore: "{{ grafana_cert_renew_before }}"
-                issuerRef:
-                  name: "{{ 'grafana-ca-issuer' if cert_manager_provider == 'selfsigned' else cert_manager_le_issuer_name }}"
-                  kind: "{{ 'Issuer' if cert_manager_provider == 'selfsigned' else 'ClusterIssuer' }}"
-                commonName: "{{ grafana_hostname }}"
-                dnsNames:
-                  - "{{ grafana_hostname }}"
+          ansible.builtin.include_role:
+            name: tls_certificate
+          vars:
+            tls_certificate_name: grafana-tls
+            tls_certificate_namespace: "{{ grafana_namespace }}"
+            tls_certificate_hostnames:
+              - "{{ grafana_hostname }}"
+            tls_certificate_duration: "{{ grafana_cert_duration }}"
+            tls_certificate_renew_before: "{{ grafana_cert_renew_before }}"
+            tls_certificate_issuer_name: grafana-ca-issuer
+            tls_certificate_ca_name: grafana-selfsigned-ca
+            tls_certificate_ca_duration: "{{ grafana_cert_duration }}"
+            tls_certificate_ca_renew_before: "{{ grafana_cert_renew_before }}"
+            tls_certificate_selfsigned_dns_names:
+              - "{{ grafana_hostname }}"
 
         - name: Create the gateway for grafana
           kubernetes.core.k8s:

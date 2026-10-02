@@ -967,11 +967,13 @@
 #   vice-tls          ns (qa)     vice_wildcard_fqdn  (needs a WILDCARD cert)
 #   harbor-tls        harbor      harbor_fqdn
 #   kc-tls            keycloak    keycloak_hostname
+#   ai-sandboxes-ui-tls  ns (qa)  ai2s_hostname  (only with ai_sandboxes_ui_enabled)
+#   grafana-tls       grafana     grafana_hostname  (only with grafana_external_access)
 #
 # The secret names for the DE namespace and Harbor follow the
 # de_tls_cert_name / user_portal_tls_cert_name / vice_tls_cert_name /
-# harbor_tls_cert_name variables; the Keycloak secret name (kc-tls) is
-# fixed. Create each from the CA-issued cert and key, for example:
+# ai2s_tls_cert_name / harbor_tls_cert_name variables; the Keycloak (kc-tls)
+# and Grafana (grafana-tls) secret names are fixed. Create each from the CA-issued cert and key, for example:
 #
 #   kubectl -n qa create secret tls de-tls --cert=de.crt --key=de.key
 #   # ...repeat for user-portal-tls and vice-tls in namespace qa,
