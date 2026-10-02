@@ -4,7 +4,7 @@ title: Grafana
 description: Optional metrics dashboards for the DE — a Helm-installed Grafana with a read-only PostgreSQL datasource on the DE database and provisioned logins and resource-usage dashboards that split usage into University of Arizona and other users, installed only when the grafana tag is named explicitly, and optionally exposed through a Gateway with Keycloak login limited to DE admin groups.
 resource: /ansible/roles/grafana
 tags: [grafana, metrics, dashboards, observability, postgresql, keycloak, gateway-api, kubernetes.yml]
-timestamp: 2026-09-25T00:00:00Z
+timestamp: 2026-10-01T00:00:00Z
 ---
 
 Grafana provides metrics dashboards for the DE. Like [Jaeger](/infrastructure/jaeger.md), it
@@ -131,8 +131,9 @@ Setting `grafana_external_access: true` serves Grafana at `grafana_hostname` and
 [Keycloak](/infrastructure/keycloak.md). The role then also creates:
 
 - a `grafana-tls` Certificate in the `grafana` namespace — from a namespace-local CA with
-  `cert_manager_provider: selfsigned`, from the Let's Encrypt ClusterIssuer otherwise (see
-  [cert-manager](/infrastructure/cert-manager.md));
+  `cert_manager_provider: selfsigned`, or from the Let's Encrypt ClusterIssuer with
+  `letsencrypt` (see [cert-manager](/infrastructure/cert-manager.md)). With `external` no
+  Certificate is created, and an admin supplies the `grafana-tls` Secret;
 - a `grafana` Gateway with one HTTPS listener on 8443 and an HTTPRoute to the `grafana`
   Service, the same shape as Keycloak's own Gateway (see
   [Ingress and Gateway Routing](/infrastructure/ingress.md));

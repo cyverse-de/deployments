@@ -1,0 +1,28 @@
+---
+# Name of the Certificate and of the kubernetes.io/tls Secret it produces.
+tls_certificate_name: ""
+tls_certificate_namespace: ""
+
+# The public hostnames the certificate covers. The first one is the common
+# name of the Let's Encrypt certificate.
+tls_certificate_hostnames: []
+
+# selfsigned | letsencrypt | external. See cert_manager_provider in
+# roles/common/defaults/main.yml.
+tls_certificate_provider: "{{ cert_manager_provider }}"
+
+tls_certificate_duration: "2160h"
+tls_certificate_renew_before: "240h"
+
+# --- selfsigned only ---
+# The namespaced Issuer that signs the certificate.
+tls_certificate_issuer_name: ""
+# When set, the CA certificate and the Issuer backed by it are created here
+# too. Leave it empty to sign with an Issuer another caller already created.
+tls_certificate_ca_name: ""
+tls_certificate_ca_duration: "8766h"
+tls_certificate_ca_renew_before: "240h"
+# The self-signed certificate also covers localhost by default, for clients
+# inside the cluster and port-forwards.
+tls_certificate_selfsigned_common_name: "{{ tls_certificate_hostnames[0] }}"
+tls_certificate_selfsigned_dns_names: "{{ ['localhost'] + tls_certificate_hostnames }}"

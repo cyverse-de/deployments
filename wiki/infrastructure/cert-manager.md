@@ -4,7 +4,7 @@ title: cert-manager
 description: How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed and Let's Encrypt certificates.
 resource: /ansible/roles/cert-manager
 tags: [cert-manager, tls, certificates, letsencrypt, issuers, kubernetes.yml]
-timestamp: 2026-09-23T00:00:00Z
+timestamp: 2026-10-01T00:00:00Z
 ---
 
 cert-manager issues and renews the TLS certificates used inside the cluster — the Traefik default
@@ -48,6 +48,29 @@ A separate namespaced self-signed `default-issuer` is created in the DE namespac
 `ansible/roles/k8s_de_reqs/tasks/issuers.yml` under the `de-reqs` tag, since it needs the DE
 namespace to exist first.
 
+## Endpoint certificates: the tls_certificate role
+
+Every role that needs a certificate for a public endpoint — `kubernetes_ingress` (DE, user
+portal, AI Discovery Lab, VICE), `harbor`, `keycloak_install`, and `grafana` — creates it by
+including the `tls_certificate` role rather than writing its own Certificate tasks. The caller
+passes the Certificate/Secret name, namespace, hostnames, and durations, and the role
+creates what `cert_manager_provider` calls for:
+
+- `selfsigned` — a leaf Certificate signed by a namespaced `Issuer`. When the caller passes
+  `tls_certificate_ca_name`, the role first creates the CA Certificate (chained off
+  `default-cluster-issuer`) and that Issuer; otherwise it signs with an Issuer an earlier
+  call created, which is how the portal and AI Discovery Lab certificates share the DE's.
+  The leaf also covers `localhost` unless the caller overrides
+  `tls_certificate_selfsigned_dns_names` (Keycloak adds its in-cluster service names;
+  Grafana leaves `localhost` out).
+- `letsencrypt` — a Certificate from the Let's Encrypt ClusterIssuer for the given
+  hostnames, the first being the common name.
+- `external` — nothing; an admin supplies the TLS Secret.
+
+The role fails before creating anything if the provider is not one of these three.
+`tls_certificate_provider` defaults to `cert_manager_provider`, so every endpoint currently
+follows the deployment-wide setting.
+
 ## Key variables
 
 All defaults live in `ansible/roles/common/defaults/main.yml` (every role depends on `common`):
@@ -75,3 +98,4 @@ Harbor certificates reference throughout the deployment, not just this role.
 [3] `ansible/kubernetes.yml` — role ordering and the `cert-manager` / `cert-issuers` tags.
 [4] `ansible/roles/common/defaults/main.yml` — `cert_manager_*` variable defaults.
 [5] `ansible/roles/k8s_de_reqs/tasks/issuers.yml` — namespaced `default-issuer` in the DE namespace.
+[6] `ansible/roles/tls_certificate/` — the shared endpoint-certificate role and its parameters.

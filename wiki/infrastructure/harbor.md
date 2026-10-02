@@ -4,7 +4,7 @@ title: Harbor
 description: How the Harbor container registry is deployed via its Helm chart in kubernetes.yml, including TLS, Gateway/Ingress exposure, and its external PostgreSQL databases.
 resource: /ansible/roles/harbor
 tags: [harbor, registry, helm, tls, kubernetes.yml]
-timestamp: 2026-09-10T00:00:00Z
+timestamp: 2026-10-01T00:00:00Z
 ---
 
 Harbor is the container image registry for a DE deployment. The `harbor` role installs the
@@ -70,10 +70,11 @@ cluster's image-pull secret, built from `harbor_robot_name` and
 
 ## TLS and exposure
 
-`certs.yml` requests the Harbor TLS certificate from [cert-manager](/infrastructure/cert-manager.md).
-With `cert_manager_provider: selfsigned` it builds a chain (CA certificate, a namespaced
-`Issuer`, then the `harbor-tls` certificate); with `letsencrypt` it requests `harbor-tls`
-directly from the `cert_manager_le_issuer_name` ClusterIssuer.
+The role requests the Harbor TLS certificate from [cert-manager](/infrastructure/cert-manager.md)
+through the shared `tls_certificate` role. With `cert_manager_provider: selfsigned` it builds a
+chain (CA certificate, a namespaced `Issuer`, then the `harbor-tls` certificate); with
+`letsencrypt` it requests `harbor-tls` directly from the `cert_manager_le_issuer_name`
+ClusterIssuer; with `external` it creates nothing and an admin supplies the `harbor-tls` Secret.
 
 Exposure depends on `gateway_provider` (see [Ingress](/infrastructure/ingress.md)):
 
@@ -96,7 +97,7 @@ registry/chartmuseum/jobservice PVCs are `ReadWriteMany` on `harbor_storage_clas
 # Citations
 
 [1] `ansible/roles/harbor/tasks/main.yml` — namespace, Helm install, exposure selection, external database wiring.
-[2] `ansible/roles/harbor/tasks/certs.yml` — self-signed CA/issuer chain vs. Let's Encrypt certificate.
+[2] `ansible/roles/tls_certificate/tasks/main.yml` — self-signed CA/issuer chain vs. Let's Encrypt certificate.
 [3] `ansible/roles/harbor/tasks/gateway.yml` — the Gateway created for Traefik exposure.
 [4] `ansible/kubernetes.yml` — the `harbor` tag, explicit-tag guard, and ordering relative to Longhorn and de-reqs.
 [5] `ansible/roles/common/defaults/main.yml` — `harbor_*` variable defaults.

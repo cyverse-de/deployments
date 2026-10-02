@@ -12,7 +12,19 @@
         name: "{{ harbor_namespace }}"
 
 - name: Configure the Harbor TLS certificate
-  ansible.builtin.include_tasks: certs.yml
+  ansible.builtin.include_role:
+    name: tls_certificate
+  vars:
+    tls_certificate_name: "{{ harbor_tls_cert_name }}"
+    tls_certificate_namespace: "{{ harbor_namespace }}"
+    tls_certificate_hostnames:
+      - "{{ harbor_fqdn }}"
+    tls_certificate_duration: "{{ harbor_tls_cert_duration }}"
+    tls_certificate_renew_before: "{{ harbor_tls_cert_renew_before }}"
+    tls_certificate_issuer_name: "{{ harbor_tls_issuer_name }}"
+    tls_certificate_ca_name: "{{ harbor_tls_ca_name }}"
+    tls_certificate_ca_duration: "{{ harbor_tls_ca_duration }}"
+    tls_certificate_ca_renew_before: "{{ harbor_tls_ca_renew_before }}"
 
 # Traefik fronts Harbor through a Gateway we create here; the chart then emits an
 # HTTPRoute (expose.type: route) that attaches to it. Create the Gateway before
