@@ -159,9 +159,10 @@ cert_manager_use_letsencrypt: false
 # TLS certificate strategy: selfsigned | letsencrypt | external.
 #   selfsigned  - cert-manager self-signs a CA + leaf cert per endpoint
 #   letsencrypt - cert-manager issues leaf certs from the ACME ClusterIssuer
-#   external    - no certs are created; an admin pre-creates the TLS secrets
+#   external    - cert-manager creates no certs; the TLS secrets are written
+#                 from each endpoint's *_cert_pem and *_cert_key_pem variables
 #                 (see the "Phase 6" cert-manager section of the example
-#                 group_vars for the list of secrets and namespaces).
+#                 group_vars for the list of variables, secrets, and namespaces).
 # Defaults from the legacy cert_manager_use_letsencrypt toggle for backward
 # compatibility. Set explicitly to 'external' for third-party-CA deployments.
 cert_manager_provider: "{{ 'letsencrypt' if cert_manager_use_letsencrypt | default(false) else 'selfsigned' }}"

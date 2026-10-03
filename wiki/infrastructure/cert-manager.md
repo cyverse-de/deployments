@@ -133,4 +133,4 @@ certificate references, not just this role's issuers, unless an endpoint overrid
 [5] `ansible/roles/k8s_de_reqs/tasks/issuers.yml` — namespaced `default-issuer` in the DE namespace.
 [6] `ansible/roles/tls_certificate/` — the shared endpoint-certificate role and its parameters.
 [8] `ansible/README.md` — the per-endpoint certificate and key variables for `external` endpoints.
-[7] `ansible/example/inventory/group_vars/all.yaml` — the per-endpoint provider overrides and the Secrets an `external` endpoint needs.
+[7] `ansible/example/inventory/group_vars/all.yaml` — the per-endpoint provider overrides and the certificate and key variables an `external` endpoint needs.

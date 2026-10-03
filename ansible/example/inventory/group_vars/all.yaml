@@ -902,18 +902,19 @@
 # TLS certificate strategy: cert_manager_provider
 # ---------------------------------------------------------------------
 # Selects how the public-facing service certificates (DE, user portal,
-# VICE, Harbor, Keycloak) are obtained. One of:
+# VICE, AI Discovery Lab, Harbor, Keycloak, Grafana) are obtained. One of:
 #
 #   selfsigned  - cert-manager self-signs a CA + leaf certificate per
 #                 endpoint (the default).
 #   letsencrypt - cert-manager issues the leaf certificates from the
 #                 Let's Encrypt ACME ClusterIssuer (configure the
 #                 Route53 variables below).
-#   external    - cert-manager creates NONE of these certificates; a
-#                 cluster admin pre-creates the TLS secrets out of band
-#                 (e.g. certs from a third-party CA). Use this when the
-#                 certificate lifecycle is managed independently of the
-#                 Ansible deploy.
+#   external    - cert-manager creates NONE of these certificates; the
+#                 playbooks write a certificate and key you supply (e.g.
+#                 from a third-party CA) into each endpoint's TLS secret.
+#                 cert-manager doesn't renew them, so you renew them by
+#                 updating the variables and rerunning the deploy. See
+#                 the list of certificate and key variables below.
 #
 # For backward compatibility the default is derived from the legacy
 # `cert_manager_use_letsencrypt` toggle: unset -> selfsigned, true ->
@@ -974,30 +975,38 @@
 # de_ca_bundle_configmap: de-ca-bundle
 # de_ca_bundle_file: /path/to/rootCA.pem
 #
-# For each endpoint whose provider is `external`, you must create its
-# `kubernetes.io/tls` secret from this list before HTTPS will serve for that
-# hostname — a Gateway listener whose secret is missing
-# simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
-# not matter:
+# For each endpoint whose provider is `external`, set its certificate and
+# key variables. The playbooks write them into the endpoint's
+# `kubernetes.io/tls` secret, replacing the secret on every run, and remove
+# any cert-manager Certificate of the same name left over from another
+# provider. The certificate should be the full chain, leaf first; the key
+# is unencrypted PEM.
 #
-#   secret name       namespace   hostname
-#   ---------------   ---------   ------------------------------------
-#   de-tls            ns (qa)     de_hostname
-#   user-portal-tls   ns (qa)     portal_hostname
-#   vice-tls          ns (qa)     vice_wildcard_fqdn  (needs a WILDCARD cert)
-#   harbor-tls        harbor      harbor_fqdn
-#   kc-tls            keycloak    keycloak_hostname
-#   ai-sandboxes-ui-tls  ns (qa)  ai2s_hostname  (only with ai_sandboxes_ui_enabled)
-#   grafana-tls       grafana     grafana_hostname  (only with grafana_external_access)
+#   certificate / key variables                      secret               namespace
+#   -----------------------------------------------  -------------------  ---------
+#   de_tls_cert_pem / de_tls_cert_key_pem            de-tls               ns (qa)
+#   user_portal_tls_cert_pem /
+#     user_portal_tls_cert_key_pem                   user-portal-tls      ns (qa)
+#   vice_tls_cert_pem / vice_tls_cert_key_pem        vice-tls             ns (qa)
+#     (needs a WILDCARD cert for vice_wildcard_fqdn)
+#   ai2s_tls_cert_pem / ai2s_tls_cert_key_pem        ai-sandboxes-ui-tls  ns (qa)
+#     (only with ai_sandboxes_ui_enabled)
+#   harbor_tls_cert_pem / harbor_tls_cert_key_pem    harbor-tls           harbor
+#   keycloak_cert_pem / keycloak_cert_key_pem        kc-tls               keycloak
+#   grafana_cert_pem / grafana_cert_key_pem          grafana-tls          grafana
+#     (only with grafana_external_access)
 #
 # The secret names for the DE namespace and Harbor follow the
 # de_tls_cert_name / user_portal_tls_cert_name / vice_tls_cert_name /
 # ai2s_tls_cert_name / harbor_tls_cert_name variables; the Keycloak (kc-tls)
-# and Grafana (grafana-tls) secret names are fixed. Create each from the CA-issued cert and key, for example:
+# and Grafana (grafana-tls) secret names are fixed.
 #
-#   kubectl -n qa create secret tls de-tls --cert=de.crt --key=de.key
-#   # ...repeat for user-portal-tls and vice-tls in namespace qa,
-#   #    harbor-tls in namespace harbor, kc-tls in namespace keycloak.
+# The private keys are secrets: keep them in an Ansible Vault-encrypted
+# file, or read them from files on the control machine, for example:
+# Default: "" for each
+# de_tls_provider: external
+# de_tls_cert_pem: "{{ lookup('file', '/secure/path/de.example.org.fullchain.pem') }}"
+# de_tls_cert_key_pem: "{{ lookup('file', '/secure/path/de.example.org.key') }}"
 
 
 # ---------------------------------------------------------------------
@@ -1441,8 +1450,8 @@
 # cert-manager TLS for Harbor. Under cert_manager_provider=selfsigned a CA
 # chain is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls);
 # under letsencrypt harbor-tls is issued directly from the letsencrypt
-# ClusterIssuer; under external no cert is created and an admin pre-creates
-# the harbor-tls secret (see Phase 6). These names and lifetimes mirror the
+# ClusterIssuer; under external the harbor-tls secret is created from
+# harbor_tls_cert_pem and harbor_tls_cert_key_pem (see Phase 6). These names and lifetimes mirror the
 # DE service certificates.
 # Default: harbor-tls
 # harbor_tls_cert_name: harbor-tls
@@ -2036,7 +2045,8 @@
 # ai2s_log_level: info
 
 # TLS certificate name for the AI Discovery Lab Gateway. In external mode,
-# pre-create a kubernetes.io/tls Secret with this name in the DE namespace.
+# the playbooks create a kubernetes.io/tls Secret with this name in the DE
+# namespace from ai2s_tls_cert_pem and ai2s_tls_cert_key_pem (see Phase 6).
 # Default: ai-sandboxes-ui-tls
 # ai2s_tls_cert_name: ai-sandboxes-ui-tls
 
