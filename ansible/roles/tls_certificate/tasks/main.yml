@@ -146,7 +146,7 @@
       when: tls_certificate_provider == 'external'
       kubernetes.core.k8s:
         state: absent
-        apiVersion: cert-manager.io/v1
+        api_version: cert-manager.io/v1
         kind: Certificate
         namespace: "{{ tls_certificate_namespace }}"
         name: "{{ tls_certificate_name }}"
