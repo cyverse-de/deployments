@@ -1451,8 +1451,8 @@
 # chain is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls);
 # under letsencrypt harbor-tls is issued directly from the letsencrypt
 # ClusterIssuer; under external the harbor-tls secret is created from
-# harbor_tls_cert_pem and harbor_tls_cert_key_pem (see Phase 6). These names and lifetimes mirror the
-# DE service certificates.
+# harbor_tls_cert_pem and harbor_tls_cert_key_pem (see Phase 6). These names
+# and lifetimes mirror the DE service certificates.
 # Default: harbor-tls
 # harbor_tls_cert_name: harbor-tls
 
