@@ -75,7 +75,8 @@ through the shared `tls_certificate` role. With `harbor_tls_provider` (default
 `cert_manager_provider`) set to `selfsigned` it builds a
 chain (CA certificate, a namespaced `Issuer`, then the `harbor-tls` certificate); with
 `letsencrypt` it requests `harbor-tls` directly from the `cert_manager_le_issuer_name`
-ClusterIssuer; with `external` it creates nothing and an admin supplies the `harbor-tls` Secret.
+ClusterIssuer; with `external` it writes `harbor_tls_cert_pem` and
+`harbor_tls_cert_key_pem` into the `harbor-tls` Secret.
 
 Exposure depends on `gateway_provider` (see [Ingress](/infrastructure/ingress.md)):
 

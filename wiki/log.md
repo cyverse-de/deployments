@@ -2,6 +2,12 @@
 
 ## 2026-10-02
 
+* **Update**: [cert-manager](/infrastructure/cert-manager.md) — the `external` provider now
+  creates the endpoint's TLS Secret from a certificate and key supplied in inventory, and removes
+  any leftover cert-manager Certificate of the same name.
+  [Certificate Management](/playbooks/certificate-management.md) covers renewing them, and
+  [Harbor](/infrastructure/harbor.md), [Keycloak](/infrastructure/keycloak.md), and
+  [Grafana](/infrastructure/grafana.md) name their certificate and key variables.
 * **Update**: [cert-manager](/infrastructure/cert-manager.md) — each public endpoint can now
   override `cert_manager_provider` with its own `*_tls_provider` variable, so a deployment can
   use Let's Encrypt for some hostnames and externally issued certificates for others. The Let's

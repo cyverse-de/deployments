@@ -66,9 +66,15 @@ provider, and the role creates what that provider calls for:
   Grafana leaves `localhost` out).
 - `letsencrypt` — a Certificate from the Let's Encrypt ClusterIssuer for the given
   hostnames, the first being the common name.
-- `external` — nothing; an admin supplies the TLS Secret.
+- `external` — no cert-manager resources. The role writes the caller's PEM certificate and
+  key (`tls_certificate_pem`, `tls_certificate_key_pem`) into a `kubernetes.io/tls` Secret,
+  replacing it outright on each run, and deletes any cert-manager Certificate of the same
+  name, so an endpoint switched from another provider is not overwritten by cert-manager.
 
-The role fails before creating anything if its provider is not one of these three.
+The role fails before creating anything if its provider is not one of these three, or if
+the parameters that provider needs are empty — namespace and hostnames for `selfsigned` and
+`letsencrypt` (plus the CA and Issuer names for `selfsigned`), and namespace, certificate, and
+key for `external`.
 
 ## Choosing a provider per endpoint
 
@@ -92,8 +98,10 @@ a deployment can mix providers — for example, Let's Encrypt for CyVerse hostna
 variable. That catches a typo in, say, `harbor_tls_provider` on any run that includes the
 issuers, without waiting for the explicitly tagged `harbor` role to run. It then creates the
 Let's Encrypt ClusterIssuer and its Route53 Secret when any endpoint uses `letsencrypt`. For an
-`external` endpoint, the admin creates the TLS Secret; the example group_vars list each
-endpoint's Secret name and namespace.
+`external` endpoint, the operator sets the endpoint's certificate and key variables
+(for example `de_tls_cert_pem` and `de_tls_cert_key_pem`; `ansible/README.md` lists all seven
+pairs) and the playbooks create the Secret. cert-manager does not renew these, so renewing
+one means updating the variables and rerunning the play that owns the endpoint.
 
 ## Key variables
 
@@ -124,4 +132,5 @@ certificate references, not just this role's issuers, unless an endpoint overrid
 [4] `ansible/roles/common/defaults/main.yml` — `cert_manager_*` variable defaults.
 [5] `ansible/roles/k8s_de_reqs/tasks/issuers.yml` — namespaced `default-issuer` in the DE namespace.
 [6] `ansible/roles/tls_certificate/` — the shared endpoint-certificate role and its parameters.
-[7] `ansible/example/inventory/group_vars/all.yaml` — the per-endpoint provider overrides and the Secrets an `external` endpoint needs.
+[8] `ansible/README.md` — the per-endpoint certificate and key variables for `external` endpoints.
+[7] `ansible/example/inventory/group_vars/all.yaml` — the per-endpoint provider overrides and the certificate and key variables an `external` endpoint needs.

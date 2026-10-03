@@ -115,12 +115,54 @@ The `condor.yml` playbook will install and configure a dedicated HTCondor cluste
 
 ## Cert-Manager
 
-The DE uses cert-manager to issue and renew the TLS certificates used inside the cluster — the Traefik default
-certificate, the DE UI, VICE wildcard, user portal, Keycloak, Harbor, and Grafana certs. The `cert-manager` role installs the
-chart under the `cert-manager` tag in `kubernetes.yml`, and the `cluster_issuers` role follows it under the
+The DE optionally uses cert-manager to issue and renew the TLS certificates used inside the cluster — the Traefik
+default certificate, the DE UI, VICE wildcard, user portal, Keycloak, Harbor, and Grafana certs. The `cert-manager` role
+installs the chart under the `cert-manager` tag in `kubernetes.yml`, and the `cluster_issuers` role follows it under the
 `cert-issuers` tag to create the self-signed `default-cluster-issuer` plus, when `cert_manager_provider` is
-`letsencrypt`, a Let's Encrypt ClusterIssuer using the ACME dns01 solver against Route53. See
-[the cert-manager wiki page](../wiki/infrastructure/cert-manager.md).
+`letsencrypt`, a Let's Encrypt ClusterIssuer using the ACME dns01 solver against Route53. See [the cert-manager wiki
+page](../wiki/infrastructure/cert-manager.md).
+
+### Choosing a certificate provider
+
+`cert_manager_provider` selects where the public-facing endpoint certificates come from, and each endpoint has its own
+`<endpoint>_tls_provider` variable that overrides it. The supported providers are:
+
+- `selfsigned` (the default) - cert-manager creates a CA and an issuer for the endpoint and signs its certificate.
+- `letsencrypt` - cert-manager requests the certificate from the Let's Encrypt ClusterIssuer.
+- `external` - the certificate comes from a third-party CA. The playbooks write the certificate and private key you
+  supply into the endpoint's `kubernetes.io/tls` Secret.
+
+The Traefik default certificate is always issued by cert-manager, whichever provider is selected.
+
+### Externally managed certificates
+
+To use a certificate from a third-party CA for an endpoint, set the endpoint's provider variable to `external` and
+supply the PEM-encoded certificate and private key:
+
+| Endpoint    | Provider variable          | Certificate variable       | Private key variable           | Secret (namespace)                |
+| ----------- | -------------------------- | -------------------------- | ------------------------------ | --------------------------------- |
+| DE UI       | `de_tls_provider`          | `de_tls_cert_pem`          | `de_tls_cert_key_pem`          | `de-tls` (`ns`)                   |
+| User portal | `user_portal_tls_provider` | `user_portal_tls_cert_pem` | `user_portal_tls_cert_key_pem` | `user-portal-tls` (`ns`)          |
+| VICE        | `vice_tls_provider`        | `vice_tls_cert_pem`        | `vice_tls_cert_key_pem`        | `vice-tls` (`ns`)                 |
+| AI2S        | `ai2s_tls_provider`        | `ai2s_tls_cert_pem`        | `ai2s_tls_cert_key_pem`        | `ai-sandboxes-ui-tls` (`ns`)      |
+| Harbor      | `harbor_tls_provider`      | `harbor_tls_cert_pem`      | `harbor_tls_cert_key_pem`      | `harbor-tls` (`harbor_namespace`) |
+| Keycloak    | `keycloak_tls_provider`    | `keycloak_cert_pem`        | `keycloak_cert_key_pem`        | `kc-tls` (`keycloak_namespace`)   |
+| Grafana     | `grafana_tls_provider`     | `grafana_cert_pem`         | `grafana_cert_key_pem`         | `grafana-tls` (`grafana_namespace`) |
+
+The certificate variable should hold the full chain, with the leaf certificate first, followed by any intermediates.
+VICE needs a wildcard certificate that covers `vice_wildcard_fqdn`. The private key is a secret, so keep it in an
+Ansible Vault-encrypted file, or read it from a file on the control machine, rather than putting it in plain inventory:
+
+```yaml
+de_tls_provider: external
+de_tls_cert_pem: "{{ lookup('file', '/secure/path/de.example.org.fullchain.pem') }}"
+de_tls_cert_key_pem: "{{ lookup('file', '/secure/path/de.example.org.key') }}"
+```
+
+Each run replaces the Secret with the supplied certificate and key, so to renew a certificate, update the files and
+rerun the play that manages the endpoint. cert-manager doesn't renew external certificates, so watch their expiry dates.
+If you switch an existing endpoint to `external` from another provider, the play deletes the endpoint's cert-manager
+`Certificate`, so cert-manager no longer overwrites the Secret.
 
 **NOTE** Make sure the `KUBECONFIG` environment variable is set to the correct value in your local shell.
 

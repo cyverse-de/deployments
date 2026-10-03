@@ -54,6 +54,8 @@ grafana_oauth_tls_skip_verify: false
 
 grafana_cert_duration: "8766h" # 1 year
 grafana_cert_renew_before: "240h" # 10 days
+grafana_cert_pem: ""
+grafana_cert_key_pem: ""
 
 # PostgreSQL feature level Grafana targets for the DE datasource. This is a
 # floor, not the server's actual version -- Grafana uses it to decide which SQL
