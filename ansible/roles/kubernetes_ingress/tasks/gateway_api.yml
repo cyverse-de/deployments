@@ -19,6 +19,8 @@
         tls_certificate_ca_name: "{{ de_tls_ca_name }}"
         tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
         tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
+        tls_certificate_pem: "{{ de_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ de_tls_cert_key_pem }}"
 
     - name: Define the gateway for the DE
       kubernetes.core.k8s:
@@ -354,6 +356,8 @@
         tls_certificate_ca_name: "{{ de_tls_ca_name }}"
         tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
         tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
+        tls_certificate_pem: "{{ user_portal_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ user_portal_tls_cert_key_pem }}"
 
     - name: Define the gateway for the user portal
       kubernetes.core.k8s:
@@ -422,6 +426,8 @@
         tls_certificate_ca_name: "{{ de_tls_ca_name }}"
         tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
         tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
+        tls_certificate_pem: "{{ ai2s_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ ai2s_tls_cert_key_pem }}"
 
     - name: Define the gateway for the AI Discovery Lab
       when:
@@ -486,6 +492,8 @@
         tls_certificate_ca_duration: "{{ vice_tls_ca_duration }}"
         tls_certificate_ca_renew_before: "{{ vice_tls_ca_renew_before }}"
         tls_certificate_selfsigned_common_name: "*.{{ ns }}.svc.cluster.local"
+        tls_certificate_pem: "{{ vice_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ vice_tls_cert_key_pem }}"
 
     - name: Define the gateway for VICE
       kubernetes.core.k8s:

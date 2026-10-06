@@ -36,7 +36,9 @@ The `cert_manager_provider` inventory variable (derived from `cert_manager_use_l
 controls the issuer for the DE UI, VICE, portal, AI Discovery Lab, Harbor,
 [Keycloak](/infrastructure/keycloak.md), and [Grafana](/infrastructure/grafana.md) certificates.
 Each of those endpoints can override it with its own `*_tls_provider` variable — see
-[cert-manager](/infrastructure/cert-manager.md#choosing-a-provider-per-endpoint). Internal-only
+[cert-manager](/infrastructure/cert-manager.md#choosing-a-provider-per-endpoint). With `external`, the
+playbooks write a certificate and key supplied in inventory into the endpoint's Secret
+instead of having cert-manager issue one. Internal-only
 certificates (Traefik and portal-conductor) are always self-signed regardless of these settings.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
@@ -47,7 +49,10 @@ serve traffic, but browsers never see them.
 Most certificates managed by cert-manager renew **automatically** when they approach the
 configured `renewBefore` threshold (default: 10 days before expiry). Automatic renewal
 requires that cert-manager is running and that the issuer can reach its backend (Route 53
-for Let's Encrypt, or no external dependency for self-signed).
+for Let's Encrypt, or no external dependency for self-signed). Endpoints set to `external`
+are the exception: cert-manager never renews them, so update the endpoint's `*_cert_pem` and
+`*_cert_key_pem` variables with the new certificate and rerun the play that owns the endpoint
+(`kubernetes.yml`, with the endpoint's tag if it has one).
 
 ## Prerequisites
 

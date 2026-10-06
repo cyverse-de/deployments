@@ -1,25 +1,64 @@
 ---
-- name: Validate the TLS certificate parameters for {{ tls_certificate_name }}
+- name: Validate the TLS certificate name.
   ansible.builtin.assert:
     that:
       - tls_certificate_name | length > 0
-      - tls_certificate_namespace | length > 0
-      - tls_certificate_hostnames | length > 0
-      - tls_certificate_provider in cert_manager_supported_providers
-      - >-
-        tls_certificate_provider != 'selfsigned' or
-        (tls_certificate_ca_name | length > 0 and tls_certificate_issuer_name | length > 0)
     fail_msg: >-
-      tls_certificate needs tls_certificate_name, tls_certificate_namespace, and
-      tls_certificate_hostnames; tls_certificate_provider must be one of
-      {{ cert_manager_supported_providers | join(', ') }} (got
-      '{{ tls_certificate_provider }}'); and the
-      selfsigned provider also needs tls_certificate_ca_name and
-      tls_certificate_issuer_name.
+      Parameter, tls_certificate_name, must be provided.
     quiet: true
 
-# Under the external provider an admin supplies the Secret, so there is
-# nothing to create.
+- name: Validate the TLS certificate provider for {{ tls_certificate_name }}.
+  vars:
+    allowed_providers: "{{ cert_manager_supported_providers | join(', ') }}"
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_provider in cert_manager_supported_providers
+    fail_msg: >-
+      tls_certificate_provider must be one of: {{ allowed_providers }}
+    quiet: true
+
+- name: Validate parameters for self-signed cert {{ tls_certificate_name }}
+  when: tls_certificate_provider == 'selfsigned'
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_namespace | length > 0
+      - tls_certificate_hostnames | length > 0
+      - tls_certificate_ca_name | length > 0
+      - tls_certificate_issuer_name | length > 0
+    fail_msg: >-
+      Self-signed TLS certificates require the following parameters:
+        - tls_certificate_namespace
+        - tls_certificate_hostnames
+        - tls_certificate_ca_name
+        - tls_certificate_issuer_name
+    quiet: true
+
+- name: Validate parameters for letsencrypt cert {{ tls_certificate_name }}.
+  when: tls_certificate_provider == 'letsencrypt'
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_namespace | length > 0
+      - tls_certificate_hostnames | length > 0
+    fail_msg: >-
+      Let's Encrypt TLS certificates require the following parameters:
+        - tls_certificate_namespace
+        - tls_certificate_hostnames
+    quiet: true
+
+- name: Validate parameters for external cert {{ tls_certificate_name }}.
+  when: tls_certificate_provider == 'external'
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_namespace | length > 0
+      - tls_certificate_key_pem | length > 0
+      - tls_certificate_pem | length > 0
+    fail_msg: >-
+      Externally managed certificates require the following parameters:
+        - tls_certificate_namespace
+        - tls_certificate_key_pem
+        - tls_certificate_pem
+    quiet: true
+
 - name: Create the TLS certificate for {{ tls_certificate_name }}
   delegate_to: localhost
   environment:
@@ -63,7 +102,7 @@
             ca:
               secretName: "{{ tls_certificate_ca_name }}"
 
-    - name: Create the locally signed TLS certificate for {{ tls_certificate_name }}
+    - name: Create the locally signed cert for {{ tls_certificate_name }}
       when: tls_certificate_provider == 'selfsigned'
       kubernetes.core.k8s:
         state: present
@@ -83,7 +122,7 @@
             commonName: "{{ tls_certificate_selfsigned_common_name }}"
             dnsNames: "{{ tls_certificate_selfsigned_dns_names }}"
 
-    - name: Create the Let's Encrypt TLS certificate for {{ tls_certificate_name }}
+    - name: Create the Let's Encrypt cert for {{ tls_certificate_name }}
       when: tls_certificate_provider == 'letsencrypt'
       kubernetes.core.k8s:
         state: present
@@ -102,3 +141,29 @@
               kind: ClusterIssuer
             commonName: "{{ tls_certificate_hostnames[0] }}"
             dnsNames: "{{ tls_certificate_hostnames }}"
+
+    - name: Ensure the TLS cert doesn't exist for {{ tls_certificate_name }}
+      when: tls_certificate_provider == 'external'
+      kubernetes.core.k8s:
+        state: absent
+        api_version: cert-manager.io/v1
+        kind: Certificate
+        namespace: "{{ tls_certificate_namespace }}"
+        name: "{{ tls_certificate_name }}"
+
+    - name: Create the TLS cert secret for {{ tls_certificate_name }}
+      when: tls_certificate_provider == 'external'
+      kubernetes.core.k8s:
+        state: present
+        force: true
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ tls_certificate_name }}"
+            namespace: "{{ tls_certificate_namespace }}"
+          type: kubernetes.io/tls
+          data:
+            tls.crt: "{{ tls_certificate_pem | b64encode }}"
+            tls.key: "{{ tls_certificate_key_pem | b64encode }}"
+      no_log: true
