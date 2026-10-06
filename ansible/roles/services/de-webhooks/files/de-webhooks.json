@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/de-webhooks","tag":"harbor.cyverse.org/de/de-webhooks:v2026.10.06-rc02@sha256:9b9b1c7a449fea22c4ee520dc7dff19373399d18b85aeed2ada4a76116fa9ca3"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/de-webhooks","tag":"harbor.cyverse.org/de/de-webhooks:v2026.10.06@sha256:9b9b1c7a449fea22c4ee520dc7dff19373399d18b85aeed2ada4a76116fa9ca3"}]}
