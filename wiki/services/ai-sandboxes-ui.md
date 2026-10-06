@@ -4,7 +4,7 @@ title: ai-sandboxes-ui
 description: AI Discovery Lab web UI, a Next.js app that authenticates via Keycloak and proxies API calls to terrain.
 resource: /ansible/roles/services/ai-sandboxes-ui
 tags: [ai-sandboxes-ui, ui, frontend, nodejs, nextjs, keycloak, terrain, ai-discovery-lab]
-timestamp: 2026-10-01T00:00:00Z
+timestamp: 2026-10-06T00:00:00Z
 ---
 
 The AI Discovery Lab UI (ai-sandboxes-ui) is an alternate web interface to the
@@ -20,10 +20,10 @@ session management (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`).
 ## Configuration
 
 Environment variables are stored in the `ai-sandboxes-ui-configs` Secret
-(created by `tasks/main.yml` using `stringData`). The Deployment shape comes
-from `templates/k8s/ai-sandboxes-ui.yml.j2`: `ai_sandboxes_ui_replicas`
-(default 1) with pod anti-affinity, resources up to 3 CPU / 3Gi, and
-slow-start probes (startup probe with failureThreshold 100).
+(created by `tasks/main.yml`). The Deployment shape comes from
+`templates/k8s/ai-sandboxes-ui.yml.j2`: `ai_sandboxes_ui_replicas` (default 1)
+with pod anti-affinity, resources up to 3 CPU / 3Gi, and slow-start probes
+(startup probe with failureThreshold 100).
 
 Key variables (defaults in `roles/common/defaults/main.yml`):
 
@@ -37,6 +37,8 @@ Key variables (defaults in `roles/common/defaults/main.yml`):
 - `ai2s_nextauth_secret` — must be set (generate with `openssl rand -base64 32`)
 - `ai2s_log_level` — default `info`
 - `ai2s_log_label` — default `ai-sandboxes-ui`
+- `ai2s_sandbox_attr` — default `ai2s-sandbox`
+- `ai2s_sandbox_value` — default `true` (should be a string)
 
 ## Prerequisites
 

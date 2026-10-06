@@ -26,6 +26,8 @@
             NEXTAUTH_SECRET: "{{ ai2s_nextauth_secret | b64encode }}"
             AI2S_LOG_LEVEL: "{{ ai2s_log_level | b64encode }}"
             AI2S_LOG_LABEL: "{{ ai2s_log_label | b64encode }}"
+            AI2S_SANDBOX_ATTR: "{{ ai2s_sandbox_attr | b64encode }}"
+            AI2S_SANDBOX_VALUE: "{{ ai2s_sandbox_value | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:

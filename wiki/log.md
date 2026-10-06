@@ -1,5 +1,11 @@
 # Wiki Update Log
 
+## 2026-10-06
+
+* **Update**: [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — added two new group vars for
+  configuration settings: `ai2s_sandbox_attr` and `ai2s_sandbox_value`. These variables can
+  be set to non-empty strings to filter apps displayed in the AI Discovery Lab by AVU.
+
 ## 2026-10-02
 
 * **Update**: [cert-manager](/infrastructure/cert-manager.md) — the `external` provider now
