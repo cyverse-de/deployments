@@ -1,5 +1,10 @@
 # Wiki Update Log
 
+## 2026-10-07
+
+* **Update**: [data-info](/services/data-info.md) — the startup, liveness, and readiness probes
+  now hit `/admin/config` instead of `/`, which opens an iRODS connection on every call.
+
 ## 2026-10-06
 
 * **Update**: [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — added two new group vars for

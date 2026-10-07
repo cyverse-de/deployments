@@ -84,27 +84,25 @@ spec:
           ports:
             - name: listen-port
               containerPort: 60000
-          # The startup probe gates the other two, so they need no delay of their own. Unlike the
-          # other services, GET / here opens an iRODS connection on every call, so only the startup
-          # probe polls quickly: it stops once it succeeds, costing a couple of extra checks at boot.
-          # The liveness and readiness periods stay at 20s to leave the steady-state load on iRODS
-          # exactly as it was.
+          # The startup probe gates the other two, so they need no delay of their own. GET / opens an
+          # iRODS connection on every call, so the probes use /admin/config, which is served from
+          # memory; an iRODS outage or refused login then can't put the pods into a restart loop.
           livenessProbe:
             httpGet:
-              path: /
+              path: /admin/config
               port: 60000
             periodSeconds: 20
             timeoutSeconds: 10
           startupProbe:
             httpGet:
-              path: /
+              path: /admin/config
               port: 60000
             periodSeconds: 3
             timeoutSeconds: 10
             failureThreshold: 100
           readinessProbe:
             httpGet:
-              path: /
+              path: /admin/config
               port: 60000
             periodSeconds: 20
             timeoutSeconds: 10
