@@ -2,6 +2,10 @@
 
 ## 2026-10-07
 
+* **Update**: [data-info](/services/data-info.md) and [terrain](/services/terrain.md) — both
+  Deployments now append `-XX:AOTMode=off` to `JAVA_TOOL_OPTIONS`. Their images ship a JDK 25
+  AOT cache built on an AVX-512 host, and data-info was crashing with `SIGILL` on the pre-AVX2
+  prod workers.
 * **Update**: [data-info](/services/data-info.md) — the startup, liveness, and readiness probes
   now hit `/admin/config` instead of `/`, which opens an iRODS connection on every call.
 

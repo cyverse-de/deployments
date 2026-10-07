@@ -4,7 +4,7 @@ title: terrain
 description: The DE's public API gateway, routing UI requests to the backend services and talking to iRODS and Keycloak directly.
 resource: /ansible/roles/services/terrain
 tags: [terrain, api-gateway, clojure, keycloak, irods]
-timestamp: 2026-07-23T00:00:00Z
+timestamp: 2026-10-07T00:00:00Z
 ---
 
 Terrain is the user-facing API gateway that [sonora](/services/sonora.md)
@@ -41,7 +41,7 @@ Notable group vars: the `*_enabled` route flags, `baseurls_*` service URLs,
 and `portal_conductor_*`. The Deployment also mounts the `signing-keys` and
 `accepted-keys` JWT secrets, and
 `templates/k8s/terrain.yml.j2` adds `terrain_replicas` (default 2) and pod
-anti-affinity on top of the checked-in `files/k8s/terrain.yml`.
+anti-affinity on top of the checked-in `files/k8s/terrain.yml`. The image ships a JDK 25 AOT cache built on an AVX-512 host, which crashes the JVM with `SIGILL` on the pre-AVX2 prod workers, so the template appends `-XX:AOTMode=off` to the shared `java-tool-options` value to make the JVM ignore it.
 
 ## Deploying
 
@@ -55,6 +55,6 @@ See [Building and Deploying Services](/playbooks/build-and-deploy.md).
 
 1. `ansible/roles/services/terrain/files/terrain.json` — build descriptor with image name and pinned digest.
 2. `ansible/roles/services/terrain/templates/terrain.properties.j2` — full config: routes, service URLs, iRODS/ICAT, Keycloak, DataCite.
-3. `ansible/roles/services/terrain/templates/k8s/terrain.yml.j2` — Deployment with JWT secret mounts, replicas, anti-affinity.
+3. `ansible/roles/services/terrain/templates/k8s/terrain.yml.j2` — Deployment with JWT secret mounts, replicas, anti-affinity, and `-XX:AOTMode=off` in JAVA_TOOL_OPTIONS.
 4. `ansible/roles/services/terrain/tasks/main.yml` — creates the `terrain-configs` secret and invokes deploy-service.
 5. `ansible/roles/services/terrain/defaults/main.yml` — `terrain_replicas`, `terrain_pod_anti_affinity` defaults.

@@ -82,11 +82,16 @@ spec:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: JAVA_TOOL_OPTIONS
+            - name: JAVA_TOOL_OPTIONS_BASE
               valueFrom:
                 configMapKeyRef:
                   name: java-tool-options
                   key: high
+            # The image's AOT cache holds code generated on an AVX-512 build host, which crashes the
+            # JVM with SIGILL on the prod workers' pre-AVX2 CPUs. AOTMode=off makes the JVM ignore the
+            # -XX:AOTCache flag in the image's ENTRYPOINT.
+            - name: JAVA_TOOL_OPTIONS
+              value: "$(JAVA_TOOL_OPTIONS_BASE) -XX:AOTMode=off"
             - name: OTEL_TRACES_EXPORTER
               valueFrom:
                 secretKeyRef:
