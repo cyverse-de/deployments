@@ -20,7 +20,7 @@ spec:
       # cancels its async jobs and waits for each to post a terminal status -- and that post
       # is what carries the end date that releases the job's path lock. A SIGKILL in the
       # middle of it leaves those paths locked for every later request, so the drain is given
-      # room to finish: 5s preStop plus the binary's own 30s server drain and 60s job drain.
+      # room to finish: 5s preStop plus the binary's own 30s server drain and 75s job drain.
       terminationGracePeriodSeconds: 120
       volumes:
 {% include 'partials/de_ca_volume.j2' %}
@@ -66,16 +66,6 @@ spec:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: OTEL_TRACES_EXPORTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_TRACES_EXPORTER
-            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_EXPORTER_JAEGER_ENDPOINT
           ports:
             - name: listen-port
               containerPort: 60000

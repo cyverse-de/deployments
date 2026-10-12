@@ -4,7 +4,7 @@ title: data-info-next
 description: The Go rewrite of data-info, deployed beside the Clojure service with nothing routed to it so the two can be diffed against a real data store.
 resource: /ansible/roles/services/data-info-next
 tags: [data, irods, icat, files, de, golang, migration]
-timestamp: 2026-08-21T00:00:00Z
+timestamp: 2026-10-12T00:00:00Z
 ---
 
 data-info-next is [data-info](/services/data-info.md) rewritten in Go, running
@@ -41,7 +41,7 @@ and waits for each to post a terminal status to
 [async-tasks](/services/async-tasks.md) — and that post carries the end date
 that releases the job's path lock. A SIGKILL in the middle of it leaves those
 paths locked against every later request. The binary budgets 30 seconds for the
-listener and 60 for the jobs, which is why the grace period has to be this
+listener and 75 for the jobs, which is why the grace period has to be this
 generous.
 
 Everything else is the house pattern. The role builds through the shared

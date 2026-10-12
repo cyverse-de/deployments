@@ -1,5 +1,11 @@
 # Wiki Update Log
 
+## 2026-10-12
+
+* **Update**: [data-info-next](/services/data-info-next.md) — the binary's job drain is now 75
+  seconds rather than 60, using more of the 120-second grace period; the manifest also drops the
+  `OTEL_*` variables, since the Go service no longer carries tracing code.
+
 ## 2026-10-07
 
 * **Update**: [data-info](/services/data-info.md) and [terrain](/services/terrain.md) — both
