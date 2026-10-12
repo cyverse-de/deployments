@@ -28,6 +28,8 @@
             AI2S_LOG_LABEL: "{{ ai2s_log_label | b64encode }}"
             AI2S_SANDBOX_ATTR: "{{ ai2s_sandbox_attr | b64encode }}"
             AI2S_SANDBOX_VALUE: "{{ ai2s_sandbox_value | b64encode }}"
+            AI2S_AMQP_URI: "{{ ('amqp://' ~ de_amqp_user ~ ':' ~ (de_amqp_password | urlencode | regex_replace('/', '%2F')) ~ '@' ~ de_amqp_host ~ ':' ~ de_amqp_port ~ '/' ~ (de_amqp_vhost | urlencode | regex_replace('/', '%2F'))) | b64encode }}"
+            AI2S_AMQP_EXCHANGE_NAME: "{{ ai2s_amqp_exchange_name | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:

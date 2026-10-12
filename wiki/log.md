@@ -1,5 +1,12 @@
 # Wiki Update Log
 
+## 2026-10-12
+
+* **Update**: [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — added AMQP env vars
+  (`AI2S_AMQP_URI`, `AI2S_AMQP_EXCHANGE_NAME`) to the config secret for notification
+  support. The URI is built from the shared `de_amqp_*` variables; the exchange name
+  defaults to `de` via `ai2s_amqp_exchange_name`.
+
 ## 2026-10-07
 
 * **Update**: [data-info](/services/data-info.md) and [terrain](/services/terrain.md) — both

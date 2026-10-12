@@ -3,8 +3,8 @@ type: Service
 title: ai-sandboxes-ui
 description: AI Discovery Lab web UI, a Next.js app that authenticates via Keycloak and proxies API calls to terrain.
 resource: /ansible/roles/services/ai-sandboxes-ui
-tags: [ai-sandboxes-ui, ui, frontend, nodejs, nextjs, keycloak, terrain, ai-discovery-lab]
-timestamp: 2026-10-06T00:00:00Z
+tags: [ai-sandboxes-ui, ui, frontend, nodejs, nextjs, keycloak, terrain, ai-discovery-lab, amqp, rabbitmq]
+timestamp: 2026-10-12T00:00:00Z
 ---
 
 The AI Discovery Lab UI (ai-sandboxes-ui) is an alternate web interface to the
@@ -39,6 +39,7 @@ Key variables (defaults in `roles/common/defaults/main.yml`):
 - `ai2s_log_label` — default `ai-sandboxes-ui`
 - `ai2s_sandbox_attr` — default `ai2s-sandbox`
 - `ai2s_sandbox_value` — default `true` (should be a string)
+- `ai2s_amqp_exchange_name` — default `de`; the AMQP URI is built from the shared `de_amqp_*` variables
 
 ## Prerequisites
 

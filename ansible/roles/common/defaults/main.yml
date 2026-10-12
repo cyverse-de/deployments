@@ -330,6 +330,7 @@ ai2s_log_level: info
 ai2s_log_label: ai-sandboxes-ui
 ai2s_sandbox_attr: ai2s-sandbox
 ai2s_sandbox_value: "true"
+ai2s_amqp_exchange_name: de
 ai2s_tls_cert_name: ai-sandboxes-ui-tls
 ai2s_tls_cert_duration: "2160h"
 ai2s_tls_cert_renew_before: "240h"
