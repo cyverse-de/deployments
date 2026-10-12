@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/portal2","tag":"harbor.cyverse.org/de/portal2:merge-configurable-vice-url@sha256:9a27c31e73f114e9a0769365501641ef2316575a560c94905c1e15f56dd26efc"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/portal2","tag":"harbor.cyverse.org/de/portal2:v2026.09.01@sha256:318ec4991d38772d3bd4cab9651dbe075e3880d6d6d0ba06d229817f42b15958"}]}
