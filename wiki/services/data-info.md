@@ -3,12 +3,13 @@ type: Service
 title: data-info
 description: HTTP API for data-store operations — file and folder metadata, permissions, path lists, and anonymous-access URLs backed by iRODS.
 resource: /ansible/roles/services/data-info
-tags: [data, irods, icat, files, de]
-timestamp: 2026-10-07T00:00:00Z
+tags: [data, irods, icat, files, de, golang]
+timestamp: 2026-10-14T00:00:00Z
 ---
 
-data-info is the DE's data-store API. It is a JVM service (the pod sets
-`JAVA_TOOL_OPTIONS`) that talks directly to [iRODS](/infrastructure/irods.md)
+data-info is the DE's data-store API. It is a Go service -- the rewrite first
+run beside the Clojure one as [data-info-next](/services/data-info-next.md),
+with the same API contract -- that talks directly to [iRODS](/infrastructure/irods.md)
 as `irods_user` and queries the ICAT [PostgreSQL](/infrastructure/postgresql.md)
 database (`icat_host`/`ICAT`). It builds anonymous-access URLs against the
 iRODS WebDAV `dav-anon` endpoint (`irods_webdav_anon_uri`, with a fallback to
@@ -18,9 +19,13 @@ download links under `{{ de_base_uri }}/dl`. It calls the
 and [metadata](/services/metadata.md) services, and connects to the DE
 [RabbitMQ](/infrastructure/rabbitmq.md) vhost via `de_amqp_*`.
 
-- Source: [cyverse-de/data-info](https://github.com/cyverse-de/data-info); image `harbor.cyverse.org/de/data-info` from [Harbor](/infrastructure/harbor.md), pinned by digest in the build descriptor.
-- Config: `data-info.properties.j2` is templated into the `data-info-configs` secret and mounted at `/etc/iplant/de/data-info.properties`. Notable vars: `irods_*` (host, zone, admin users, perms filter), `icat_*`, `de_amqp_*`, `baseurls_*`, `de_base_uri`.
-- Runtime: 2 replicas by default (`data_info_replicas`) with required pod anti-affinity; listens on port 60000. `GET /` checks iRODS on every call, so the startup, liveness, and readiness probes hit `/admin/config` instead, which is served from memory, so an iRODS outage or refused login doesn't restart the pods. OpenTelemetry tracing to [Jaeger](/infrastructure/jaeger.md) is wired via the `configs` secret. The image ships a JDK 25 AOT cache built on an AVX-512 host, which crashes the JVM with `SIGILL` on the pre-AVX2 prod workers, so the Deployment appends `-XX:AOTMode=off` to the shared `java-tool-options` value to make the JVM ignore it.
+- Source: [cyverse-de/data-info](https://github.com/cyverse-de/data-info), built from `data_info_git_ref` (default `main`); image `harbor.cyverse.org/de/data-info` from [Harbor](/infrastructure/harbor.md), pinned by digest in the build descriptor.
+- Config: `data-info.yml.j2` is templated into the `data-info-configs` secret and mounted at `/etc/iplant/de/data-info.yml`. Notable vars: `irods_*` (host, zone, admin users, perms filter), `icat_*`, `de_amqp_*`, `baseurls_*`, `de_base_uri`. Each replica can hold up to `maxsessions` x `maxconnections` (32 x 4) iRODS connections, so check that against the server's agent limit before raising `data_info_replicas`.
+- Runtime: 2 replicas by default (`data_info_replicas`) with required pod anti-affinity; listens on port 60000. Liveness and the startup gate poll `/healthz`, which touches no backend; only readiness (`/readyz`) checks iRODS and the catalog. The grace period is 120 seconds: on SIGTERM the service waits for its async jobs to post a terminal status to [async-tasks](/services/async-tasks.md), which releases their path locks, and a SIGKILL mid-drain leaves those paths locked.
+
+Rolling back to the Clojure service means deploying from a deployments commit
+before the Go cutover: its template, manifest and build descriptor all go back
+together.
 
 Deploy with `ansible-playbook -i $INVENTORY deploy_it.yml --tags data-info` —
 see [Building and Deploying Services](/playbooks/build-and-deploy.md).
@@ -78,9 +83,10 @@ landed or not.
 
 # Citations
 
-1. `ansible/roles/services/data-info/templates/data-info.properties.j2` — iRODS/ICAT/AMQP config, anon-files mappings, dependent service URLs.
+1. `ansible/roles/services/data-info/templates/data-info.yml.j2` — iRODS/ICAT/AMQP config, connection pool sizing, anon-files mappings, dependent service URLs.
 2. `ansible/roles/services/data-info/files/data-info.json` — pinned image name and digest.
-3. `ansible/roles/services/data-info/templates/k8s/data-info.yml.j2` — Deployment/Service, port 60000, probes, JAVA_TOOL_OPTIONS (with `-XX:AOTMode=off`), OTEL env.
+3. `ansible/roles/services/data-info/templates/k8s/data-info.yml.j2` — Deployment/Service, port 60000, probes, grace period and preStop sleep.
 4. `ansible/roles/services/data-info/tasks/main.yml` — creates the `data-info-configs` secret, then runs deploy-service.
-5. [`data_info/services/sharing.clj`](https://github.com/cyverse-de/data-info/blob/main/src/data_info/services/sharing.clj) — `share-path` guards on `shared?`, which compares the requested permission against `permission-for`.
-6. [`clj-jargon permissions.clj`](https://github.com/cyverse-de/clj-jargon/blob/master/src/clj_jargon/permissions.clj) — `permission-for` returns the aggregated (group-inclusive) permission; `list-user-perm`, behind `permissions-gatherer`, returns direct ACLs.
+5. [`internal/service/sharing.go`](https://github.com/cyverse-de/data-info/blob/golang/internal/service/sharing.go) — the Go port of the share guard, kept bug-for-bug with the Clojure one.
+6. [`data_info/services/sharing.clj`](https://github.com/cyverse-de/data-info/blob/main/src/data_info/services/sharing.clj) — the original: `share-path` guards on `shared?`, which compares the requested permission against `permission-for`.
+7. [`clj-jargon permissions.clj`](https://github.com/cyverse-de/clj-jargon/blob/master/src/clj_jargon/permissions.clj) — `permission-for` returns the aggregated (group-inclusive) permission; `list-user-perm`, behind `permissions-gatherer`, returns direct ACLs.

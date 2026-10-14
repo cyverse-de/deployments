@@ -2,6 +2,11 @@
 
 ## 2026-10-14
 
+* **Update**: [data-info](/services/data-info.md) — the role now deploys the Go rewrite:
+  `data-info.yml.j2` replaces `data-info.properties.j2`, the manifest takes data-info-next's
+  probes, grace period and resources, and the JVM and `OTEL_*` settings are gone. The build
+  ref is `data_info_git_ref` (default `main`).
+
 * **Update**: [VICE Image Caching](/playbooks/vice-image-cache.md) — added the manual-mirror
   mode used on EKS: `setup-ecr-repos.sh` and `mirror-images-to-ecr.sh` copy images into ECR,
   vice-operator rewrites mapped image refs at launch, and `repos.json` drives both. Notes the
