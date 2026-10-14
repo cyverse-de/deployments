@@ -1,14 +1,15 @@
 ---
 type: Playbook
 title: VICE Image Caching
-description: The two mechanisms for pre-pulling VICE images onto worker nodes - the kube-fledged image_cache role and the legacy vice-cache Job playbook.
+description: The three mechanisms for caching VICE images - the kube-fledged image_cache role, the legacy vice-cache Job playbook, and manual-mirror ECR mirroring for EKS.
 resource: /ansible/vice_image_cache.yml
-tags: [vice, images, cache, kube-fledged, harbor]
-timestamp: 2026-07-20T00:00:00Z
+tags: [vice, images, cache, kube-fledged, harbor, ecr, eks]
+timestamp: 2026-10-14T00:00:00Z
 ---
 
-VICE app images are large, so both mechanisms exist to pre-pull them onto the
-nodes that run analyses, cutting VICE launch times.
+VICE app images are large, so these mechanisms exist to cut VICE launch
+times. The first two pre-pull images onto the nodes that run analyses; the
+third, for EKS, mirrors them into ECR instead.
 
 ## image_cache role (current, in kubernetes.yml)
 
@@ -43,9 +44,45 @@ re-running since the Job spec is immutable once created.
 Both roles apply resources with `kubeconfig` exported as `KUBECONFIG`, so set
 it (or the inventory var) to the target cluster first.
 
+## manual-mirror mode (EKS)
+
+EKS Auto Mode nodes don't last, so pre-pulling onto them doesn't help, and ECR
+can't use a self-hosted Harbor as a pull-through upstream. EKS inventories
+therefore set `image_cache_mode: manual-mirror`, and caching works in two
+parts:
+
+1. `ansible/scripts/setup-ecr-repos.sh` creates per-cluster ECR repos (with a
+   lifecycle policy) and grants the EKS node role pull access.
+   `ansible/scripts/mirror-images-to-ecr.sh` then copies each image from
+   Harbor into ECR with `skopeo copy --all`.
+2. [vice-operator](/services/vice-operator.md) runs with
+   `--image-cache-mode=manual-mirror` and reads a mapping file at startup.
+   At launch it rewrites any analysis image ref that has a mapping to the ECR
+   copy; unmapped images pass through unchanged.
+
+One file, `ansible/roles/services/vice-operator/files/repos.json`, drives all
+three: a flat JSON object of `{"<upstream ref>": "<fully qualified ECR
+ref>"}`. The vice-operator role renders it into the `vice-operator-repos`
+ConfigMap, mounted at `/etc/cyverse/de/repos.json`.
+
+To cache a new image: add its entry to `repos.json`, run both scripts
+(against a one-entry copy of the file to copy only that image), wait for the
+copy to finish, then redeploy with
+`ansible-playbook -i <inventory> vice-operator-eks.yml --tags vice-operator`
+and run `kubectl rollout restart deploy/vice-operator`. The restart is
+required because the Deployment doesn't change when only the ConfigMap does,
+and the operator reads the file only at startup. Redeploy only after the copy
+succeeds, or launches of the image fail with `ImagePullBackOff`. Then commit
+`repos.json`. The `caching-vice-images-in-aws` skill (`skills/`) has the full
+procedure and its pitfalls.
+
 # Citations
 
 [1] `ansible/vice_image_cache.yml` — the legacy playbook entry point.
 [2] `ansible/roles/vice-cache/tasks/main.yml` — the per-image cache Jobs.
 [3] `ansible/roles/image_cache/tasks/main.yml` — kube-fledged install, pull secret, and ImageCache resource.
 [4] `ansible/roles/common/defaults/main.yml` — the `vice_image_cache` and `vice_cache_images` image lists.
+[5] `ansible/scripts/setup-ecr-repos.sh` — ECR repo creation, lifecycle policy, and node-role pull policy.
+[6] `ansible/scripts/mirror-images-to-ecr.sh` — the skopeo Harbor-to-ECR copy.
+[7] `ansible/roles/services/vice-operator/files/repos.json` — the upstream-to-ECR image mapping.
+[8] `ansible/roles/services/vice-operator/templates/vice_operator.yml.j2` — the repos ConfigMap and `--image-cache-mode`/`--repos-file` flags.

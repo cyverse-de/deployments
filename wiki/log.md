@@ -1,5 +1,12 @@
 # Wiki Update Log
 
+## 2026-10-14
+
+* **Update**: [VICE Image Caching](/playbooks/vice-image-cache.md) — added the manual-mirror
+  mode used on EKS: `setup-ecr-repos.sh` and `mirror-images-to-ecr.sh` copy images into ECR,
+  vice-operator rewrites mapped image refs at launch, and `repos.json` drives both. Notes the
+  rollout restart needed after a mapping change.
+
 ## 2026-10-12
 
 * **Update**: [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — added AMQP env vars
