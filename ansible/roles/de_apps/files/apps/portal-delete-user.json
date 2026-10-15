@@ -106,7 +106,7 @@
           "id": "5d752140-d072-11f0-9c74-008cfa5ae621",
           "name": "harbor.cyverse.org/de/portal-delete-user",
           "osg_image_path": null,
-          "tag": "qa3",
+          "tag": "qa5",
           "url": ""
         },
         "memory_limit": 17179869184,
