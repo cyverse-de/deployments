@@ -54,11 +54,14 @@ irods:
   retrysleep: 1s
   usetrash: true
   adminusers: {{ irods_admin_users | to_json }}
-  # maxsessions x maxconnections is the ceiling on iRODS agents one replica can occupy, so
-  # these are the numbers to check against the server's agent limit before scaling up.
-  maxsessions: 32
-  maxconnections: 4
-  sessionidletimeout: 5m
+  # The Data Store's HAProxy refuses a source IP's connections past ten, and the DE nodes
+  # are deliberately not exempt, so every pod on a node shares that budget. Past
+  # maxtotalconnections a call waits rather than being refused; six leaves room for the
+  # node's other iRODS clients. Idle connections count too, so they go after a minute.
+  maxtotalconnections: 6
+  maxsessions: 16
+  maxconnections: 2
+  sessionidletimeout: 1m
   # Socket deadlines, not politeness. They bound how long a call whose caller has already
   # given up can keep holding a connection; listings and bulk reads run under the long one.
   operationtimeout: 1m

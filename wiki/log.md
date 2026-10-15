@@ -5,7 +5,9 @@
 * **Update**: [data-info](/services/data-info.md) — the role now deploys the Go rewrite:
   `data-info.yml.j2` replaces `data-info.properties.j2`, the manifest takes data-info-next's
   probes, grace period and resources, and the JVM and `OTEL_*` settings are gone. The build
-  ref is `data_info_git_ref` (default `main`).
+  ref is `data_info_git_ref` (default `main`). The iRODS pool is capped at six connections per
+  replica (`maxtotalconnections`), with idle connections closed after a minute, because the
+  Data Store's HAProxy refuses a node's connections past ten. Readiness no longer probes iRODS.
 
 * **Update**: [VICE Image Caching](/playbooks/vice-image-cache.md) — added the manual-mirror
   mode used on EKS: `setup-ecr-repos.sh` and `mirror-images-to-ecr.sh` copy images into ECR,
