@@ -1,5 +1,11 @@
 # Wiki Update Log
 
+## 2026-10-15
+
+* **Remove**: data-info-next — the Go rewrite now deploys as [data-info](/services/data-info.md),
+  so the side-by-side role, its page, its `source_repos` entry and its `source_repo_urls`
+  override are gone.
+
 ## 2026-10-14
 
 * **Update**: [data-info](/services/data-info.md) — the role now deploys the Go rewrite:
@@ -181,7 +187,7 @@
   `refs/remotes/origin/<name>`; only tags and the clone's default branch did.
   The source checkout still gains no local branch.
 
-* **Creation**: Added [data-info-next](/services/data-info-next.md) — the Go
+* **Creation**: Added data-info-next (removed 2026-10-15) — the Go
   rewrite of data-info, deployed beside the Clojure service with nothing routed
   to it so the shadow/diff harness can compare the two against a real data
   store. Temporary: at cutover the data-info role adopts its config template and

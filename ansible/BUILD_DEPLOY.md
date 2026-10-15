@@ -132,8 +132,7 @@ ansible-playbook clone_sources.yml
   [Checkouts must have `origin` pointing at `cyverse-de`](#checkouts-must-have-origin-pointing-at-cyverse-de).
 - All repos live under the `cyverse-de` org. `source_repo_urls` overrides the
   clone URL per repo, including for a repo whose local directory name differs
-  from the repository's — currently only `data-info-next`, a second checkout of
-  the `data-info` repo.
+  from the repository's. None needs one at present.
 - Clones default to SSH (`git@github.com:cyverse-de`), so a GitHub SSH key must
   be configured. To clone over HTTPS instead, set
   `-e cyverse_repo_base=https://github.com/cyverse-de` (and a credential helper
@@ -279,7 +278,7 @@ digest recorded in the descriptor.
 | `services` | all | `build_release` | comma-separated subset to rebuild |
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | clone | default org base URL for clone URLs (SSH; override for HTTPS) |
 | `source_repos` | list in `common` | clone | repos to clone into `source_repo_dir` |
-| `source_repo_urls` | `{data-info-next: …/data-info}` | clone | per-repo clone-URL overrides |
+| `source_repo_urls` | `{}` | clone | per-repo clone-URL overrides |
 | `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; nothing overrides it |
 
 ## Notes and troubleshooting

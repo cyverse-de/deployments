@@ -66,8 +66,7 @@ uv run ansible-playbook clone_sources.yml -e source_repo_dir=<path>
 
 Clone URLs default to SSH (`git@github.com:cyverse-de/<repo>`). Per-repo
 overrides live in `source_repo_urls`, which also covers repos whose local
-directory name differs from the repository's — currently only `data-info-next`,
-a second checkout of the `data-info` repo.
+directory name differs from the repository's. None needs one at present.
 
 ## Authentication
 
@@ -82,4 +81,4 @@ a second checkout of the `data-info` repo.
 | `source_repo_dir` | dir containing this repo (siblings) | Where the repos are cloned. |
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | Default org base URL; set to the HTTPS base for HTTPS clones. |
 | `source_repos` | list in `common` | The repos to clone. |
-| `source_repo_urls` | `{data-info-next: <base>/data-info}` | Per-repo URL overrides for repos not under `cyverse_repo_base`, or whose local directory name differs from the repo's. |
+| `source_repo_urls` | `{}` | Per-repo URL overrides for repos not under `cyverse_repo_base`, or whose local directory name differs from the repo's. |

@@ -7,9 +7,8 @@ tags: [data, irods, icat, files, de, golang]
 timestamp: 2026-10-14T00:00:00Z
 ---
 
-data-info is the DE's data-store API. It is a Go service -- the rewrite first
-run beside the Clojure one as [data-info-next](/services/data-info-next.md),
-with the same API contract -- that talks directly to [iRODS](/infrastructure/irods.md)
+data-info is the DE's data-store API. It is a Go service -- a rewrite of the
+original Clojure one, keeping its API contract -- that talks directly to [iRODS](/infrastructure/irods.md)
 as `irods_user` and queries the ICAT [PostgreSQL](/infrastructure/postgresql.md)
 database (`icat_host`/`ICAT`). It builds anonymous-access URLs against the
 iRODS WebDAV `dav-anon` endpoint (`irods_webdav_anon_uri`, with a fallback to
