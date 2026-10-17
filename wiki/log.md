@@ -1,5 +1,10 @@
 # Wiki Update Log
 
+## 2026-10-17
+
+* **Update**: [data-info](/services/data-info.md) — a job killed mid-drain keeps its paths
+  locked only until async-tasks' ten-minute stall timeout, not indefinitely.
+
 ## 2026-10-15
 
 * **Remove**: data-info-next — the Go rewrite now deploys as [data-info](/services/data-info.md),

@@ -28,11 +28,9 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       restartPolicy: Always
-      # Well above the default 30s. On SIGTERM the service stops accepting requests, then
-      # cancels its async jobs and waits for each to post a terminal status -- and that post
-      # is what carries the end date that releases the job's path lock. A SIGKILL in the
-      # middle of it leaves those paths locked for every later request, so the drain is given
-      # room to finish: 5s preStop plus the binary's own 30s server drain and 75s job drain.
+      # Room for the drain: 5s preStop, the binary's 30s server drain and its 75s job drain.
+      # A job killed before posting a terminal status keeps its paths locked until
+      # async-tasks' ten-minute stall timeout releases them.
       terminationGracePeriodSeconds: 120
       volumes:
 {% include 'partials/de_ca_volume.j2' %}

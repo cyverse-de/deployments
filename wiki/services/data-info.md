@@ -4,7 +4,7 @@ title: data-info
 description: HTTP API for data-store operations — file and folder metadata, permissions, path lists, and anonymous-access URLs backed by iRODS.
 resource: /ansible/roles/services/data-info
 tags: [data, irods, icat, files, de, golang]
-timestamp: 2026-10-14T00:00:00Z
+timestamp: 2026-10-17T00:00:00Z
 ---
 
 data-info is the DE's data-store API. It is a Go service -- a rewrite of the
@@ -20,7 +20,7 @@ and [metadata](/services/metadata.md) services, and connects to the DE
 
 - Source: [cyverse-de/data-info](https://github.com/cyverse-de/data-info), built from `data_info_git_ref` (default `main`); image `harbor.cyverse.org/de/data-info` from [Harbor](/infrastructure/harbor.md), pinned by digest in the build descriptor.
 - Config: `data-info.yml.j2` is templated into the `data-info-configs` secret and mounted at `/etc/iplant/de/data-info.yml`. Notable vars: `irods_*` (host, zone, admin users, perms filter), `icat_*`, `de_amqp_*`, `baseurls_*`, `de_base_uri`. The Data Store's HAProxy refuses a node's iRODS connections past ten, and DE nodes are deliberately not exempt, so each replica holds at most `maxtotalconnections` (6) and makes further calls wait; idle connections are closed after a minute. Required anti-affinity keeps the two replicas on separate nodes, each with its own budget.
-- Runtime: 2 replicas by default (`data_info_replicas`) with required pod anti-affinity; listens on port 60000. Liveness and the startup gate poll `/healthz`, which touches no backend; readiness (`/readyz`) checks only the ICAT catalog. No probe touches iRODS, so the probes spend none of the per-node connection budget, and the service account's session can close when idle. The grace period is 120 seconds: on SIGTERM the service waits for its async jobs to post a terminal status to [async-tasks](/services/async-tasks.md), which releases their path locks, and a SIGKILL mid-drain leaves those paths locked.
+- Runtime: 2 replicas by default (`data_info_replicas`) with required pod anti-affinity; listens on port 60000. Liveness and the startup gate poll `/healthz`, which touches no backend; readiness (`/readyz`) checks only the ICAT catalog. No probe touches iRODS, so the probes spend none of the per-node connection budget, and the service account's session can close when idle. The grace period is 120 seconds: on SIGTERM the service waits for its async jobs to post a terminal status to [async-tasks](/services/async-tasks.md), which releases their path locks; a job killed mid-drain keeps its paths locked until async-tasks' ten-minute stall timeout releases them.
 
 Rolling back to the Clojure service means deploying from a deployments commit
 before the Go cutover: its template, manifest and build descriptor all go back
