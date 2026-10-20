@@ -1,8 +1,4 @@
 {#-
-  The Go rewrite's configuration, translated from data-info.properties.j2. The two are kept
-  in step by hand until cutover, at which point this file replaces that one under the
-  data-info role and this role goes away.
-
   Every value is emitted through to_json rather than written bare: passwords, the AMQP URI
   and the bad-chars string all contain characters that YAML would otherwise read as syntax,
   and JSON scalars are valid YAML.
@@ -25,7 +21,6 @@ anonuser: anonymous
 anonfiles:
 {% if irods_webdav_anon_uri %}
   baseurl: {{ irods_webdav_anon_uri | to_json }}
-  # A real mapping rather than the JSON-inside-a-properties-value the Clojure service took.
   # Longest matching prefix wins, so the order here does not matter.
   mappings:
     {{ ("/" ~ irods_zone ~ "/home/shared/") | to_json }}: {{ (irods_zone ~ "/projects/") | to_json }}
@@ -39,8 +34,7 @@ anonfiles:
 
 kifshare:
   externalurl: {{ (de_base_uri | string | regex_replace("\/$", "") ~ "/dl") | to_json }}
-  # Mustache, and the braces are literal -- unlike the properties file, nothing here needs
-  # them escaped.
+  # Mustache; the braces are literal.
   downloadtemplate: "{{ '{{url}}/d/{{ticket-id}}/{{filename}}' }}"
 
 services:
@@ -60,11 +54,14 @@ irods:
   retrysleep: 1s
   usetrash: true
   adminusers: {{ irods_admin_users | to_json }}
-  # maxsessions x maxconnections is the ceiling on iRODS agents one replica can occupy, so
-  # these are the numbers to check against the server's agent limit before scaling up.
-  maxsessions: 32
-  maxconnections: 4
-  sessionidletimeout: 5m
+  # The Data Store's HAProxy refuses a source IP's connections past ten, and the DE nodes
+  # are deliberately not exempt, so every pod on a node shares that budget. Past
+  # maxtotalconnections a call waits rather than being refused; six leaves room for the
+  # node's other iRODS clients. Idle connections count too, so they go after a minute.
+  maxtotalconnections: 6
+  maxsessions: 16
+  maxconnections: 2
+  sessionidletimeout: 1m
   # Socket deadlines, not politeness. They bound how long a call whose caller has already
   # given up can keep holding a connection; listings and bulk reads run under the long one.
   operationtimeout: 1m
@@ -90,15 +87,14 @@ pathlists:
     identifier: "# application/vnd.de.multi-input-path-list+csv; version=1"
     infotype: multi-input-path-list
 
-# No dataone block: data-info.properties.j2 sets none of those properties either, so both
-# services run on the same built-in defaults -- including the member-node base, which points
-# at the production DataONE node from every environment.
+# No dataone block: the service's built-in defaults apply, as they did for the Clojure
+# service -- including the member-node base, which points at the production DataONE node
+# from every environment.
 
 amqp:
-  # urlencode leaves / alone, so both the password and the vhost get it replaced by hand.
-  # data-info.properties.j2 does that for the vhost only, which is a latent break there: a
-  # password containing a slash yields a URI whose authority parses as a bad port. The Go
-  # service refuses to start on one rather than failing later at connect time.
+  # urlencode leaves / alone, so both the password and the vhost get it replaced by hand: a
+  # password containing a slash would otherwise yield a URI whose authority parses as a bad
+  # port, and the service refuses to start on one.
   uri: {{ ("amqp://" ~ de_amqp_user ~ ":" ~ (de_amqp_password | urlencode | regex_replace('/', '%2F')) ~ "@" ~ de_amqp_host ~ ":" ~ de_amqp_port ~ "/" ~ (de_amqp_vhost | urlencode | regex_replace('/', '%2F'))) | to_json }}
   exchange:
     # Hardcoded, as it is in every other service's template that names this exchange.

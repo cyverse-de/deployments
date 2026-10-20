@@ -1,6 +1,24 @@
 # Wiki Update Log
 
+## 2026-10-17
+
+* **Update**: [data-info](/services/data-info.md) — a job killed mid-drain keeps its paths
+  locked only until async-tasks' ten-minute stall timeout, not indefinitely.
+
+## 2026-10-15
+
+* **Remove**: data-info-next — the Go rewrite now deploys as [data-info](/services/data-info.md),
+  so the side-by-side role, its page, its `source_repos` entry and its `source_repo_urls`
+  override are gone.
+
 ## 2026-10-14
+
+* **Update**: [data-info](/services/data-info.md) — the role now deploys the Go rewrite:
+  `data-info.yml.j2` replaces `data-info.properties.j2`, the manifest takes data-info-next's
+  probes, grace period and resources, and the JVM and `OTEL_*` settings are gone. The build
+  ref is `data_info_git_ref` (default `main`). The iRODS pool is capped at six connections per
+  replica (`maxtotalconnections`), with idle connections closed after a minute, because the
+  Data Store's HAProxy refuses a node's connections past ten. Readiness no longer probes iRODS.
 
 * **Update**: [VICE Image Caching](/playbooks/vice-image-cache.md) — added the manual-mirror
   mode used on EKS: `setup-ecr-repos.sh` and `mirror-images-to-ecr.sh` copy images into ECR,
@@ -174,7 +192,7 @@
   `refs/remotes/origin/<name>`; only tags and the clone's default branch did.
   The source checkout still gains no local branch.
 
-* **Creation**: Added [data-info-next](/services/data-info-next.md) — the Go
+* **Creation**: Added data-info-next (removed 2026-10-15) — the Go
   rewrite of data-info, deployed beside the Clojure service with nothing routed
   to it so the shadow/diff harness can compare the two against a real data
   store. Temporary: at cutover the data-info role adopts its config template and
