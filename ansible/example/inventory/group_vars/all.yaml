@@ -909,6 +909,11 @@
 #   letsencrypt - cert-manager issues the leaf certificates from the
 #                 Let's Encrypt ACME ClusterIssuer (configure the
 #                 Route53 variables below).
+#   certinext   - cert-manager issues the leaf certificates from the
+#                 CertiNext ACME ClusterIssuer. The issuer has no solvers:
+#                 someone adds the domain validation TXT records to DNS by
+#                 hand, and the first certificate for a domain stays pending
+#                 until they do. Renewals need no manual step.
 #   external    - cert-manager creates NONE of these certificates; the
 #                 playbooks write a certificate and key you supply (e.g.
 #                 from a third-party CA) into each endpoint's TLS secret.
@@ -927,10 +932,18 @@
 # all come from the same place — for example, CyVerse hostnames issued by
 # Let's Encrypt alongside a University of Arizona hostname whose certificate
 # the university issues. The Let's Encrypt ClusterIssuer is created when any
-# endpoint uses letsencrypt.
+# endpoint uses letsencrypt, and the CertiNext ClusterIssuer when any uses
+# certinext.
 # Default: "{{ cert_manager_provider }}" for each
 # cert_manager_provider: letsencrypt
-# ai2s_tls_provider: external
+# ai2s_tls_provider: certinext
+#
+# CertiNext needs the ACME account's external account binding. The MAC secret
+# is a secret: keep it in an Ansible Vault-encrypted file.
+# Default: replace_me for the key ID and MAC secret; email_dest for the email
+# cert_manager_certinext_eab_key_id: your-eab-key-id
+# cert_manager_certinext_eab_mac_secret: your-eab-mac-secret
+# cert_manager_certinext_issuer_email: admin@example.org
 #
 # The full set, with the endpoint each one covers:
 #   de_tls_provider           de_hostname

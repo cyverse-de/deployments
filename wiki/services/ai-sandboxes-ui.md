@@ -60,7 +60,8 @@ When `ai_sandboxes_ui_enabled` is true and `ai2s_hostname` is set, the
 Gateways) creates:
 
 1. A **TLS certificate** — issued by cert-manager using the DE's CA issuer (selfsigned mode)
-   or the Let's Encrypt ClusterIssuer. In `external` mode, no certificate is created; the
+   the Let's Encrypt ClusterIssuer, or the CertiNext ClusterIssuer (`certinext` mode, whose
+   first certificate waits on manually added DNS TXT records). In `external` mode, no certificate is created; the
    admin must pre-create a `kubernetes.io/tls` Secret named `{{ ai2s_tls_cert_name }}`
    (default: `ai-sandboxes-ui-tls`) in the DE namespace before the Gateway listener will
    serve TLS.

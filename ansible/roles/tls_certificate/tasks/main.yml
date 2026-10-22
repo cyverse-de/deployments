@@ -45,6 +45,18 @@
         - tls_certificate_hostnames
     quiet: true
 
+- name: Validate parameters for certinext cert {{ tls_certificate_name }}.
+  when: tls_certificate_provider == 'certinext'
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_namespace | length > 0
+      - tls_certificate_hostnames | length > 0
+    fail_msg: >-
+      CertiNext TLS certificates require the following parameters:
+        - tls_certificate_namespace
+        - tls_certificate_hostnames
+    quiet: true
+
 - name: Validate parameters for external cert {{ tls_certificate_name }}.
   when: tls_certificate_provider == 'external'
   ansible.builtin.assert:
@@ -138,6 +150,32 @@
             renewBefore: "{{ tls_certificate_renew_before }}"
             issuerRef:
               name: "{{ cert_manager_le_issuer_name }}"
+              kind: ClusterIssuer
+            commonName: "{{ tls_certificate_hostnames[0] }}"
+            dnsNames: "{{ tls_certificate_hostnames }}"
+
+    # The RSA PKCS#1 2048-bit key is the key shape of the CertiNext certificate this was modeled on.
+    - name: Create the CertiNext cert for {{ tls_certificate_name }}
+      when: tls_certificate_provider == 'certinext'
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: "{{ tls_certificate_name }}"
+            namespace: "{{ tls_certificate_namespace }}"
+          spec:
+            secretName: "{{ tls_certificate_name }}"
+            duration: "{{ tls_certificate_duration }}"
+            renewBefore: "{{ tls_certificate_renew_before }}"
+            isCA: false
+            privateKey:
+              algorithm: RSA
+              encoding: PKCS1
+              size: 2048
+            issuerRef:
+              name: "{{ cert_manager_certinext_issuer_name }}"
               kind: ClusterIssuer
             commonName: "{{ tls_certificate_hostnames[0] }}"
             dnsNames: "{{ tls_certificate_hostnames }}"

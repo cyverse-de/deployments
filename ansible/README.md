@@ -1,6 +1,7 @@
 # Ansible Playbooks
 
-For an overview of the required repositories, CI builds, and the production deployment process, see [docs/index.md](docs/index.md). For building service images from source, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+For an overview of the required repositories, CI builds, and the production deployment process, see
+[docs/index.md](docs/index.md). For building service images from source, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
 ## Running the Playbooks
 
@@ -118,9 +119,9 @@ The `condor.yml` playbook will install and configure a dedicated HTCondor cluste
 The DE optionally uses cert-manager to issue and renew the TLS certificates used inside the cluster — the Traefik
 default certificate, the DE UI, VICE wildcard, user portal, Keycloak, Harbor, and Grafana certs. The `cert-manager` role
 installs the chart under the `cert-manager` tag in `kubernetes.yml`, and the `cluster_issuers` role follows it under the
-`cert-issuers` tag to create the self-signed `default-cluster-issuer` plus, when `cert_manager_provider` is
-`letsencrypt`, a Let's Encrypt ClusterIssuer using the ACME dns01 solver against Route53. See [the cert-manager wiki
-page](../wiki/infrastructure/cert-manager.md).
+`cert-issuers` tag to create the self-signed `default-cluster-issuer` plus a Let's Encrypt ClusterIssuer (ACME dns01
+solver against Route53) when an endpoint's provider is `letsencrypt`, and a CertiNext ClusterIssuer (ACME with external
+account binding) when one is `certinext`. See [the cert-manager wiki page](../wiki/infrastructure/cert-manager.md).
 
 ### Choosing a certificate provider
 
@@ -129,6 +130,11 @@ page](../wiki/infrastructure/cert-manager.md).
 
 - `selfsigned` (the default) - cert-manager creates a CA and an issuer for the endpoint and signs its certificate.
 - `letsencrypt` - cert-manager requests the certificate from the Let's Encrypt ClusterIssuer.
+- `certinext` - cert-manager requests the certificate from the CertiNext ACME ClusterIssuer. The issuer has no
+  solvers, so someone has to add the domain validation TXT records to DNS by hand before the first certificate for a
+  domain becomes ready. Renewals then need no manual step.
+  Set `cert_manager_certinext_eab_key_id` and `cert_manager_certinext_eab_mac_secret` (keep the latter in Ansible
+  Vault); `cert_manager_certinext_issuer_email` defaults to `email_dest`.
 - `external` - the certificate comes from a third-party CA. The playbooks write the certificate and private key you
   supply into the endpoint's `kubernetes.io/tls` Secret.
 
@@ -168,7 +174,8 @@ If you switch an existing endpoint to `external` from another provider, the play
 
 ## GoCD
 
-We use GoCD for continuous deployment. It's deployed outside of the Kubernetes cluster to simplify the automation of cluster maintenance.
+We use GoCD for continuous deployment. It's deployed outside of the Kubernetes cluster to simplify the automation of
+cluster maintenance.
 
 | Playbook              | Description                                              | Example                                                  |
 | --------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
@@ -198,9 +205,9 @@ ansible-playbook -i <inventory> --tags keycloak kubernetes.yml
 ## Grafana
 
 Grafana provides metrics dashboards for the DE. It ships with a Postgres datasource pointed at the DE database and two
-dashboards: DE Logins, covering logins and distinct users over time, and DE Resource Usage, covering jobs started and CPU
-hours consumed. Like Keycloak, the role runs in `kubernetes.yml` only when the
-`grafana` tag is passed explicitly, and there is a standalone playbook for deploying it on its own:
+dashboards: DE Logins, covering logins and distinct users over time, and DE Resource Usage, covering jobs started and
+CPU hours consumed. Like Keycloak, the role runs in `kubernetes.yml` only when the `grafana` tag is passed explicitly,
+and there is a standalone playbook for deploying it on its own:
 
 ```bash
 ansible-playbook -i <inventory> --tags grafana kubernetes.yml
@@ -235,13 +242,14 @@ Dashboards live in `roles/grafana/files/dashboards/` and are provisioned from a 
 browser, export the JSON through Share → Export, and write it back over the file.
 
 The datasource is provisioned from the role and pinned per panel, so there is **no datasource picker** in a dashboard's
-top bar. To see which datasource a panel uses, hover the panel title and press `e`; the whole dashboard's wiring is under
-Dashboard settings → JSON Model, and the datasource itself is at Connections → Data sources → DE, where it shows as
-"Provisioned" and read-only. Change it by editing the role, not the UI.
+top bar. To see which datasource a panel uses, hover the panel title and press `e`; the whole dashboard's wiring is
+under Dashboard settings → JSON Model, and the datasource itself is at Connections → Data sources → DE, where it shows
+as "Provisioned" and read-only. Change it by editing the role, not the UI.
 
 ## Services
 
-Each Discovery Environment service has a self-contained role under `roles/services/<service>/` that carries everything needed to configure, build, and deploy it:
+Each Discovery Environment service has a self-contained role under `roles/services/<service>/` that carries everything
+needed to configure, build, and deploy it:
 
 | Path | Purpose |
 | --- | --- |
@@ -251,11 +259,13 @@ Each Discovery Environment service has a self-contained role under `roles/servic
 | `tasks/main.yml` | Creates the config secret and deploys the service (via the `deploy-service` role) |
 | `tasks/build.yml` | Builds the service image from source (via the `build-service` role) |
 
-A shared `configs` secret holding environment-style settings used by many services is managed separately by the `service_configurations` role under the `configure-services` tag.
+A shared `configs` secret holding environment-style settings used by many services is managed separately by the
+`service_configurations` role under the `configure-services` tag.
 
 ### Deploying services
 
-Set `KUBECONFIG` to the target cluster before deploying. `deploy_it.yml` deploys services selected by tag, where each service's tag matches its role name:
+Set `KUBECONFIG` to the target cluster before deploying. `deploy_it.yml` deploys services selected by tag, where each
+service's tag matches its role name:
 
 ```bash
 # one service
@@ -280,7 +290,8 @@ ansible-playbook -i <inventory> --tags deploy-all-services kubernetes.yml
 
 ### Building services
 
-For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`), rebuilding a release (`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
+For cloning the source repositories (`clone_sources.yml`), building images (`build_it.yml`), rebuilding a release
+(`build_release.yml`), and the full build/deploy workflow, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
 # Common Tasks
 

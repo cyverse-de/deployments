@@ -1,6 +1,6 @@
 # infrastructure
 
-* [cert-manager](/infrastructure/cert-manager.md) - How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed and Let's Encrypt certificates.
+* [cert-manager](/infrastructure/cert-manager.md) - How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed, Let's Encrypt, and CertiNext certificates.
 * [HTCondor](/infrastructure/condor.md) - The HTCondor pool that runs DE batch analyses — inventory groups, the condor.yml install playbook, node configuration, and the uninstall playbook.
 * [GoCD](/infrastructure/gocd.md) - The GoCD continuous-deployment server and agents installed on hosts outside the cluster by gocd.yml, including agent tooling and kubeconfig distribution.
 * [GPU Workers](/infrastructure/gpu-workers.md) - How GPU worker nodes get NVIDIA drivers, a container-toolkit runtime, and device-plugin labeling so VICE analyses can schedule onto them.

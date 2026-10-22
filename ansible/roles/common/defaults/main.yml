@@ -156,9 +156,11 @@ basic_auth_password: replace_me
 # default certificate used by Traefik both use certificate chains that include one of these issuers.
 cert_manager_use_letsencrypt: false
 
-# TLS certificate strategy: selfsigned | letsencrypt | external.
+# TLS certificate strategy: selfsigned | letsencrypt | certinext | external.
 #   selfsigned  - cert-manager self-signs a CA + leaf cert per endpoint
 #   letsencrypt - cert-manager issues leaf certs from the ACME ClusterIssuer
+#   certinext   - cert-manager issues leaf certs from the CertiNext ACME
+#                 ClusterIssuer; domain validation TXT records are added by hand (see below)
 #   external    - cert-manager creates no certs; the TLS secrets are written
 #                 from each endpoint's *_cert_pem and *_cert_key_pem variables
 #                 (see the "Phase 6" cert-manager section of the example
@@ -168,7 +170,7 @@ cert_manager_use_letsencrypt: false
 cert_manager_provider: "{{ 'letsencrypt' if cert_manager_use_letsencrypt | default(false) else 'selfsigned' }}"
 
 # The values cert_manager_provider and the per-endpoint providers below accept.
-cert_manager_supported_providers: [selfsigned, letsencrypt, external]
+cert_manager_supported_providers: [selfsigned, letsencrypt, certinext, external]
 
 # Per-endpoint overrides of cert_manager_provider, for deployments whose hostnames don't all come from the same
 # place — for example, CyVerse hostnames from Let's Encrypt and University of Arizona hostnames from the university's
@@ -207,6 +209,19 @@ cert_manager_le_issuer_name: letsencrypt
 cert_manager_le_issuer_email: "{{ email_dest }}"
 cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
 cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
+
+# cert-manager settings for CertiNext. The ClusterIssuer is created when any endpoint's provider is 'certinext'. It uses
+# ACME external account binding (EAB), and it has no solvers because someone in IT adds the domain validation TXT
+# records to DNS by hand. That happens once per domain, so the first certificate stays pending until they do and
+# renewals need no manual step. The key ID and MAC secret come from the CertiNext
+# ACME account; the MAC secret is a secret, so keep it in an Ansible Vault-encrypted file.
+cert_manager_certinext_issuer_name: certinext
+cert_manager_certinext_issuer_email: "{{ email_dest }}"
+cert_manager_certinext_issuer_acme_server: https://acme-us.certinext.io/v1/directory
+cert_manager_certinext_issuer_acme_secret_name: certinext-issuer-account-key
+cert_manager_certinext_eab_key_id: replace_me
+cert_manager_certinext_eab_mac_secret: replace_me
+cert_manager_certinext_eab_secret_name: certinext-eab-secret
 
 # How default-cluster-issuer signs: selfSigned | ca.
 #   selfSigned - cert-manager generates a throwaway root; browsers must be told

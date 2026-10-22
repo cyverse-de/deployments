@@ -1,5 +1,12 @@
 # Wiki Update Log
 
+## 2026-10-21
+
+* **Update**: [cert-manager](/infrastructure/cert-manager.md),
+  [Certificate Management](/playbooks/certificate-management.md), and
+  [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — new `certinext` certificate provider
+  (ACME with external account binding, one-time manual DNS TXT validation), selectable per endpoint.
+
 ## 2026-10-17
 
 * **Update**: [data-info](/services/data-info.md) — a job killed mid-drain keeps its paths
