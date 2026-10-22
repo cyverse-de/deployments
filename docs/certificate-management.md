@@ -15,11 +15,11 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | Certificate | Namespace | How issued | What breaks if it expires |
 |---|---|---|---|
 | HAProxy external cert | host filesystem (`/etc/ssl/cyverse.combined`) | External CA (manual renewal) | All external HTTPS access fails |
-| DE UI internal (`de_hostname`) | `prod` | cert-manager (Let's Encrypt or self-signed CA) | Traefik cannot serve the DE; breaks if no HAProxy in front |
-| VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt or self-signed CA) | VICE apps inaccessible if Traefik is directly exposed |
+| DE UI internal (`de_hostname`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Traefik cannot serve the DE; breaks if no HAProxy in front |
+| VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | VICE apps inaccessible if Traefik is directly exposed |
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
-| Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
-| Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
+| Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Auth fails for all services |
+| Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Grafana unreachable from outside the cluster |
 | Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
 | EKS Traefik TLS (`*.vice_base_domain`) | `traefik` (EKS) | cert-manager LE or externally provisioned (see section 8) | VICE apps on the EKS cluster inaccessible |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
@@ -335,3 +335,29 @@ ansible-playbook -i /path/to/inventory vice-operator-eks.yml --tags vice-operato
 
 The `kubernetes.core.k8s` task with `state: present` will update the Secret in place. Traefik
 watches its TLS secret and picks up changes automatically.
+
+## 9. CertiNext certificates (`certinext` provider)
+
+An endpoint whose provider is `certinext` gets its certificate from the `certinext`
+ClusterIssuer, an ACME issuer with external account binding. The issuer has no solvers:
+someone in IT adds the domain validation TXT records to DNS by hand, so the first
+certificate for a domain stays pending until they do. Once those records exist, cert-manager
+renews the certificate automatically with no manual step.
+
+To see what a pending certificate is waiting for:
+
+```bash
+kubectl -n $NS describe certificate <name>
+kubectl -n $NS get certificaterequests,orders,challenges
+kubectl -n $NS describe challenge <name>   # shows the DNS record to add
+```
+
+The issuer itself:
+
+```bash
+kubectl describe clusterissuer certinext   # Ready should be True
+```
+
+If it is not `Ready`, check that `cert_manager_certinext_eab_key_id` and
+`cert_manager_certinext_eab_mac_secret` match the CertiNext ACME account and rerun the
+`cert-issuers` tag of `kubernetes.yml`.

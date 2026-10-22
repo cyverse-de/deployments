@@ -1,10 +1,10 @@
 ---
 type: Service
 title: cert-manager
-description: How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed and Let's Encrypt certificates.
+description: How cert-manager is installed via Helm and which ClusterIssuers the deployment creates for self-signed, Let's Encrypt, and CertiNext certificates.
 resource: /ansible/roles/cert-manager
-tags: [cert-manager, tls, certificates, letsencrypt, issuers, kubernetes.yml]
-timestamp: 2026-10-02T00:00:00Z
+tags: [cert-manager, tls, certificates, letsencrypt, certinext, issuers, kubernetes.yml]
+timestamp: 2026-10-21T00:00:00Z
 ---
 
 cert-manager issues and renews the TLS certificates used inside the cluster — the Traefik default
@@ -44,6 +44,15 @@ Traefik's — can be issued right away. It creates:
   [Choosing a provider per endpoint](#choosing-a-provider-per-endpoint)). It uses the ACME `dns01` solver
   against AWS Route53, so the role also creates a Secret in the `cert-manager` namespace holding
   `cert_manager_le_aws_access_key_id` / `cert_manager_le_aws_secret_access_key`.
+- A CertiNext ClusterIssuer (name from `cert_manager_certinext_issuer_name`, default
+  `certinext`), created only when at least one endpoint's provider is `certinext`. It is an
+  ACME issuer with external account binding: the role first asserts that
+  `cert_manager_certinext_eab_key_id` and `cert_manager_certinext_eab_mac_secret` have been
+  set, then writes the MAC secret into a Secret in the `cert-manager` namespace
+  (`cert_manager_certinext_eab_secret_name`, key `secret`) for the issuer's
+  `externalAccountBinding` to reference. The issuer has no solvers, because someone in IT adds
+  the domain validation TXT records to DNS by hand. That happens once per domain: the first
+  certificate stays pending until they do, and renewals need no manual step.
 
 A separate namespaced self-signed `default-issuer` is created in the DE namespace (`ns`) by
 `ansible/roles/k8s_de_reqs/tasks/issuers.yml` under the `de-reqs` tag, since it needs the DE
@@ -66,21 +75,23 @@ provider, and the role creates what that provider calls for:
   Grafana leaves `localhost` out).
 - `letsencrypt` — a Certificate from the Let's Encrypt ClusterIssuer for the given
   hostnames, the first being the common name.
+- `certinext` — the same, from the CertiNext ClusterIssuer, with an RSA (PKCS#1, 2048-bit)
+  private key.
 - `external` — no cert-manager resources. The role writes the caller's PEM certificate and
   key (`tls_certificate_pem`, `tls_certificate_key_pem`) into a `kubernetes.io/tls` Secret,
   replacing it outright on each run, and deletes any cert-manager Certificate of the same
   name, so an endpoint switched from another provider is not overwritten by cert-manager.
 
-The role fails before creating anything if its provider is not one of these three, or if
-the parameters that provider needs are empty — namespace and hostnames for `selfsigned` and
-`letsencrypt` (plus the CA and Issuer names for `selfsigned`), and namespace, certificate, and
+The role fails before creating anything if its provider is not one of these four, or if
+the parameters that provider needs are empty — namespace and hostnames for `selfsigned`,
+`letsencrypt`, and `certinext` (plus the CA and Issuer names for `selfsigned`), and namespace, certificate, and
 key for `external`.
 
 ## Choosing a provider per endpoint
 
 Each public endpoint has its own provider variable, defaulting to `cert_manager_provider`, so
-a deployment can mix providers — for example, Let's Encrypt for CyVerse hostnames and
-`external` for a University of Arizona hostname whose certificate the university issues:
+a deployment can mix providers — for example, Let's Encrypt for the DE and CertiNext for the
+AI Discovery Lab:
 
 | Variable | Endpoint |
 |---|---|
@@ -97,7 +108,8 @@ a deployment can mix providers — for example, Let's Encrypt for CyVerse hostna
 `cert_manager_supported_providers`, and fails on any it doesn't recognize, naming the
 variable. That catches a typo in, say, `harbor_tls_provider` on any run that includes the
 issuers, without waiting for the explicitly tagged `harbor` role to run. It then creates the
-Let's Encrypt ClusterIssuer and its Route53 Secret when any endpoint uses `letsencrypt`. For an
+Let's Encrypt ClusterIssuer and its Route53 Secret when any endpoint uses `letsencrypt`, and the
+CertiNext ClusterIssuer and its EAB Secret when any uses `certinext`. For an
 `external` endpoint, the operator sets the endpoint's certificate and key variables
 (for example `de_tls_cert_pem` and `de_tls_cert_key_pem`; `ansible/README.md` lists all seven
 pairs) and the playbooks create the Secret. cert-manager does not renew these, so renewing
@@ -107,7 +119,7 @@ one means updating the variables and rerunning the play that owns the endpoint.
 
 All defaults live in `ansible/roles/common/defaults/main.yml` (every role depends on `common`):
 
-- `cert_manager_provider` — `selfsigned` (default), `letsencrypt`, or `external`; derived from
+- `cert_manager_provider` — `selfsigned` (default), `letsencrypt`, `certinext`, or `external`; derived from
   the legacy `cert_manager_use_letsencrypt` boolean for backward compatibility. It is the
   default for each endpoint's `*_tls_provider`.
 - `cluster_issuer_default_type` — `selfSigned` (default) or `ca`. Orthogonal to
@@ -120,6 +132,13 @@ All defaults live in `ansible/roles/common/defaults/main.yml` (every role depend
   and secret default to `replace_me` and must be set in group_vars for Let's Encrypt.
 - `cert_manager_le_issuer_email` (defaults to `email_dest`) and
   `cert_manager_le_issuer_acme_server` (the production Let's Encrypt v2 endpoint).
+
+- `cert_manager_certinext_eab_key_id`, `cert_manager_certinext_eab_mac_secret` — the CertiNext
+  ACME account's external account binding; both default to `replace_me` and must be set in
+  group_vars when an endpoint uses `certinext` (keep the MAC secret in Ansible Vault).
+- `cert_manager_certinext_issuer_email` (defaults to `email_dest`),
+  `cert_manager_certinext_issuer_acme_server` (the CertiNext US endpoint), and the
+  issuer, account-key Secret, and EAB Secret names.
 
 Operators should note that `cert_manager_provider` changes which issuer every endpoint
 certificate references, not just this role's issuers, unless an endpoint overrides it.

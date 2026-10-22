@@ -118,3 +118,55 @@
                       secretAccessKeySecretRef:
                         name: "{{ cert_manager_le_aws_creds_secret_name }}"
                         key: secret-access-key
+
+- name: Apply CertiNext issuer
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  when: "'certinext' in cert_manager_endpoint_providers"
+  block:
+    - name: Validate the CertiNext external account binding
+      ansible.builtin.assert:
+        that:
+          - cert_manager_certinext_eab_key_id != 'replace_me'
+          - cert_manager_certinext_eab_mac_secret != 'replace_me'
+        fail_msg: >-
+          An endpoint uses the certinext provider, so cert_manager_certinext_eab_key_id and
+          cert_manager_certinext_eab_mac_secret must be set to the CertiNext ACME account's values.
+        quiet: true
+
+    - name: Create the CertiNext external account binding secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ cert_manager_certinext_eab_secret_name }}"
+            namespace: cert-manager
+          type: Opaque
+          data:
+            secret: "{{ cert_manager_certinext_eab_mac_secret | b64encode }}"
+      no_log: true
+
+    # There are no solvers: IT adds the domain validation TXT records to DNS by hand, once per domain, and later
+    # renewals reuse them.
+    - name: Generate the CertiNext ClusterIssuer
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: "{{ cert_manager_certinext_issuer_name }}"
+          spec:
+            acme:
+              email: "{{ cert_manager_certinext_issuer_email }}"
+              server: "{{ cert_manager_certinext_issuer_acme_server }}"
+              externalAccountBinding:
+                keyID: "{{ cert_manager_certinext_eab_key_id }}"
+                keySecretRef:
+                  name: "{{ cert_manager_certinext_eab_secret_name }}"
+                  key: secret
+              privateKeySecretRef:
+                name: "{{ cert_manager_certinext_issuer_acme_secret_name }}"
