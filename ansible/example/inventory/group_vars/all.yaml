@@ -121,6 +121,49 @@
 # Default: replace_me@replace_me.replace_me
 # email_dest: support@cyverse.org
 
+# Relay the notifications service sends the DE's outbound mail through. The
+# defaults point at the in-cluster exim (see local-exim under Phase 4),
+# unauthenticated and in the clear. Set these to send through an external
+# relay directly instead, leaving exim out of the path.
+# Defaults: local-exim / 25
+# notifications_smtp_host: smtp.example.org
+# notifications_smtp_port: 587
+
+# Credentials for a relay that requires SMTP AUTH. Both must be set, or
+# neither; the service refuses to start if only one is. The mechanism is
+# negotiated from what the relay advertises (CRAM-MD5, LOGIN, or PLAIN).
+# Authentication REQUIRES one of the two TLS settings below: Go will not send
+# credentials over an unencrypted connection to a remote host, so a relay
+# configured with a user but no TLS fails at delivery time.
+# Defaults: "" / ""
+# notifications_smtp_user: notifications@example.org
+# notifications_smtp_password: replace_me
+
+# How the connection is encrypted. These are mutually exclusive and the
+# service refuses to start if both are set. Use notifications_smtp_use_tls
+# (STARTTLS) on ports 25 and 587, and notifications_smtp_use_ssl (TLS from the
+# first byte) on port 465. With use_tls set, delivery fails rather than
+# silently falling back to cleartext when the relay will not offer STARTTLS.
+# Defaults: false / false
+# notifications_smtp_use_tls: true
+# notifications_smtp_use_ssl: false
+
+# Name sent in the SMTP HELO. Defaults to the pod's hostname, which is not a
+# fully qualified domain name; set this when the relay rejects or penalizes a
+# HELO name it cannot resolve.
+# Default: ""
+# notifications_smtp_local_name: notifications.example.org
+
+# Certificate verification escape hatches for a relay with a private CA.
+# Neither is usually needed: when de_ca_bundle_configmap is set, the pod
+# already trusts that bundle through SSL_CERT_FILE, which Go honors. Reach for
+# notifications_smtp_ca_cert_file only when the relay's certificate chains to
+# some other authority, and note that the bundle has to be mounted into the
+# pod by separate means for the path to resolve. The two cannot both be set.
+# Defaults: false / ""
+# notifications_smtp_insecure_skip_verify: false
+# notifications_smtp_ca_cert_file: /etc/de-ca/ca.crt
+
 
 # ---------------------------------------------------------------------
 # iRODS
@@ -405,7 +448,7 @@
 
 # Git ref of the qms migrations repo.
 # Default: main
-# qms_version: main
+# subscriptions_version: main
 
 
 
@@ -443,6 +486,24 @@
 # harbor_notary_signer_db_name: harbor_notary_signer
 
 
+# The names postgresql_init, db_staging and local-teardown connect to from
+# the control machine. Distinct from groups['dbms'][0] and
+# groups['keycloak_dbms'][0], which the service configs render into pod
+# connection strings: where the database is reached by different names from
+# inside and outside the cluster, one value cannot serve both. Under
+# local_db_provider: cnpg this is the database Service's pinned ClusterIP,
+# which is not a name cluster DNS can give the control machine.
+# Defaults: groups['dbms'][0] / groups['keycloak_dbms'][0]
+# db_login_host: 10.43.0.50
+# keycloak_db_login_host: 10.43.0.50
+
+# Where PostgreSQL runs for a local single-node deployment: "cnpg" to run it
+# in the cluster under CloudNativePG, or "host" for one already running on
+# the node, published as a Service by the local_db_endpoint role. Only
+# local.yml reads it. See wiki/playbooks/local-single-node-deployment.md.
+# Default: cnpg
+# local_db_provider: host
+
 # ---------------------------------------------------------------------
 # Keycloak database
 # ---------------------------------------------------------------------
@@ -465,6 +526,104 @@
 # Name of the Keycloak database.
 # Default: keycloak
 # keycloak_db_name: keycloak
+
+
+# ---------------------------------------------------------------------
+# Grafana database
+# ---------------------------------------------------------------------
+# Disabled by default — set `grafana` to true to create the database and
+# the two roles. Grafana manages its own schema, so nothing is migrated.
+# Two roles are created: one owns the database Grafana keeps its own
+# state in, the other is a read-only role Grafana queries the DE database
+# with. Keeping them separate matters because anyone holding the Grafana
+# admin password can run arbitrary SQL through the datasource.
+
+# Whether to create the Grafana database and roles.
+# Default: false
+# grafana: false
+
+# Role that owns the Grafana state database.
+# Default: grafana
+# grafana_db_user: grafana
+
+# Password for `grafana_db_user`.
+# Default: Ch@ng3M3
+# grafana_db_password: Ch@ng3M3
+
+# Name of the Grafana state database.
+# Default: grafana
+# grafana_db_name: grafana
+
+# Read-only role Grafana queries the DE database with.
+# Default: grafana_ro
+# grafana_ro_db_user: grafana_ro
+
+# Password for `grafana_ro_db_user`.
+# Default: Ch@ng3M3
+# grafana_ro_db_password: Ch@ng3M3
+
+# Tables in the DE database's public schema that `grafana_ro_db_user` is
+# granted SELECT on. Add a table here if a new dashboard needs it.
+# Default: [logins, users, job_types]
+# grafana_ro_db_tables:
+#   - logins
+#   - users
+#   - job_types
+
+# Tables `grafana_ro_db_user` is granted SELECT on by column rather than
+# whole, as {table: [columns]}. Keeps job parameters, names, and paths
+# out of reach of anyone with Explore in Grafana.
+# Default: jobs, limited to the columns below
+# grafana_ro_db_columns:
+#   jobs:
+#     - id
+#     - job_type_id
+#     - parent_id
+#     - user_id
+#     - status
+#     - start_date
+#     - end_date
+#     - millicores_reserved
+
+# Email domain that marks a user as University of Arizona in the
+# dashboards: a verified user portal address at this domain or any of its
+# subdomains. Read through grafana.ua_users, a view in the DE database
+# backed by postgres_fdw; it's only created when `portal` is true.
+# Default: arizona.edu
+# grafana_ua_email_domain: arizona.edu
+
+# Host the database server connects to for the portal database when
+# grafana.ua_users is read. The portal and DE databases share a server.
+# Default: localhost
+# grafana_portal_fdw_host: localhost
+
+# Expose Grafana at `grafana_hostname` through a Gateway, with login
+# through Keycloak. Only users whose `entitlement` claim includes one of
+# `admin_groups` can log in. keycloak_config creates the Keycloak client
+# only in local deployments; elsewhere create it by hand, with the redirect
+# URI `https://<grafana_hostname>/*` and standard flow enabled.
+# Default: false
+# grafana_external_access: false
+
+# Hostname Grafana is served at. Needs a DNS record pointing at the proxy.
+# Default: replace_me
+# grafana_hostname: grafana.example.org
+
+# The confidential Keycloak client Grafana logs users in through.
+# Default: grafana
+# grafana_keycloak_client_id: grafana
+
+# Secret for `grafana_keycloak_client_id`.
+# Default: replace_me
+# grafana_keycloak_client_secret: replace_me
+
+# Groups from `admin_groups` that get the Grafana Admin or Editor role.
+# Everyone else allowed in gets `grafana_oauth_default_role`. Editor and
+# Admin can run arbitrary SQL against the DE database through Explore.
+# Default: [] for both, Viewer
+# grafana_oauth_admin_groups: []
+# grafana_oauth_editor_groups: []
+# grafana_oauth_default_role: Viewer
 
 
 # ---------------------------------------------------------------------
@@ -743,18 +902,19 @@
 # TLS certificate strategy: cert_manager_provider
 # ---------------------------------------------------------------------
 # Selects how the public-facing service certificates (DE, user portal,
-# VICE, Harbor, Keycloak) are obtained. One of:
+# VICE, AI Discovery Lab, Harbor, Keycloak, Grafana) are obtained. One of:
 #
 #   selfsigned  - cert-manager self-signs a CA + leaf certificate per
 #                 endpoint (the default).
 #   letsencrypt - cert-manager issues the leaf certificates from the
 #                 Let's Encrypt ACME ClusterIssuer (configure the
 #                 Route53 variables below).
-#   external    - cert-manager creates NONE of these certificates; a
-#                 cluster admin pre-creates the TLS secrets out of band
-#                 (e.g. certs from a third-party CA). Use this when the
-#                 certificate lifecycle is managed independently of the
-#                 Ansible deploy.
+#   external    - cert-manager creates NONE of these certificates; the
+#                 playbooks write a certificate and key you supply (e.g.
+#                 from a third-party CA) into each endpoint's TLS secret.
+#                 cert-manager doesn't renew them, so you renew them by
+#                 updating the variables and rerunning the deploy. See
+#                 the list of certificate and key variables below.
 #
 # For backward compatibility the default is derived from the legacy
 # `cert_manager_use_letsencrypt` toggle: unset -> selfsigned, true ->
@@ -762,27 +922,91 @@
 # Default: selfsigned (or letsencrypt if cert_manager_use_letsencrypt is true)
 # cert_manager_provider: external
 #
-# In `external` mode you must create these `kubernetes.io/tls` secrets
-# before HTTPS will serve — a Gateway listener whose secret is missing
-# simply stays un-Programmed (non-fatal), so ordering vs. the deploy does
-# not matter:
+# Each public endpoint can override cert_manager_provider with its own
+# variable, which takes the same values. Use these when the hostnames don't
+# all come from the same place — for example, CyVerse hostnames issued by
+# Let's Encrypt alongside a University of Arizona hostname whose certificate
+# the university issues. The Let's Encrypt ClusterIssuer is created when any
+# endpoint uses letsencrypt.
+# Default: "{{ cert_manager_provider }}" for each
+# cert_manager_provider: letsencrypt
+# ai2s_tls_provider: external
 #
-#   secret name       namespace   hostname
-#   ---------------   ---------   ------------------------------------
-#   de-tls            ns (qa)     de_hostname
-#   user-portal-tls   ns (qa)     portal_hostname
-#   vice-tls          ns (qa)     vice_wildcard_fqdn  (needs a WILDCARD cert)
-#   harbor-tls        harbor      harbor_fqdn
-#   kc-tls            keycloak    keycloak_hostname
+# The full set, with the endpoint each one covers:
+#   de_tls_provider           de_hostname
+#   user_portal_tls_provider  portal_hostname
+#   vice_tls_provider         vice_wildcard_fqdn
+#   ai2s_tls_provider         ai2s_hostname
+#   harbor_tls_provider       harbor_fqdn
+#   keycloak_tls_provider     keycloak_hostname
+#   grafana_tls_provider      grafana_hostname
+#
+# Orthogonal to the above: cluster_issuer_default_type decides what the
+# `selfsigned` chain's root actually is. `selfSigned` (the default) has
+# cert-manager generate a throwaway root, so clients must be told to trust
+# each per-endpoint CA. `ca` instead loads an existing CA keypair from the
+# control machine, so the same chain produces certificates that are already
+# trusted wherever that root is installed — useful for local development
+# with a tool like mkcert, and for an internal PKI.
+#
+# The CA private key is stored in a Secret in the cert-manager namespace,
+# which means read access to secrets there is equivalent to holding the CA.
+# Default: selfSigned
+# The root must permit at least one intermediate (pathlen >= 1). The
+# 'selfsigned' provider puts a per-endpoint CA between the root and each leaf,
+# so a pathlen:0 root -- which is what mkcert generates -- produces certs that
+# cert-manager reports as Ready but clients reject with 'path length
+# constraint exceeded'.
+# cluster_issuer_default_type: ca
+# cluster_issuer_ca_cert_file: /path/to/rootCA.pem
+# cluster_issuer_ca_key_file: /path/to/rootCA-key.pem
+# cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+#
+# A container's trust store comes from its image, so a DE endpoint served by
+# a certificate the image has no reason to trust is rejected however well the
+# host and browser trust it — Go services fail with "x509: certificate signed
+# by unknown authority", JVM services with SunCertPathBuilderException, and
+# both surface as a 500 naming nothing about a certificate. Setting this
+# publishes the CA as a ConfigMap and mounts it into every DE service.
+#
+# Leave it empty wherever the DE is served by a publicly trusted certificate;
+# nothing about the rendered manifests changes until it is set.
+# Default: "" (and de_ca_bundle_file follows cluster_issuer_ca_cert_file)
+# de_ca_bundle_configmap: de-ca-bundle
+# de_ca_bundle_file: /path/to/rootCA.pem
+#
+# For each endpoint whose provider is `external`, set its certificate and
+# key variables. The playbooks write them into the endpoint's
+# `kubernetes.io/tls` secret, replacing the secret on every run, and remove
+# any cert-manager Certificate of the same name left over from another
+# provider. The certificate should be the full chain, leaf first; the key
+# is unencrypted PEM.
+#
+#   certificate / key variables                      secret               namespace
+#   -----------------------------------------------  -------------------  ---------
+#   de_tls_cert_pem / de_tls_cert_key_pem            de-tls               ns (qa)
+#   user_portal_tls_cert_pem /
+#     user_portal_tls_cert_key_pem                   user-portal-tls      ns (qa)
+#   vice_tls_cert_pem / vice_tls_cert_key_pem        vice-tls             ns (qa)
+#     (needs a WILDCARD cert for vice_wildcard_fqdn)
+#   ai2s_tls_cert_pem / ai2s_tls_cert_key_pem        ai-sandboxes-ui-tls  ns (qa)
+#     (only with ai_sandboxes_ui_enabled)
+#   harbor_tls_cert_pem / harbor_tls_cert_key_pem    harbor-tls           harbor
+#   keycloak_cert_pem / keycloak_cert_key_pem        kc-tls               keycloak
+#   grafana_cert_pem / grafana_cert_key_pem          grafana-tls          grafana
+#     (only with grafana_external_access)
 #
 # The secret names for the DE namespace and Harbor follow the
 # de_tls_cert_name / user_portal_tls_cert_name / vice_tls_cert_name /
-# harbor_tls_cert_name variables; the Keycloak secret name (kc-tls) is
-# fixed. Create each from the CA-issued cert and key, for example:
+# ai2s_tls_cert_name / harbor_tls_cert_name variables; the Keycloak (kc-tls)
+# and Grafana (grafana-tls) secret names are fixed.
 #
-#   kubectl -n qa create secret tls de-tls --cert=de.crt --key=de.key
-#   # ...repeat for user-portal-tls and vice-tls in namespace qa,
-#   #    harbor-tls in namespace harbor, kc-tls in namespace keycloak.
+# The private keys are secrets: keep them in an Ansible Vault-encrypted
+# file, or read them from files on the control machine, for example:
+# Default: "" for each
+# de_tls_provider: external
+# de_tls_cert_pem: "{{ lookup('file', '/secure/path/de.example.org.fullchain.pem') }}"
+# de_tls_cert_key_pem: "{{ lookup('file', '/secure/path/de.example.org.key') }}"
 
 
 # ---------------------------------------------------------------------
@@ -992,17 +1216,39 @@
 # send outbound mail through. It reuses the `timezone` value documented
 # under Phase 4 for the container clock.
 
-# Upstream smarthost (host:port) exim forwards mail to.
-# Default: "127.0.0.1:25"
-# exim_smarthost: "127.0.0.1:25"
+# Upstream smarthost exim forwards mail to. This is an exim host list, so a
+# single colon separates hosts and a port needs a second one: "host::port".
+# Writing "host:25" silently adds a bogus second host named 25. The default
+# points exim at itself and drops all mail; local-exim.yml refuses to run
+# until this is set to a real relay.
+# Default: "127.0.0.1::25"
+# exim_smarthost: "mailgate.example.org::25"
 
-# Password exim authenticates to the smarthost with.
+# Password exim authenticates to the smarthost with, appended to
+# /etc/exim4/passwd.client ("host:login:password"). Leave empty when the
+# smarthost relays by IP allowlist rather than SMTP AUTH.
 # Default: "127.0.0.1"
-# exim_password: "127.0.0.1"
+# exim_password: ""
 
 # CIDR/host list allowed to relay mail through exim.
 # Default: "172.17.0.0/24:127.0.0.1"
 # exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
+
+# Whether openebs-hostpath becomes the cluster's default StorageClass. Needed
+# when OpenEBS is the only storage provider, because openldap-docker's volume
+# claim template does not name a class and its PVC would pend forever. Off by
+# default so adding OpenEBS beside an existing provider cannot take the
+# default away from it.
+# Default: false
+# openebs_default_storage_class: true
+
+# The cluster's pod and service CIDRs. exim's relay allowlist is built from
+# these plus exim_allowed_senders, so if they do not match what the cluster
+# actually uses, local-exim rejects mail from every DE pod and all outbound
+# DE mail fails silently from the services' point of view.
+# Defaults: 10.42.0.0/16 / 10.43.0.0/16
+# k8s_pods_cidr: "10.42.0.0/16"
+# k8s_services_cidr: "10.43.0.0/16"
 
 # Replica count for the relay Deployment, and whether its pods carry a
 # required anti-affinity rule (one pod per node). Set 1/false on small
@@ -1204,9 +1450,9 @@
 # cert-manager TLS for Harbor. Under cert_manager_provider=selfsigned a CA
 # chain is created (harbor-selfsigned-ca -> harbor-ca-issuer -> harbor-tls);
 # under letsencrypt harbor-tls is issued directly from the letsencrypt
-# ClusterIssuer; under external no cert is created and an admin pre-creates
-# the harbor-tls secret (see Phase 6). These names and lifetimes mirror the
-# DE service certificates.
+# ClusterIssuer; under external the harbor-tls secret is created from
+# harbor_tls_cert_pem and harbor_tls_cert_key_pem (see Phase 6). These names
+# and lifetimes mirror the DE service certificates.
 # Default: harbor-tls
 # harbor_tls_cert_name: harbor-tls
 
@@ -1367,6 +1613,21 @@
 # formation_keycloak_client_id: replace_me
 # formation_keycloak_client_secret: replace_me
 
+# How long a DE login lasts, applied to the realm by the keycloak_config role.
+# The idle timeout is what users notice: sonora holds a five-minute access
+# token and refreshes it against this session, so going idle for longer than
+# this ends it. The max lifespan caps a session however active it is. Both
+# default to Keycloak's own values, so leaving them alone changes nothing.
+# Defaults: 1800 / 36000 (seconds)
+# keycloak_config_sso_session_idle_timeout: 1800
+# keycloak_config_sso_session_max_lifespan: 36000
+
+# Set false only where the Keycloak endpoint serves a certificate the Ansible
+# control machine has no reason to trust. A deployment issuing from a root the
+# control machine already trusts should leave this alone.
+# Default: true
+# keycloak_config_validate_certs: false
+
 
 # =====================================================================
 # OpenSearch
@@ -1395,10 +1656,83 @@
 # Default: replace_me
 # es_index: data
 
+# StorageClass and size for the in-cluster StatefulSet's data volume, and the
+# JVM heap / memory limit. The storage class default names Longhorn, so it has
+# to be overridden on clusters using OpenEBS or anything else — otherwise the
+# PVC pends indefinitely with no other symptom. Keep the heap at roughly half
+# the memory limit.
+# Defaults: longhorn / 20Gi / 1g / 4Gi
+# opensearch_storage_class: openebs-hostpath
+# opensearch_storage_size: 20Gi
+# opensearch_heap_size: 1g
+# opensearch_mem_limit: 4Gi
+
+
+# =====================================================================
+# Grafana
+# =====================================================================
+# Metrics dashboards for the DE. Opt-in: the role only runs when the
+# `grafana` tag is requested, either through kubernetes.yml or the
+# standalone grafana.yml playbook. The database settings it depends on are
+# in the "Grafana database" section above.
+#
+# Grafana is not exposed outside the cluster. Reach it with:
+#   kubectl -n grafana port-forward svc/grafana 3000:80
+
+# Namespace Grafana is installed into.
+# Default: grafana
+# grafana_namespace: grafana
+
+# Helm chart repository and pinned chart version.
+# Default: https://grafana.github.io/helm-charts and 10.5.15
+# grafana_repo: https://grafana.github.io/helm-charts
+# grafana_chart_version: "10.5.15"
+
+# Bootstrap administrator. This account exists so an administrator can log in
+# and create real accounts; it is not meant to be shared. Set the password.
+# Default: admin / Ch@ng3M3
+# grafana_admin_user: admin
+# grafana_admin_password: Ch@ng3M3
+
+# Whether visitors may create their own Grafana accounts. Leave this off;
+# accounts are created by an administrator.
+# Default: false
+# grafana_allow_sign_up: false
+
+# Number of Grafana replicas.
+# Default: 1
+# grafana_replicas: 1
+
+# Resource requests and limits.
+# Default: 100m/500m CPU, 256Mi/512Mi memory, 256Mi/512Mi ephemeral storage
+# grafana_cpu_request: "100m"
+# grafana_cpu_limit: "500m"
+# grafana_mem_request: "256Mi"
+# grafana_mem_limit: "512Mi"
+# grafana_ephemeral_request: "256Mi"
+# grafana_ephemeral_limit: "512Mi"
+
 
 # =====================================================================
 # DE general settings
 # =====================================================================
+
+# How deploy_it.yml runs the service list. Both default to today's behaviour,
+# so leaving them alone changes nothing.
+#
+# deploy_wait false stops skaffold blocking on each service's rollout; the
+# playbook then waits once for every Deployment at the end, turning N
+# sequential waits into one concurrent one. Deploying a single service with
+# --tags wants the default.
+#
+# deploy_continue_on_error false lets one broken service abort the play, which
+# leaves every service after it in the list undeployed while reading as a
+# partial success. Setting it true collects the failures, deploys the rest,
+# and fails at the end naming all of them.
+# Defaults: true / false
+# deploy_wait: false
+# deploy_continue_on_error: true
+# deploy_wait_timeout: 900
 
 # Comma-separated groups whose members get DE admin rights.
 # Default: core-services,dev,staff
@@ -1489,9 +1823,18 @@
 # irods_perms_filter:
 #   - rodsadmin
 
-# Endpoint of the iRODS CSI driver pool server.
+# Endpoint of the iRODS CSI driver pool server. A host:port names an external
+# pool server; the unix socket form below is the chart default, where each
+# node's driver pod runs its own irods-pool sidecar. Pointing a deployment
+# without an external pool server at a host:port breaks every mount.
 # Default: rodsfs.example.org:12020
 # irods_csi_driver_pool_server_endpoint: rodsfs.example.org:12020
+# irods_csi_driver_pool_server_endpoint: unix:///csi/pool.sock
+
+# Kubelet root the driver registers its plugin socket under. The default is
+# k0s's; other distributions use /var/lib/kubelet.
+# Default: /var/lib/k0s/kubelet
+# irods_csi_driver_kubelet_dir: /var/lib/kubelet
 
 # Cache timeout settings for the iRODS CSI driver, as a JSON string.
 # Default: per-zone paths derived from irods_zone (see roles/common/defaults/main.yml)
@@ -1610,6 +1953,21 @@
 # Default: replace_me
 # vice_operator_admin_entitlements: core-services,dev,staff
 
+# CIDRs analyses may reach, for destinations a hostname cannot express.
+# NetworkPolicies are evaluated after DNAT, so naming a Service by its
+# ClusterIP does nothing — the backing pods' CIDR is what has to be listed.
+# This only comes up where a DE hostname resolves inside the cluster.
+# Default: [] (no --egress-cidr-exception flags are rendered)
+# vice_operator_egress_cidr_exceptions:
+#   - 10.42.0.0/16
+
+# Private CA the vice-operator mounts for OIDC discovery against Keycloak, and
+# that it mounts into each analysis's vice-proxy sidecar for the back-channel
+# token exchange. Must live in vice_ns, and this role owns that copy.
+# Default: "{{ de_ca_bundle_configmap }}" — set that instead unless the
+# vice-operator genuinely needs a different bundle from the other services.
+# vice_operator_ca_bundle_configmap: de-ca-bundle
+
 # Registry account the VICE operator pulls app images with.
 # Default: replace_me
 # vice_operator_registry_username: replace_me
@@ -1625,6 +1983,85 @@
 # vice_operator_keycloak_client_secret: replace_me
 # vice_operator_swagger_client_secret: replace_me
 # vice_api_keycloak_client_secret: replace_me
+
+# Operators app-exposer schedules analyses onto. Each entry registers a
+# vice-operator instance: name (unique label), url (how app-exposer reaches
+# it, often in-cluster), base_url (public URL), tls_skip_verify, and
+# priority (lower wins). The default is empty — a deployment building the
+# database from nothing needs at least the local operator. Add the EKS
+# operator here to route analyses to the AI Discovery Lab cluster.
+# Default: []
+# vice_operators_values:
+#   - name: local
+#     url: http://vice-operator:10000
+#     base_url: "https://{{ vice_base_domain }}"
+#     tls_skip_verify: false
+#     priority: 0
+#   - name: eks-lab-aws
+#     url: "https://operator.lab-aws.responsibleai.arizona.edu"
+#     base_url: "https://lab-aws.responsibleai.arizona.edu"
+#     tls_skip_verify: false
+#     priority: 0
+
+
+# =====================================================================
+# AI Discovery Lab (ai-sandboxes-ui)
+# =====================================================================
+# The AI Discovery Lab is an alternate web UI for the DE, deployed as a
+# Next.js app (ai-sandboxes-ui). It authenticates via Keycloak and
+# proxies API calls to Terrain. Deployed with `--tags ai-sandboxes-ui`
+# in deploy_it.yml.
+#
+# Most defaults derive from the global Keycloak and Terrain settings.
+# Set the Keycloak client and NextAuth secrets for a real deployment.
+#
+# Every variable below has a default in `roles/common/defaults/main.yml`.
+# All assignments here are commented out so the file is a no-op as
+# shipped — uncomment a line to override the default.
+# =====================================================================
+
+# Public hostname the AI Discovery Lab is served at. Setting this enables
+# the Gateway, TLS certificate, and HTTPRoute for the service. Leave at
+# the default (replace_me) to skip routing (the app is then reachable
+# only by port-forward).
+# Default: replace_me
+# ai2s_hostname: lab.example.org
+
+# Keycloak client the AI Discovery Lab authenticates with.
+# Default: ai-sandboxes
+# ai2s_keycloak_client_id: ai-sandboxes
+# ai2s_keycloak_client_secret: replace_me
+
+# Comma-separated Keycloak entitlement roles that grant admin in the DL UI.
+# Default: replace_me
+# ai2s_admin_groups: developers,support
+
+# NextAuth session encryption secret (generate with `openssl rand -base64 32`).
+# Default: replace_me
+# ai2s_nextauth_secret: replace_me
+
+# Log level for the AI Discovery Lab.
+# Default: info
+# ai2s_log_level: info
+
+# The name and value of the attribute assigned to apps that are intended to be
+# used in the AI Discovery Lab. Note: the attribute value is intended to be a
+# string, so please surround the value with quotes if it can be interpreted as
+# a different data type in YAML.
+#
+# Setting either of these variables to an empty string disables app filtering
+# so that the AI Discovery Lab will display all DE apps that the user has
+# permission to access.
+#
+# Defaults: ai2s-sandbox true
+# ai2s_sandbox_attr: ai2s-sandbox
+# ai2s_sandbox_value: "true"
+
+# TLS certificate name for the AI Discovery Lab Gateway. In external mode,
+# the playbooks create a kubernetes.io/tls Secret with this name in the DE
+# namespace from ai2s_tls_cert_pem and ai2s_tls_cert_key_pem (see Phase 6).
+# Default: ai-sandboxes-ui-tls
+# ai2s_tls_cert_name: ai-sandboxes-ui-tls
 
 
 # =====================================================================
@@ -1680,6 +2117,11 @@
 # toggle.
 # =====================================================================
 
+# ai-sandboxes-ui (off by default; set to true to deploy)
+# ai_sandboxes_ui_enabled: true
+# ai_sandboxes_ui_replicas: 1
+# ai_sandboxes_ui_pod_anti_affinity: true
+
 # analyses
 # analyses_replicas: 2
 # analyses_pod_anti_affinity: true
@@ -1712,33 +2154,12 @@
 # data_info_replicas: 2
 # data_info_pod_anti_affinity: true
 
-# data-usage-api
-# data_usage_api_replicas: 2
-# data_usage_api_pod_anti_affinity: true
-
-# de-mailer
-# de_mailer_replicas: 2
-
 # de-webhooks
 # de_webhooks_replicas: 2
 # de_webhooks_pod_anti_affinity: true
 
 # dewey
 # dewey_replicas: 2
-
-# discoenv-analyses
-# discoenv_analyses_replicas: 2
-# discoenv_analyses_pod_anti_affinity: true
-
-# discoenv-users
-# discoenv_users_replicas: 2
-# discoenv_users_pod_anti_affinity: true
-
-# email-requests
-# email_requests_replicas: 2
-
-# event-recorder
-# event_recorder_replicas: 2
 
 # formation
 # formation_replicas: 2
@@ -1761,21 +2182,9 @@
 # iplant_groups_replicas: 2
 # iplant_groups_pod_anti_affinity: true
 
-# jex-adapter
-# jex_adapter_replicas: 2
-# jex_adapter_pod_anti_affinity: true
-
-# job-status-listener
-# job_status_listener_replicas: 2
-# job_status_listener_pod_anti_affinity: true
-
-# job-status-recorder
-# job_status_recorder_replicas: 1
-# job_status_recorder_pod_anti_affinity: true
-
-# job-status-to-apps-adapter
-# job_status_to_apps_adapter_replicas: 1
-# job_status_to_apps_adapter_pod_anti_affinity: true
+# job-status
+# job_status_replicas: 2
+# job_status_pod_anti_affinity: true
 
 # kifshare
 # kifshare_replicas: 2
@@ -1786,10 +2195,6 @@
 # metadata
 # metadata_replicas: 2
 # metadata_pod_anti_affinity: true
-
-# nats (StatefulSet size; also the NATS cluster route count)
-# nats_replicas: 4
-# nats_pod_anti_affinity: true
 
 # notifications
 # notifications_replicas: 2
@@ -1811,10 +2216,6 @@
 # qms_replicas: 2
 # qms_pod_anti_affinity: true
 
-# qms-adapter
-# qms_adapter_replicas: 2
-# qms_adapter_pod_anti_affinity: true
-
 # requests
 # requests_replicas: 2
 # requests_pod_anti_affinity: true
@@ -1822,6 +2223,12 @@
 # resource-usage-api
 # resource_usage_api_replicas: 2
 # resource_usage_api_pod_anti_affinity: true
+# How long to let an in-flight data usage batch finish on shutdown, in seconds.
+# resource_usage_api_termination_grace_period: 330
+# Data usage settings, inherited from the retired data-usage-api service.
+# resource_usage_api_refresh_interval: 3h
+# resource_usage_api_batch_size: 100
+# resource_usage_api_queue_prefix: ""
 
 # search
 # search_replicas: 2
@@ -1839,10 +2246,6 @@
 # terrain_replicas: 2
 # terrain_pod_anti_affinity: true
 
-# timelord
-# timelord_replicas: 2
-# timelord_pod_anti_affinity: true
-
 # user-info
 # user_info_replicas: 2
 # user_info_pod_anti_affinity: true
@@ -1854,6 +2257,16 @@
 # vice-operator
 # vice_operator_replicas: 1
 
-# vice-status-listener
-# vice_status_listener_replicas: 1
-# vice_status_listener_pod_anti_affinity: true
+
+# =====================================================================
+# EKS VICE Operator (AI Discovery Lab)
+# =====================================================================
+# These variables apply only to the vice-operator-eks role
+# (vice-operator-eks.yml), which is run against a separate inventory
+# (the "sandbox inventory") — not this one. They are documented here
+# for reference; set them in the sandbox inventory's group_vars.
+
+# Override cert strategy for externally provisioned certificates:
+# eks_cert_provider: external
+# eks_external_cert_file: /path/to/uits-cert-chain.pem
+# eks_external_key_file: /path/to/uits-private-key.pem

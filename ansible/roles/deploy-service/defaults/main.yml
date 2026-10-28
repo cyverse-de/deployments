@@ -2,3 +2,13 @@
 build_json_dir: "{{ ansible_parent_role_paths[0] }}/files"
 skaffold_dir: "{{ ansible_parent_role_paths[0] }}/files"
 manifest_file: "{{ project_name }}.yml"
+
+# Whether skaffold blocks until the rollout stabilizes. Deploying one service
+# wants this; deploying the whole set is far faster waiting once at the end.
+deploy_wait: true
+
+# Whether a failed deploy stops the play. A role failing in a roles: list
+# aborts it, so a single broken service silently leaves every service after it
+# in the list undeployed — which reads as a partial success. Setting this
+# collects failures instead and lets the caller report them together.
+deploy_continue_on_error: false

@@ -1,10 +1,10 @@
 ---
 type: Runbook
 title: Miscellaneous Utility Playbooks
-description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, and GoCD kubeconfig transfer.
+description: A catalog of the small standalone playbooks - security mitigations, k3s-era cleanup, host surveys, database copies, config pushes, app imports, and GoCD kubeconfig transfer.
 resource: /ansible
 tags: [utilities, playbooks, maintenance, mitigations]
-timestamp: 2026-07-29T00:00:00Z
+timestamp: 2026-08-28T00:00:00Z
 ---
 
 Small standalone playbooks that don't fit a larger workflow. Node updates and
@@ -76,6 +76,20 @@ FileInput (see [App Export and Import](/playbooks/app-export-import.md) and
 `scripts/appei/portal-delete-user.json`), so staging it into iRODS is a
 separate manual step.
 
+## local-exim.yml
+
+Deploys the `local-exim` mail relay on its own — the standalone equivalent of
+the local-exim slice of `--tags de-reqs`, which otherwise also re-runs the
+namespace, cert-issuer, timezone, and Harbor pull-secret tasks. It imports the
+same task file the `k8s_de_reqs` role uses, so the two paths cannot drift.
+[notifications](/services/notifications.md) relays outbound DE mail through this
+deployment by default, though its `notifications_smtp_*` settings can point it
+at an external relay directly and leave exim out of the path. The play first
+asserts that `exim_smarthost` is set and does not point at loopback: the role
+default does, which makes exim smarthost to itself and silently drops every
+message. Note that the value is an exim host list, so a port needs a second
+colon (`host::port`).
+
 ## openldap_community_group.yml
 
 Backfills the `community` LDAP group on an already-deployed
@@ -110,6 +124,67 @@ Runs against `dbms` and asserts the `portal_db_*` credentials are set. Both
 updates carry an `IS DISTINCT FROM` guard, so a converged run reports `ok`
 rather than `changed`. Idempotent — safe to re-run.
 
+## discoenv_analyses_cleanup.yml
+
+Deletes a running discoenv-analyses deployment after the service's retirement
+from this repo: removes the `discoenv-analyses` Deployment and the
+`discoenv-analyses-configs` secret from the DE namespace (the service created
+no Kubernetes Service object). Idempotent — deleting already-absent resources
+succeeds silently.
+
+## discoenv_users_cleanup.yml
+
+Deletes a running discoenv-users deployment after the service's retirement
+from this repo: removes the `discoenv-users` Deployment and the
+`discoenv-users-configs` secret from the DE namespace (the service created no
+Kubernetes Service object). Idempotent — deleting already-absent resources
+succeeds silently.
+
+## jex_adapter_cleanup.yml
+
+Deletes a running jex-adapter deployment after the service's retirement from
+this repo: its HTTP job-submission role was folded into app-exposer's `/batch`
+endpoint, and apps and terrain now point their JEX base URL there. Removes the
+`jex-adapter` Deployment, its `jex-adapter` Service, and the
+`jex-adapter-configs` secret from the DE namespace. Idempotent — deleting
+already-absent resources succeeds silently.
+
+## qms_cleanup.yml
+
+Deletes a running `qms` deployment after the service's merge into
+[subscriptions](/services/subscriptions.md), which now serves the QMS `/v1`
+API. Removes the `qms` Deployment, its `qms` Service, and the `qms-configs`
+secret from the DE namespace. Idempotent.
+
+Order matters: terrain resolves the QMS API through `terrain.qms.base-uri`,
+whose compiled-in default is `http://qms`, so deploy subscriptions and
+redeploy terrain with the config that repoints it *before* running this.
+
+## qms_adapter_cleanup.yml
+
+Deletes a running qms-adapter deployment after the service's retirement from
+this repo: nothing publishes to the `qms.usages` AMQP routing key it consumed
+(usage updates moved to NATS and the [subscriptions](/services/subscriptions.md)
+service in 2022). Removes the `qms-adapter` Deployment, its `qms-adapter`
+Service, and the `qms-adapter-configs` secret from the DE namespace.
+Idempotent — deleting already-absent resources succeeds silently.
+
+## nats_cleanup.yml
+
+Removes the DE's NATS installation after its retirement from this repo. NATS
+carried the QMS request/reply traffic between
+[terrain](/services/terrain.md), the former data-usage-api,
+[resource-usage-api](/services/resource-usage-api.md), and
+[subscriptions](/services/subscriptions.md); all four now use the subscriptions
+HTTP API. Uninstalls the `nats` Helm release and deletes the `nats-server-tls`,
+`nats-client-tls`, and `selfsigned-ca` Certificates, the `ca-issuer` Issuer, and
+the NATS secrets from the DE namespace. It first asserts that no workload still
+mounts a NATS secret and fails with the offending pod names if one does, so a
+half-migrated cluster can't be left with a service that cannot reconnect.
+Idempotent — deleting already-absent resources succeeds silently. Leaves the
+argo-events EventBus alone; that is a separate NATS instance under argo-events'
+control.
+
 ## vice-operator-eks.yml
 
 Brings up VICE on an AWS EKS cluster: the `vice-operator-eks` role
@@ -126,6 +201,14 @@ Renders the cluster kubeconfig on the control machine
 (`gocd_kubeconfig_xfer` role) so [GoCD](/infrastructure/gocd.md) agents can
 deploy into the cluster. Re-run whenever the cluster credentials rotate.
 
+## import_apps.yml
+
+Runs the `de_apps` role, which imports a set of app bundles into a deployment
+with [appei](/playbooks/app-export-import.md). Useful for giving a new
+deployment something runnable — a fresh DE's app listing is empty. Must follow
+[bootstrap_portal_admin.yml](/playbooks/bootstrap-portal-admin.md), since it
+authenticates as `portal_bootstrap_user`. Idempotent.
+
 # Citations
 
 [1] `ansible/dirty_frag_mitigation.yml` — module blacklist mitigation.
@@ -139,3 +222,7 @@ deploy into the cluster. Re-run whenever the cluster credentials rotate.
 [9] `ansible/portal_service_urls.yml` — portal service catalog repointing; `portal_service_catalog` default in `ansible/roles/common/defaults/main.yml`.
 [10] `ansible/vice-operator-eks.yml` — VICE-on-EKS bootstrap.
 [11] `ansible/gocd_kubeconfig.yaml` — kubeconfig transfer to GoCD agents.
+[12] `ansible/local-exim.yml`, `ansible/roles/k8s_de_reqs/tasks/local_exim.yml` — standalone local-exim run and the shared task file it imports.
+[13] `ansible/nats_cleanup.yml` — NATS Helm release, certificate, and secret teardown.
+[14] `ansible/import_apps.yml`, `ansible/roles/de_apps/` — default app set import.
+[15] `ansible/qms_cleanup.yml` — QMS Deployment, Service, and config secret teardown.

@@ -53,8 +53,48 @@ expected as siblings of this repo:
 `<source_repo_dir>/<service>` and can be overridden with `source_repo` when a
 checkout lives elsewhere or under a different name.
 
+### Checkouts must have `origin` pointing at `cyverse-de`
+
+Cloning and building assume each checkout's `origin` remote is the canonical
+`cyverse-de` repository. Both roles fetch from `origin` by name, and a ref that
+doesn't resolve locally is retried as `origin/<ref>`. There is no `upstream`
+handling and no variable for the remote name.
+
+A fork-based development checkout — `origin` pointing at your fork and
+`upstream` at `cyverse-de` — therefore builds from the fork:
+
+- Release tags cut in `cyverse-de` after the fork was created don't exist in
+  `origin`, so the fetch won't bring them in and `build_release.yml` fails on
+  them with `git_ref <tag> names no commit`.
+- A branch name resolves to your *local* branch before anything remote is
+  consulted, so the build gets whatever that branch points at, including
+  unpushed work.
+- Both fetches are best-effort and never fail the run, so this surfaces as a
+  stale build or a missing-ref error rather than as a wrong-remote error.
+
+Keep deployment checkouts separate from fork-based development checkouts, and
+point `source_repo_dir` at them:
+
+```bash
+ansible-playbook clone_sources.yml -e source_repo_dir=/path/to/de-deploy
+ansible-playbook -i "$QA_INVENTORY" build_it.yml --tags terrain \
+  -e source_repo_dir=/path/to/de-deploy
+```
+
+`source_repo_dir` has to be passed on every build and release run — there is no
+inventory-level place it is set. `source_repo` does the same for a single
+service, if you do want one built from a development checkout.
+
+Builds themselves are non-destructive to a checkout: they add a detached
+worktree in a temp directory and remove it afterwards, leaving your branches and
+working tree alone. An interrupted run can leave a stale worktree entry behind
+(`git worktree prune` clears it).
+
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible — prefix each command
+  below with `uv run` (`uv run ansible-playbook ...`). See
+  [Running the Ansible Playbooks](../wiki/playbooks/running-ansible.md).
 - **Docker** with **BuildKit** available, and **skaffold** on `PATH`.
 - A **container-driver `buildx` builder** for push builds. Each service builds
   through a custom builder (`roles/build-service/files/buildx-build.sh`) that
@@ -64,7 +104,10 @@ checkout lives elsewhere or under a different name.
   only need `docker buildx` available. (Build-only/verify runs that don't push
   skip the cache export and work on any builder.)
 - A `docker login` to the target registry (default `harbor.cyverse.org`) must
-  already be in place — pushes use the ambient Docker credentials.
+  already be in place — pushes use the ambient Docker credentials. That Harbor
+  runs in OIDC mode, so the login takes the CLI secret from the Harbor UI's
+  User Profile page, not an account password; see
+  `wiki/infrastructure/harbor.md`.
 - The service source repos cloned under `source_repo_dir`
   (see [Cloning the source repositories](#cloning-the-source-repositories)).
 - For deploys, `KUBECONFIG` pointing at the target cluster.
@@ -84,9 +127,12 @@ ansible-playbook clone_sources.yml
 ```
 
 - Already-cloned repos are left untouched, but their tags/branches are refreshed
-  (`git fetch --tags`) since releases build from tags.
-- Most repos live under the `cyverse-de` org; per-repo exceptions (e.g. `qms`,
-  which lives in the `cyverse` org) are handled by `source_repo_urls`.
+  (`git fetch --tags --force origin`) since releases build from tags. The fetch
+  is from `origin`, which must be the `cyverse-de` repository — see
+  [Checkouts must have `origin` pointing at `cyverse-de`](#checkouts-must-have-origin-pointing-at-cyverse-de).
+- All repos live under the `cyverse-de` org. `source_repo_urls` overrides the
+  clone URL per repo, including for a repo whose local directory name differs
+  from the repository's. None needs one at present.
 - Clones default to SSH (`git@github.com:cyverse-de`), so a GitHub SSH key must
   be configured. To clone over HTTPS instead, set
   `-e cyverse_repo_base=https://github.com/cyverse-de` (and a credential helper
@@ -139,8 +185,10 @@ For each selected service the `build-service` role:
 1. Asserts the source repo exists at `source_repo` (fails with guidance if not).
 2. Creates a temporary git **worktree** checked out at `git_ref` — the source
    checkout itself is never modified.
-3. `git fetch --tags` first, so a requested release tag resolves even if the
-   clone is stale.
+3. `git fetch --tags --force origin` first, so a requested release tag resolves
+   even if the clone is stale, then resolves `git_ref` to a commit — as a local
+   ref if possible, otherwise as `origin/<ref>`. Both steps go through `origin`,
+   which must be the `cyverse-de` repository.
 4. Overlays the service role's `skaffold.yaml`, `k8s/`, and the shared
    `buildx-build.sh` onto the worktree.
 5. Rewrites `harbor.cyverse.org` in the overlaid skaffold config to
@@ -230,19 +278,20 @@ digest recorded in the descriptor.
 | `services` | all | `build_release` | comma-separated subset to rebuild |
 | `cyverse_repo_base` | `git@github.com:cyverse-de` | clone | default org base URL for clone URLs (SSH; override for HTTPS) |
 | `source_repos` | list in `common` | clone | repos to clone into `source_repo_dir` |
-| `source_repo_urls` | `{qms: cyverse/qms}` | clone | per-repo clone-URL overrides |
-| `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; inventories may override it (QA points at a `de-releases/builds` checkout) |
+| `source_repo_urls` | `{}` | clone | per-repo clone-URL overrides |
+| `build_json_dir` | the service role's `files/` dir | deploy | directory deploys read descriptors from; nothing overrides it |
 
 ## Notes and troubleshooting
 
-### Descriptor locations: build vs. deploy
+### A freshly built image isn't picked up on deploy
 
-Builds always **write** the descriptor into the service role's own `files/`
-directory. Deploys **read** from `build_json_dir`, which inventories may override
-to point at a separate releases checkout (the QA inventory points it at a sibling
-`de-releases/builds` directory). If a freshly built image isn't picked up on
-deploy, confirm the descriptor was published to the location `build_json_dir`
-resolves to.
+Builds **write** the descriptor into the service role's own `files/` directory,
+and deploys **read** it from `build_json_dir`, which resolves to that same
+directory. So a deploy that runs the old image usually means the build never
+wrote a new descriptor: a build with `push_images=false` leaves it untouched by
+design, since an unpushed image has no registry digest to record. Check that
+`files/<service>.json` actually changed, and that the change was committed —
+builds never commit it, but the CI build path does.
 
 ### A release tag won't check out
 
@@ -250,6 +299,11 @@ Release builds use git tags. If a tag isn't found, the local clone is likely
 stale — re-run `clone_sources.yml` (which fetches tags for existing checkouts),
 or `git fetch --tags` in the source repo. Builds fetch tags automatically before
 checkout, so this is usually a clone that predates that behavior.
+
+The other cause is a checkout whose `origin` is a fork rather than
+`cyverse-de`: the tag was never pushed to the fork, so no fetch will find it.
+Check `git remote -v` in the source repo — see
+[Checkouts must have `origin` pointing at `cyverse-de`](#checkouts-must-have-origin-pointing-at-cyverse-de).
 
 ### An upstream build is broken
 

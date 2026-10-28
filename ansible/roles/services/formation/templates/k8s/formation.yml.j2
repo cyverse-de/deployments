@@ -27,6 +27,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: config-volume
           secret:
             secretName: formation-configs
@@ -38,10 +39,12 @@ spec:
           image: harbor.cyverse.org/de/formation
           imagePullPolicy: Always
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: config-volume
               mountPath: /etc/cyverse/formation
               readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

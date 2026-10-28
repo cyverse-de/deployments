@@ -30,7 +30,7 @@ that reference what changed and bring them up to date.
    first, then the containing role/playbook/doc directory:
 
 ```bash
-grep -rln 'ansible/roles/nats' wiki/
+grep -rln 'ansible/roles/opensearch' wiki/
 grep -rln 'ansible/docs/postgresql.md' wiki/
 ```
 

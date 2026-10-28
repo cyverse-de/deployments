@@ -4,7 +4,7 @@ title: OpenEBS
 description: How OpenEBS cluster storage is deployed by the opt-in openebs role in kubernetes.yml, and the kustomize/kubectl versions it requires.
 resource: /notes/storage.md
 tags: [openebs, storage, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 OpenEBS is deployed by the `openebs` Ansible role. It is opt-in (`openebs_enabled`
@@ -22,6 +22,18 @@ file). The role waits for the OpenEBS workloads to become ready before finishing
 OpenEBS replaced Longhorn as the cluster storage layer; see
 [Longhorn Teardown](/playbooks/longhorn-teardown.md) for removing a previous
 Longhorn install.
+
+## The default StorageClass
+
+The role's `openebs-hostpath` StorageClass is not the cluster default unless
+`openebs_default_storage_class` is set to `true`. Most DE PVCs name their class
+explicitly, but `openldap-docker`'s `volumeClaimTemplates` does not, so on a
+cluster whose only storage is OpenEBS its PVC pends forever without it.
+
+The flag defaults to `false` so that adding OpenEBS alongside an existing
+provider cannot silently take the default away from it.
+[Longhorn](/infrastructure/longhorn.md) sets `persistence.defaultClass: true`
+itself, which is why this never comes up on clusters running it.
 
 # Citations
 

@@ -1,0 +1,22 @@
+---
+- name: Load the staged rows into public.notifications
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Transform the staged rows into public.notifications
+      environment:
+        PGPASSWORD: "{{ dbms_connection_pass }}"
+      ansible.builtin.shell:
+        cmd: >
+          psql
+          --host={{ db_login_host }}
+          --port={{ pg_listen_port }}
+          --username={{ dbms_connection_user }}
+          --dbname={{ de_db_name }}
+          --set=ON_ERROR_STOP=1
+          --set=staging={{ notifications_db_merge_staging_schema }}
+          --set=uid_domain={{ uid_domain }}
+          --set=junk_pattern={{ notifications_db_merge_junk_user_pattern }}
+          --file=-
+        stdin: "{{ lookup('ansible.builtin.file', 'transform.sql') }}"
+      changed_when: true

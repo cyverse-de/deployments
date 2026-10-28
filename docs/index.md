@@ -6,10 +6,16 @@ inventory setup), see [ansible/docs/index.md](../ansible/docs/index.md).
 
 ---
 
+Commands in these runbooks need an Ansible control machine. Ansible can come from the repo's
+uv project (`uv run ansible-playbook ...`, no install step) or from a system install; see
+[Ansible on the control machine](production-release.md#ansible-on-the-control-machine) and
+[ansible/README.md](../ansible/README.md#running-the-playbooks).
+
 ## Operations runbooks
 
 | Runbook | Covers |
 |---|---|
+| [production-release.md](production-release.md) | The end-to-end production release run: maintenance mode, config/database updates, service deploys |
 | [ops-runbook.md](ops-runbook.md) | Health checks, restarts, scaling, rollbacks, log access |
 | [admin-procedures.md](admin-procedures.md) | Subscriptions, VICE access, workshop provisioning, DOI requests, alerts |
 | [batch-analyses-troubleshooting.md](batch-analyses-troubleshooting.md) | Stuck/failed batch analyses, output missing, status pipeline |
@@ -18,7 +24,6 @@ inventory setup), see [ansible/docs/index.md](../ansible/docs/index.md).
 | [keycloak.md](keycloak.md) | Client secret rotation, admin users, auth failure diagnosis |
 | [postgresql.md](postgresql.md) | Migrations, backups, diagnostic queries |
 | [irods.md](irods.md) | data-info connectivity, CSI driver, service account rotation, file transfers |
-| [nats.md](nats.md) | NATS installation, cert/creds extraction |
 | [rabbitmq.md](rabbitmq.md) | RabbitMQ installation and configuration |
 | [haproxy.md](haproxy.md) | HAProxy deployment |
 | [ldap.md](ldap.md) | OpenLDAP deployment |

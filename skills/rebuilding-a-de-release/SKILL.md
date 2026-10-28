@@ -81,11 +81,16 @@ failed** summary and **exits non-zero if any service failed**.
 
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible: prefix each
+  command with `uv run` (e.g. `uv run ansible-playbook ...`). See
+  `wiki/playbooks/running-ansible.md`.
 - **Docker** with BuildKit and **skaffold** on `PATH`.
 - Source repos cloned under `source_repo_dir` (`cloning-de-source-repos` /
   `clone_sources.yml`). If you cloned elsewhere, pass the same
   `-e source_repo_dir=<path>`.
 - For push builds, a `docker login` to the target registry already in place.
+  Harbor runs in OIDC mode: that login needs the CLI secret from the Harbor
+  UI's User Profile page, not an account password.
 
 ## Common Mistakes
 
@@ -102,8 +107,9 @@ failed** summary and **exits non-zero if any service failed**.
   descriptors; those are not undone. Re-run with `-e services=<the failed ones>`
   after fixing the cause.
 - **Expecting fresh digests to auto-deploy.** Descriptors are written into each
-  service role's own `files/` dir and are **never committed**. Deploys read from
-  `build_json_dir` (which an inventory may point at a separate `de-releases`
-  checkout), so publish/commit the updated descriptors before deploying.
+  service role's own `files/` dir and are **never committed** by the rebuild.
+  Deploys read that same dir, so a deploy from this checkout picks them up
+  immediately — but commit them before anyone else deploys, or the next `git
+  pull` reverts the digests you just built.
 - **Treating skipped services as failures.** A digest-only descriptor (e.g.
   `vice-operator`) is intentionally skipped, not failed.

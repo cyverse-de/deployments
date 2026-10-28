@@ -14,7 +14,8 @@
             name: portal2-configs
             namespace: "{{ ns }}"
           data:
-            portal2.json: "{{ lookup('template', 'portal2.json.j2') | b64encode }}"
+            # Before ansible-core 2.19 the lookup parses rendered JSON into a dict, which b64encode stringifies as a Python repr.
+            portal2.json: "{{ lookup('template', 'portal2.json.j2', convert_data=False) | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:

@@ -1,3 +1,0 @@
----
-qms_adapter_replicas: 2
-qms_adapter_pod_anti_affinity: true

@@ -1,0 +1,23 @@
+---
+# Publishes the CA that services need in order to trust DE endpoints over
+# HTTPS. Only the DE namespace: a ConfigMap cannot be referenced across
+# namespaces, and the VICE namespace's copy is owned by the vice-operator role,
+# which publishes it under vice_operator_ca_bundle_configmap — a name that can
+# differ from this one. Two roles reconciling one object is worse than one.
+- name: Publish the CA bundle services need to trust DE endpoints
+  delegate_to: localhost
+  run_once: true
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ de_ca_bundle_configmap }}"
+        namespace: "{{ ns }}"
+      # Built as one expression because Ansible templates values but not keys;
+      # written as a literal mapping the key arrives as the un-expanded string.
+      data: "{{ {de_ca_bundle_key: lookup('file', de_ca_bundle_file)} }}"
+  when: de_ca_bundle_configmap | default('', true) | length > 0

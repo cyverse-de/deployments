@@ -1,0 +1,177 @@
+---
+- name: Deploy an in-cluster RabbitMQ broker
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: Create the rabbitmq admin credentials
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: rabbitmq-admin
+            namespace: "{{ rabbitmq_k8s_namespace }}"
+          type: Opaque
+          stringData:
+            RABBITMQ_DEFAULT_USER: "{{ amqp_admin_user }}"
+            RABBITMQ_DEFAULT_PASS: "{{ amqp_admin_password }}"
+
+    - name: Create the rabbitmq configuration
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: rabbitmq-conf
+            namespace: "{{ rabbitmq_k8s_namespace }}"
+          data:
+            # The DE's services connect as the vhost owners rather than as
+            # guest, so the loopback restriction only gets in the way of
+            # rabbitmqctl and the management UI.
+            rabbitmq.conf: |
+              loopback_users = none
+
+    - name: Create the rabbitmq data volume
+      when: rabbitmq_k8s_persistent | bool
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: rabbitmq-data
+            namespace: "{{ rabbitmq_k8s_namespace }}"
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: "{{ rabbitmq_k8s_storage_class }}"
+            resources:
+              requests:
+                storage: "{{ rabbitmq_k8s_storage_size }}"
+
+    - name: Create the rabbitmq deployment
+      vars:
+        rabbitmq_k8s_data_volume: >-
+          {{
+            {'name': 'rabbitmq-data', 'persistentVolumeClaim': {'claimName': 'rabbitmq-data'}}
+            if rabbitmq_k8s_persistent | bool
+            else {'name': 'rabbitmq-data', 'emptyDir': {}}
+          }}
+      kubernetes.core.k8s:
+        state: present
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 600
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: rabbitmq
+            namespace: "{{ rabbitmq_k8s_namespace }}"
+          spec:
+            replicas: 1
+            # The data volume is ReadWriteOnce, so the old pod has to release
+            # it before the new one can start.
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                de-app: rabbitmq
+            template:
+              metadata:
+                labels:
+                  de-app: rabbitmq
+              spec:
+                restartPolicy: Always
+                # RabbitMQ derives its node name from the hostname and keys its
+                # Mnesia database on that. Left to default, the hostname is the
+                # pod name, so every reschedule starts from an empty database —
+                # losing all vhosts, users and permissions while orphaning the
+                # previous one on the volume. Every AMQP client then fails
+                # authentication with a 403, which reads as a credentials
+                # problem rather than a lost broker. A fixed hostname keeps the
+                # node name stable at rabbit@rabbitmq across restarts.
+                hostname: rabbitmq
+                volumes:
+                  - "{{ rabbitmq_k8s_data_volume }}"
+                  - name: rabbitmq-conf
+                    configMap:
+                      name: rabbitmq-conf
+                containers:
+                  - name: rabbitmq
+                    image: "{{ rabbitmq_k8s_image }}"
+                    envFrom:
+                      - secretRef:
+                          name: rabbitmq-admin
+                    env:
+                      - name: TZ
+                        valueFrom:
+                          configMapKeyRef:
+                            name: timezone
+                            key: timezone
+                    ports:
+                      - name: amqp
+                        containerPort: 5672
+                      - name: management
+                        containerPort: 15672
+                    volumeMounts:
+                      - name: rabbitmq-data
+                        mountPath: /var/lib/rabbitmq
+                      - name: rabbitmq-conf
+                        mountPath: /etc/rabbitmq/conf.d/20-local.conf
+                        subPath: rabbitmq.conf
+                    resources:
+                      requests:
+                        cpu: "{{ rabbitmq_k8s_cpu_request }}"
+                        memory: "{{ rabbitmq_k8s_memory_request }}"
+                      limits:
+                        cpu: "{{ rabbitmq_k8s_cpu_limit }}"
+                        memory: "{{ rabbitmq_k8s_memory_limit }}"
+                    readinessProbe:
+                      exec:
+                        command:
+                          - rabbitmq-diagnostics
+                          - -q
+                          - ping
+                      initialDelaySeconds: 20
+                      periodSeconds: 10
+                      failureThreshold: 30
+                    livenessProbe:
+                      exec:
+                        command:
+                          - rabbitmq-diagnostics
+                          - -q
+                          - status
+                      initialDelaySeconds: 60
+                      periodSeconds: 30
+                      failureThreshold: 5
+
+    - name: Create the rabbitmq service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: rabbitmq
+            namespace: "{{ rabbitmq_k8s_namespace }}"
+          spec:
+            selector:
+              de-app: rabbitmq
+            ports:
+              - name: amqp
+                protocol: TCP
+                port: 5672
+                targetPort: amqp
+              - name: management
+                protocol: TCP
+                port: 15672
+                targetPort: management
+
+    - name: Include the vhost provisioning tasks
+      ansible.builtin.include_tasks: vhosts.yml

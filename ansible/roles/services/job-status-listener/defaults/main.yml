@@ -1,3 +1,0 @@
----
-job_status_listener_replicas: 2
-job_status_listener_pod_anti_affinity: true

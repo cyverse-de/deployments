@@ -1,0 +1,6 @@
+{# Include at column 0, alongside de_ca_volume.j2, in a JVM service's volumes:
+   list. Holds the trust store de_ca_jvm_init_container.j2 builds. #}
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+        - name: de-ca-jvm
+          emptyDir: {}
+{% endif %}

@@ -1,4 +1,7 @@
 ---
+- name: Check for databases this role cannot reconcile
+  ansible.builtin.include_tasks: preflight.yml
+
 - name: Prepare for database work
   ansible.builtin.include_role:
     name: db_staging
@@ -39,6 +42,13 @@
   when: portal
   ansible.builtin.include_tasks: portal.yml
   tags:
+    - update-databases
+
+- name: Setup grafana database
+  when: grafana
+  ansible.builtin.include_tasks: grafana.yml
+  tags:
+    - grafana
     - update-databases
 
 - name: Clean up database work

@@ -4,7 +4,7 @@ title: PostgreSQL
 description: How PostgreSQL is installed and the DE databases are initialized by the install-postgres and setup-databases passes of kubernetes.yml, plus day-to-day operations such as backups, manual migrations, and diagnostics.
 resource: /docs/postgresql.md
 tags: [postgresql, database, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-09-25T00:00:00Z
 ---
 
 PostgreSQL is installed and initialized as part of the `kubernetes.yml`
@@ -50,8 +50,19 @@ inventory group. It runs the `postgresql_init` role, which:
 * checks out the migration repositories and applies them with the `migrate` tool.
 
 The Discovery Environment databases (`de`, `notifications`, `metadata`) are always
-created. The Grouper, QMS, Harbor, Keycloak, and User Portal databases
-are each created only when their feature toggle is enabled.
+created. The Grouper, QMS, Harbor, Keycloak, User Portal, and
+[Grafana](/infrastructure/grafana.md) databases are each created only when their
+feature toggle is enabled.
+
+The Grafana pass is the one that also grants privileges rather than just creating
+a role and a database: alongside the `grafana` owner it creates a `grafana_ro`
+role with `SELECT` on `public.logins`, `public.users`, and `public.job_types` in the `de`
+database, plus `SELECT` on a fixed set of `public.jobs` columns (`grafana_ro_db_columns`), and
+nothing else, which is what Grafana queries the DE data through. When the User Portal is
+enabled it also builds a `grafana` schema in `de` with `postgres_fdw` — foreign tables over
+the portal database and a `grafana.ua_users` view that `grafana_ro` can read — without
+creating anything in the portal database itself; see
+[Grafana](/infrastructure/grafana.md#university-of-arizona-affiliation).
 
 This pass needs the `migrate` command (golang-migrate) on the control host's
 `PATH`. See `docs/index.md` for tool requirements.
@@ -74,6 +85,58 @@ The `dbms` group holds the PostgreSQL host for the Discovery Environment
 databases. The `keycloak_dbms` group holds the host for the Keycloak database —
 it may be the same server or a separate one. Both passes use the first host
 listed in each group.
+
+`groups['dbms'][0]` is not only an Ansible target: it is interpolated verbatim
+into every database URI the service config templates render, and so it has to
+resolve inside pods. With a dedicated database host that is automatic, and the
+control machine reaches the same name.
+
+Where it does not — as in a
+[local single-node deployment](/playbooks/local-single-node-deployment.md),
+whose inventory hostname is a cluster DNS name backed by a selector-less
+Service and EndpointSlice — set `db_login_host` (and `keycloak_db_login_host`)
+to the address the control machine should use instead. Both default to their
+`groups[...][0]` value, so an inventory that says nothing keeps the single-name
+behaviour.
+
+### Pre-flight locale check
+
+A database's locale provider is fixed when it is created, so `postgresql_db`
+cannot reconcile one that predates this role's move to `locale_provider: icu`:
+it aborts with `Changing ICU_LOCALE is not supported`, which reads like a
+permissions or version problem rather than a stale database. `postgresql_init`
+checks `datlocprovider` up front and fails naming the offending databases. The
+check runs only when `create_dbs` is set, so an environment that does not
+create databases is unaffected by ones predating the switch.
+
+Its scope is the runs that create databases, and nothing more. The check
+carries no tags of its own, so it inherits the play's `setup-databases` and
+`databases` and is filtered out of a `--tags update-databases` run — which is
+correct, because every `postgresql_db` task it guards is untagged too and so
+is filtered out of that run as well. Tagging the check would abort a
+migrations-only pass over a locale mismatch that nothing in scope was going to
+try to reconcile. This matters on an environment with a long-lived database
+predating the switch: a `--tags update-databases` migration run against it
+succeeds, while a full `setup-databases` pass still stops on the mismatch.
+`grafana.yml` is the exception on the other side — its create task *is* tagged
+`update-databases`, and `grafana_db_name` is absent from
+`postgresql_init_managed_databases`, so it is neither checked nor deferred.
+
+The check runs once per database server rather than once overall. Keycloak's
+database is created against `keycloak_db_login_host`, which need not be
+`db_login_host`, and a database that is not on the server being queried simply
+does not come back in the result — so a single pass against one host would
+report every database on the other as fine. `postgresql_init_preflight_targets`
+pairs each host with the databases expected on it, and `local-teardown.yml`
+drives its drops from the same structure for the same reason. Where both names
+resolve to one server the second pass is redundant rather than wrong.
+
+Roles are the subtler half of the same problem, because they outlive the
+databases they own. `postgresql_user` reconciles only the attributes it is
+given, so a role left over without `LOGIN` gets its password set correctly and
+still cannot connect — Keycloak surfaces this as a crashloop on `password
+authentication failed`. Every role this pass creates is therefore declared with
+`role_attr_flags: LOGIN`.
 
 ## Group Variable Setup
 
@@ -112,10 +175,11 @@ typically reachable directly from operator workstations (or via VPN). Connect wi
 | Database        | Purpose                                                    |
 | --------        | -------                                                    |
 | `de`            | Main DE database: analyses, apps, tools, users, subscriptions |
-| `notifications` | Notification records                                       |
+| `notifications` | Notification records. Being folded into `de`; see [Merging the Notifications Database into DE](/playbooks/notifications-db-merge.md) |
 | `metadata`      | Metadata templates and AVUs                                |
-| `qms`           | Quota/subscription management (if QMS enabled)             |
+| `qms`           | Quota/subscription management (if QMS enabled); migrations come from the `subscriptions` repo |
 | `keycloak`      | Keycloak user and realm data                               |
+| `grafana`       | Grafana's own state: accounts, API keys, dashboard edits (if Grafana enabled) |
 
 ### Backups
 

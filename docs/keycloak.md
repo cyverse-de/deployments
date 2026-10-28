@@ -19,6 +19,7 @@ a protected API uses a Keycloak client configured for the DE realm. The key clie
 | VICE API | `vice_api_keycloak_client_id` | `vice_api_keycloak_client_secret` | vice-operator API authentication |
 | VICE operator | `vice_operator_keycloak_client_id` | `vice_operator_keycloak_client_secret` | vice-operator internal auth |
 | Portal/formation | `formation_keycloak_client_id` | `formation_keycloak_client_secret` | portal-conductor |
+| Grafana | `grafana_keycloak_client_id` | `grafana_keycloak_client_secret` | Grafana login, when `grafana_external_access` is on |
 
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.
@@ -141,11 +142,18 @@ to determine which services to restart.
 | `vice_api_keycloak_client_secret` | `vice_api_keycloak_client_id` | app-exposer, vice-operator |
 | `vice_operator_keycloak_client_secret` | `vice_operator_keycloak_client_id` | vice-operator |
 | `formation_keycloak_client_secret` | `formation_keycloak_client_id` | portal-conductor |
+| `grafana_keycloak_client_secret` | `grafana_keycloak_client_id` | grafana (see note below) |
 
 > **Note:** The `keycloak_vice_client_secret` is included in the shared `jobservices.yml`
 > config file which is deployed to many services, but only app-exposer actually reads it.
 > You only need to restart services that consume the credentials — not every service that
 > receives the config file.
+
+> **Note:** The Grafana secret is not pushed by `configure-services`. Re-run
+> `grafana.yml` to update the `grafana-oauth` Secret, then
+> `kubectl -n grafana rollout restart deployment/grafana`: Grafana reads the secret from an
+> environment variable at startup, and the Helm release alone won't restart the pod when
+> only the Secret changed.
 
 Example restart for `keycloak_client_secret`:
 

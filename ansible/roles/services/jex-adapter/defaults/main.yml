@@ -1,3 +1,0 @@
----
-jex_adapter_replicas: 2
-jex_adapter_pod_anti_affinity: true

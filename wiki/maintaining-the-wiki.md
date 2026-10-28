@@ -29,9 +29,9 @@ timestamp: 2026-07-20T00:00:00Z   # update on every meaningful change
 
 Sections: `infrastructure/` for backing systems, `playbooks/` for procedures
 and workflows, `services/` for DE microservices. Link wiki pages with
-bundle-absolute paths (`/infrastructure/nats.md`); reference repo files outside
-the wiki as plain code spans (`` `ansible/roles/nats/` ``), never markdown
-links.
+bundle-absolute paths (`/infrastructure/postgresql.md`); reference repo files
+outside the wiki as plain code spans (`` `ansible/roles/opensearch/` ``), never
+markdown links.
 
 ## Reserved files
 

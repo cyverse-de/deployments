@@ -51,9 +51,9 @@ Link style inside page bodies:
 
 | Target | Form | Example |
 | --- | --- | --- |
-| Another wiki page | Bundle-absolute (preferred) | `[NATS](/infrastructure/nats.md)` |
-| Sibling page | Relative is allowed | `[NATS](./nats.md)` |
-| Repo file outside `wiki/` | Plain code span, never a markdown link | `` `ansible/roles/nats/` `` |
+| Another wiki page | Bundle-absolute (preferred) | `[OpenSearch](/infrastructure/opensearch.md)` |
+| Sibling page | Relative is allowed | `[OpenSearch](./opensearch.md)` |
+| Repo file outside `wiki/` | Plain code span, never a markdown link | `` `ansible/roles/opensearch/` `` |
 | External source | Full URL | `[spec](https://example.org/spec)` |
 
 ## Writing a Page

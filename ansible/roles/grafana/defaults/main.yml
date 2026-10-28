@@ -1,0 +1,72 @@
+---
+# Grafana, providing metrics dashboards for the DE. Installed opt-in only: the
+# role entry in kubernetes.yml is gated on the grafana tag, and there is a
+# standalone grafana.yml playbook for deploying it on its own.
+#
+# Grafana keeps its own state (users, API keys, UI-edited dashboards) in a
+# PostgreSQL database on the dbms host rather than a PVC, so the deployment
+# itself is stateless. The database and the read-only role Grafana uses to query
+# the DE database are created by the postgresql_init role -- see
+# roles/postgresql_init/tasks/grafana.yml and the grafana_db_* variables in
+# roles/common/defaults/main.yml.
+grafana_namespace: grafana
+
+grafana_repo: "https://grafana.github.io/helm-charts"
+grafana_chart_version: "10.5.15"
+
+# Bootstrap administrator. This account exists so that a DE administrator can
+# log in and create real accounts; it is not meant to be shared. Override
+# grafana_admin_password in the private inventory's group_vars.
+grafana_admin_user: admin
+grafana_admin_password: Ch@ng3M3
+
+# Unless grafana_external_access is on (see roles/common/defaults/main.yml),
+# Grafana is not exposed outside the cluster. Reach it with:
+#   kubectl -n grafana port-forward svc/grafana 3000:80
+# Self-service signup stays off; accounts are created by an administrator. This
+# governs the local login form only: Keycloak logins create their own accounts.
+grafana_allow_sign_up: false
+
+# ---------------------------------------------------------------------
+# External access (grafana_external_access)
+# ---------------------------------------------------------------------
+# Only users whose entitlement claim includes one of these groups can log in
+# through Keycloak. Defaults to the groups that can reach the DE admin pages.
+grafana_oauth_allowed_groups: "{{ admin_groups.split(',') | map('trim') | reject('equalto', '') | list }}"
+
+# Grafana role for a Keycloak login, checked in order: a member of any
+# grafana_oauth_admin_groups is an Admin, then grafana_oauth_editor_groups gives
+# Editor, and anyone else who got past grafana_oauth_allowed_groups gets
+# grafana_oauth_default_role. The role is re-synced on every login. Editor and
+# Admin can use Explore, which runs arbitrary SQL through the DE datasource.
+grafana_oauth_admin_groups: []
+grafana_oauth_editor_groups: []
+grafana_oauth_default_role: Viewer
+
+# Group membership is only checked at login, so this bounds how long someone
+# removed from an allowed group keeps access. Matches Keycloak's default SSO
+# session max lifespan; Grafana's own default is 30 days.
+grafana_login_maximum_lifetime_duration: 10h
+
+# Skips verifying Keycloak's certificate on the token exchange. Only for a
+# Keycloak serving a self-signed certificate; never in production.
+grafana_oauth_tls_skip_verify: false
+
+grafana_cert_duration: "8766h" # 1 year
+grafana_cert_renew_before: "240h" # 10 days
+grafana_cert_pem: ""
+grafana_cert_key_pem: ""
+
+# PostgreSQL feature level Grafana targets for the DE datasource. This is a
+# floor, not the server's actual version -- Grafana uses it to decide which SQL
+# features to emit, so a value at or below the server version is safe.
+grafana_de_postgres_version: 1400
+
+grafana_replicas: 1
+
+grafana_cpu_request: "100m"
+grafana_cpu_limit: "500m"
+grafana_mem_request: "256Mi"
+grafana_mem_limit: "512Mi"
+grafana_ephemeral_request: "256Mi"
+grafana_ephemeral_limit: "512Mi"

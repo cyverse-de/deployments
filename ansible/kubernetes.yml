@@ -168,11 +168,12 @@
         - networking
         - nodeports
 
-    - role: nats
-      tags: nats
-
     - role: opensearch
       tags: opensearch
+
+    - role: grafana
+      tags: grafana
+      when: "'grafana' in ansible_run_tags"
 
     - role: kubernetes_node_feature_discovery
       tags: feature-discovery
@@ -265,34 +266,21 @@
     - role: services/bulk-typer
     - role: services/clockwork
     - role: services/data-info
-    - role: services/de-mailer
     - role: services/de-webhooks
     - role: services/dewey
-    - role: services/discoenv-analyses
-    - role: services/discoenv-users
-    - role: services/email-requests
-    - role: services/event-recorder
     - role: services/info-typer
     - role: services/infosquito2
     - role: services/iplant-groups
-    - role: services/jex-adapter
-    - role: services/job-status-listener
-    - role: services/job-status-recorder
-    - role: services/job-status-to-apps-adapter
+    - role: services/job-status
     - role: services/kifshare
     - role: services/metadata
     - role: services/notifications
     - role: services/permissions
-    - role: services/qms
-    - role: services/qms-adapter
     - role: services/requests
     - role: services/resource-usage-api
-    - role: services/data-usage-api
     - role: services/subscriptions
-    - role: services/timelord
     - role: services/user-info
     - role: services/vice-default-backend
-    - role: services/vice-status-listener
     - role: services/search
     - role: services/dashboard-aggregator
     - role: services/terrain

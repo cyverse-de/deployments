@@ -29,6 +29,8 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: gpg-files
           secret:
             secretName: gpg-keys
@@ -38,6 +40,7 @@ spec:
             items:
               - key: iplant-groups.properties
                 path: iplant-groups.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: iplant-groups
           image: "harbor.cyverse.org/de/iplant-groups"
@@ -54,6 +57,8 @@ spec:
             - --config
             - /etc/iplant/de/iplant-groups.properties
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: gpg-files
               mountPath: /etc/iplant/crypto
               readOnly: true
@@ -61,6 +66,7 @@ spec:
               mountPath: /etc/iplant/de
               readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

@@ -14,7 +14,7 @@
             name: data-info-configs
             namespace: "{{ ns }}"
           data:
-            data-info.properties: "{{ lookup('template', 'data-info.properties.j2') | b64encode }}"
+            data-info.yml: "{{ lookup('template', 'data-info.yml.j2') | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
     - ansible.builtin.include_role:

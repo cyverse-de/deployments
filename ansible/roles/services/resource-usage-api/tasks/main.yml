@@ -17,6 +17,37 @@
             jobservices.yml: "{{ lookup('template', 'jobservices.yml.j2') | b64encode }}"
       when: load_configs is undefined or (load_configs | bool)
 
+    # resource-usage-api absorbed data-usage-api; clean up its leftovers in
+    # existing clusters. Deleting its role left the running objects behind, so
+    # a retired data-usage-api would keep competing for the data usage queues.
+    # Removable once all deployments have rolled past the merge release.
+    - name: Remove the retired data-usage-api deployment
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: data-usage-api
+
+    - name: Remove the retired data-usage-api service
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        namespace: "{{ ns }}"
+        name: data-usage-api
+
+    - name: Remove the retired data-usage-api config secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: data-usage-api-configs
+
     - ansible.builtin.include_role:
         name: deploy-service
         tasks_from: main

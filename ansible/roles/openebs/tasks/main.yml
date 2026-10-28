@@ -18,3 +18,18 @@
         wait: true
         wait_timeout: 600
         definition: "{{ lookup('kubernetes.core.kustomize', dir=role_path ~ '/files/discoenv') }}"
+
+    # Most DE PVCs name their StorageClass, but openldap-docker's volume claim
+    # template does not, so on a cluster whose only storage is OpenEBS its PVC
+    # pends forever unless something is marked default. Longhorn takes the
+    # default itself, hence the opt-in.
+    - name: Mark openebs-hostpath as the default StorageClass
+      when: openebs_default_storage_class | bool
+      kubernetes.core.k8s:
+        state: patched
+        kind: StorageClass
+        name: openebs-hostpath
+        definition:
+          metadata:
+            annotations:
+              storageclass.kubernetes.io/is-default-class: "true"

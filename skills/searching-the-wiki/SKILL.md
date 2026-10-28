@@ -1,6 +1,6 @@
 ---
 name: searching-the-wiki
-description: Use when answering questions about how this deployment is set up or operated — consult wiki/ before digging through ansible/ source; e.g. "how is postgres initialized" or "where do the NATS certs come from".
+description: Use when answering questions about how this deployment is set up or operated — consult wiki/ before digging through ansible/ source; e.g. "how is postgres initialized" or "where do the Keycloak certs come from".
 ---
 
 # Searching the Wiki
@@ -37,8 +37,8 @@ grep -ril 'pg_hba' wiki/
 
 Navigation: start at `wiki/index.md`, follow a section link
 (e.g. `/infrastructure/index.md`), pick the page by its one-line description.
-Bundle-absolute links like `/infrastructure/nats.md` resolve relative to
-`wiki/`, i.e. `wiki/infrastructure/nats.md`.
+Bundle-absolute links like `/infrastructure/postgresql.md` resolve relative to
+`wiki/`, i.e. `wiki/infrastructure/postgresql.md`.
 
 ## Trust Model
 

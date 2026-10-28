@@ -7,7 +7,6 @@ values.yml
 values.yaml
 cyverse.*
 cert-manager.custom.yaml
-de-releases
 k3s_*.yml
 values.yml
 irods_csi_driver_values.yml

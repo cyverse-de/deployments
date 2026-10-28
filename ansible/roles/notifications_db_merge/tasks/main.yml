@@ -1,0 +1,30 @@
+---
+- name: Dump the standalone notifications database
+  ansible.builtin.import_tasks:
+    file: dump.yml
+  tags:
+    - dump
+
+- name: Stage the notification rows inside the de database
+  ansible.builtin.import_tasks:
+    file: stage.yml
+  tags:
+    - stage
+
+- name: Load the staged rows into public.notifications
+  ansible.builtin.import_tasks:
+    file: load.yml
+  tags:
+    - load
+
+- name: Reconcile the load
+  ansible.builtin.import_tasks:
+    file: verify.yml
+  tags:
+    - verify
+
+- name: Drop the staging schema
+  ansible.builtin.import_tasks:
+    file: cleanup.yml
+  tags:
+    - cleanup

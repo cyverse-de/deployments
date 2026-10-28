@@ -191,7 +191,7 @@
                   steps: 3
                   duration: 3s
 
-    - name: Set up a job-status-listener sensor for the webhook event
+    - name: Set up a job-status sensor for the webhook event
       kubernetes.core.k8s:
         state: present
         definition:
@@ -207,9 +207,9 @@
                 eventName: batch-status
             triggers:
               - template:
-                  name: send-to-job-status-listener
+                  name: send-to-job-status
                   http:
-                    url: "http://job-status-listener.{{ ns }}/status/batch"
+                    url: "http://job-status.{{ ns }}/status/batch"
                     headers:
                       Content-Type: application/json
                     payload:

@@ -4,7 +4,7 @@ title: HAProxy
 description: The two HAProxy deployments in a DE install — the baseline de_proxy node and the ui_haproxy configuration fronting the DE UI — plus the Kubernetes API load balancer.
 resource: /docs/haproxy.md
 tags: [haproxy, proxy, load-balancer, kubernetes.yml]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-07-28T00:00:00Z
 ---
 
 HAProxy is used in two places in a DE deployment, handled by separate roles:
@@ -41,6 +41,31 @@ should point to this server. The `k8s_de_workers` group should contain the nodes
 
 The `ui_haproxy` role needs `de_hostname`, the external DNS name that should forward to Sonora. When the corresponding
 components are enabled, it also uses `portal_hostname`, `harbor_fqdn`, and `gocd_external_domain`.
+
+## TLS passthrough
+
+`ui_haproxy` terminates TLS and forwards HTTP to the workers' NodePorts. That
+does not work for VICE: each analysis gets its own hostname under the VICE
+wildcard, and Traefik can only route them if it sees the TLS SNI. A deployment
+that serves VICE through HAProxy needs a `mode tcp` frontend passing 443
+straight through to `traefik_https_port` instead:
+
+```
+frontend https_in
+    bind <address>:443
+    mode tcp
+    default_backend k8s_gateway
+
+backend k8s_gateway
+    mode tcp
+    server local 127.0.0.1:30443 check inter 5000
+```
+
+The trade-off is that HAProxy no longer sets `X-Forwarded-*`; Traefik sets them
+instead, which matters for [Keycloak](/infrastructure/keycloak.md), whose issuer
+URL is derived from the forwarded scheme and host. See
+[Local Single-Node Deployment](/playbooks/local-single-node-deployment.md) for a
+worked single-backend example.
 
 # Citations
 

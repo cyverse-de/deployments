@@ -17,16 +17,21 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: kifshare-configs
           secret:
             secretName: kifshare-configs
             items:
               - key: kifshare.properties
                 path: kifshare.properties
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: kifshare
           image: harbor.cyverse.org/de/kifshare
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: kifshare-configs
               mountPath: /etc/iplant/de
               readOnly: true
@@ -43,6 +48,7 @@ spec:
             - --config
             - /etc/iplant/de/kifshare.properties
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:

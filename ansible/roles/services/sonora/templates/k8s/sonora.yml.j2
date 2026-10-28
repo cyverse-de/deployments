@@ -30,6 +30,7 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: sonora-configs
           secret:
             secretName: sonora-configs
@@ -49,6 +50,7 @@ spec:
               memory: "3Gi"
               ephemeral-storage: "1Gi"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -67,6 +69,7 @@ spec:
             - name: NODE_CONFIG_DIR
               value: "./config:/etc/iplant/de"
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: sonora-configs
               mountPath: /etc/iplant/de
               readOnly: true

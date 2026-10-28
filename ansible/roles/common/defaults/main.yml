@@ -22,6 +22,28 @@ irods_zone: replace_me
 irods_password: replace_me
 db_host: replace_me
 
+# The name postgresql_init and db_staging connect to, from the control machine.
+# Distinct from groups['dbms'][0], which the service configs render into pod
+# connection strings: where the database is reached by different names from
+# inside and outside the cluster, one value cannot serve both.
+db_login_host: "{{ groups['dbms'][0] }}"
+keycloak_db_login_host: "{{ groups['keycloak_dbms'][0] }}"
+
+# Where PostgreSQL runs for a local single-node deployment: "cnpg" to run it in
+# the cluster under CloudNativePG, or "host" for one already running on the
+# node, published as a Service by local_db_endpoint. Only local.yml reads it.
+#
+# cnpg is the default because the host path needs PostgreSQL configured to
+# listen on the CNI bridge address, which does not exist when it starts at boot
+# — and PostgreSQL warns rather than failing, so the database silently serves
+# loopback only. Under cnpg there is no host configuration to get wrong, and
+# tearing the cluster down takes the databases with it.
+#
+# Set db_login_host alongside this: under cnpg the control machine reaches the
+# database at the Service's ClusterIP, which is not a name cluster DNS can give
+# it. Pin that address with cnpg_service_cluster_ip so it survives a rebuild.
+local_db_provider: cnpg
+
 env: "{{ ns }}"
 
 # Common Variables
@@ -86,6 +108,8 @@ settings_enabled: true
 coge_enabled: true
 resource_usage_api_enabled: true
 qms_api_enabled: true
+# Terrain still exposes the data usage routes; they are served by
+# resource-usage-api now that it has absorbed the data-usage-api service.
 data_usage_api_enabled: true
 
 # Agave Variables
@@ -107,16 +131,17 @@ baseurls_async_tasks: http://async-tasks
 baseurls_dashboard_aggregator: http://dashboard-aggregator
 baseurls_data_info: http://data-info
 baseurls_grouper_web_services: http://grouper-ws/grouper-ws
-baseurls_iplant_email: http://de-mailer
+baseurls_info_typer: http://info-typer
+baseurls_iplant_email: http://notifications/mail
 baseurls_iplant_groups: http://iplant-groups
-baseurls_jex_adapter: http://jex-adapter
-baseurls_job_status_listener: http://job-status-listener
+baseurls_job_status: http://job-status
 baseurls_metadata: http://metadata
 baseurls_notifications: http://notifications/v1
 baseurls_permissions: http://permissions
-baseurls_qms: http://qms
 baseurls_requests: http://requests
+baseurls_resource_usage_api: http://resource-usage-api
 baseurls_search: http://search
+baseurls_subscriptions: http://subscriptions
 baseurls_terrain: http://terrain
 baseurls_user_info: http://user-info
 
@@ -134,12 +159,39 @@ cert_manager_use_letsencrypt: false
 # TLS certificate strategy: selfsigned | letsencrypt | external.
 #   selfsigned  - cert-manager self-signs a CA + leaf cert per endpoint
 #   letsencrypt - cert-manager issues leaf certs from the ACME ClusterIssuer
-#   external    - no certs are created; an admin pre-creates the TLS secrets
+#   external    - cert-manager creates no certs; the TLS secrets are written
+#                 from each endpoint's *_cert_pem and *_cert_key_pem variables
 #                 (see the "Phase 6" cert-manager section of the example
-#                 group_vars for the list of secrets and namespaces).
+#                 group_vars for the list of variables, secrets, and namespaces).
 # Defaults from the legacy cert_manager_use_letsencrypt toggle for backward
 # compatibility. Set explicitly to 'external' for third-party-CA deployments.
 cert_manager_provider: "{{ 'letsencrypt' if cert_manager_use_letsencrypt | default(false) else 'selfsigned' }}"
+
+# The values cert_manager_provider and the per-endpoint providers below accept.
+cert_manager_supported_providers: [selfsigned, letsencrypt, external]
+
+# Per-endpoint overrides of cert_manager_provider, for deployments whose hostnames don't all come from the same
+# place — for example, CyVerse hostnames from Let's Encrypt and University of Arizona hostnames from the university's
+# CA. Each takes the same values as cert_manager_provider.
+de_tls_provider: "{{ cert_manager_provider }}"
+user_portal_tls_provider: "{{ cert_manager_provider }}"
+vice_tls_provider: "{{ cert_manager_provider }}"
+ai2s_tls_provider: "{{ cert_manager_provider }}"
+harbor_tls_provider: "{{ cert_manager_provider }}"
+keycloak_tls_provider: "{{ cert_manager_provider }}"
+grafana_tls_provider: "{{ cert_manager_provider }}"
+
+# Every endpoint's provider, keyed by the variable that sets it, so that cluster_issuers can validate them all up front
+# and create the issuers an endpoint depends on when any endpoint uses them.
+cert_manager_endpoint_provider_settings:
+  de_tls_provider: "{{ de_tls_provider }}"
+  user_portal_tls_provider: "{{ user_portal_tls_provider }}"
+  vice_tls_provider: "{{ vice_tls_provider }}"
+  ai2s_tls_provider: "{{ ai2s_tls_provider }}"
+  harbor_tls_provider: "{{ harbor_tls_provider }}"
+  keycloak_tls_provider: "{{ keycloak_tls_provider }}"
+  grafana_tls_provider: "{{ grafana_tls_provider }}"
+cert_manager_endpoint_providers: "{{ cert_manager_endpoint_provider_settings.values() | list }}"
 
 cert_manager_le_aws_region: us-east-1
 cert_manager_le_aws_access_key_id: replace_me
@@ -155,6 +207,53 @@ cert_manager_le_issuer_name: letsencrypt
 cert_manager_le_issuer_email: "{{ email_dest }}"
 cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directory
 cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
+
+# How default-cluster-issuer signs: selfSigned | ca.
+#   selfSigned - cert-manager generates a throwaway root; browsers must be told
+#                to trust each per-endpoint CA individually.
+#   ca         - an existing CA keypair is loaded from disk and used as the
+#                root. Use this when the root is already in the clients' trust
+#                store, so the certs the 'selfsigned' cert_manager_provider
+#                chain issues come out trusted with no other changes. The root
+#                must permit an intermediate (pathlen >= 1), because that chain
+#                inserts a per-endpoint CA beneath it — notably ruling out a
+#                mkcert root, which is issued with pathlen:0.
+cluster_issuer_default_type: selfSigned
+cluster_issuer_ca_secret_name: default-cluster-issuer-ca
+# Paths on the Ansible control machine. Only read when the type is 'ca'.
+cluster_issuer_ca_cert_file: replace_me
+cluster_issuer_ca_key_file: replace_me
+
+# A ConfigMap holding a CA certificate that services must trust to make
+# server-side HTTPS calls to DE endpoints — Keycloak above all. A container's
+# trust store comes from its image, so an endpoint served by a locally issued
+# root is rejected however well the host and browser trust it: Go services fail
+# with "x509: certificate signed by unknown authority" and JVM services with
+# SunCertPathBuilderException, both surfacing as a 500 rather than anything
+# naming a certificate.
+#
+# Empty means the images' own trust store suffices, which is the case wherever
+# the DE is served by a publicly trusted certificate — so this changes nothing
+# unless it is set.
+de_ca_bundle_configmap: ""
+# Path on the Ansible control machine to read the certificate from.
+de_ca_bundle_file: "{{ cluster_issuer_ca_cert_file }}"
+de_ca_bundle_key: ca.crt
+de_ca_bundle_mount_path: /etc/de-ca
+
+# A JVM cannot read a PEM bundle, so JVM services get a copy of their image's
+# cacerts with this certificate imported, built by an init container. The
+# password is the JDK default, and this trust store is public information.
+de_ca_truststore_dir: /etc/de-ca-jvm
+de_ca_truststore_password: changeit
+# Image that init container runs. Empty means the service's own image, which is
+# what a service built on a JRE base wants: the trust store then matches the JDK
+# that will read it and no second image has to be kept in step. A distroless
+# service image has neither a shell nor keytool, so those services override this
+# with an image that has both — set it per service role, not here. A PKCS12
+# cacerts is portable across JDK 9+, so the public roots coming from the builder
+# rather than from the service image is not a difference that shows up.
+de_ca_truststore_builder_image: ""
 
 # Dashboard Aggregator settings
 ## The URL to the website that the dashboard-aggregator uses for RSS feeds.
@@ -195,11 +294,15 @@ de_tls_issuer_name: "de-ca-issuer"
 de_tls_cert_name: "de-tls"
 de_tls_cert_duration: "2160h"
 de_tls_cert_renew_before: "240h"
+de_tls_cert_pem: ""
+de_tls_cert_key_pem: ""
 
 # User Portal TLS settings
 user_portal_tls_cert_name: "user-portal-tls"
 user_portal_tls_cert_duration: "2160h"
 user_portal_tls_cert_renew_before: "240h"
+user_portal_tls_cert_pem: ""
+user_portal_tls_cert_key_pem: ""
 user_portal_base_uri: "https://{{ portal_hostname }}"
 
 # VICE TLS settings
@@ -210,6 +313,29 @@ vice_tls_issuer_name: "vice-ca-issuer"
 vice_tls_cert_name: "vice-tls"
 vice_tls_cert_duration: "2160h"
 vice_tls_cert_renew_before: "240h"
+vice_tls_cert_pem: ""
+vice_tls_cert_key_pem: ""
+
+# --- AI Discovery Lab (ai-sandboxes-ui) ---
+ai2s_hostname: replace_me
+ai2s_base_uri: "https://{{ ai2s_hostname }}"
+ai2s_terrain_base_url: "{{ baseurls_terrain }}"
+ai2s_keycloak_issuer: "{{ keycloak_server_uri }}/realms/{{ keycloak_realm_name }}"
+ai2s_keycloak_client_id: ai-sandboxes
+ai2s_keycloak_client_secret: replace_me
+ai2s_admin_groups: replace_me
+ai2s_nextauth_url: "{{ ai2s_base_uri }}"
+ai2s_nextauth_secret: replace_me
+ai2s_log_level: info
+ai2s_log_label: ai-sandboxes-ui
+ai2s_sandbox_attr: ai2s-sandbox
+ai2s_sandbox_value: "true"
+ai2s_amqp_exchange_name: de
+ai2s_tls_cert_name: ai-sandboxes-ui-tls
+ai2s_tls_cert_duration: "2160h"
+ai2s_tls_cert_renew_before: "240h"
+ai2s_tls_cert_pem: ""
+ai2s_tls_cert_key_pem: ""
 
 # Docker related settings
 docker_tag: latest
@@ -278,11 +404,29 @@ infosquito_prefix_length: 4
 ## Email settings
 email_perm_id_request_dest: "{{ email_dest }}"
 email_support_dest: "{{ email_dest }}"
-exim_smarthost: "127.0.0.1:25"
+# Colon-separated host list; a port takes a second colon (host::port), since a
+# single colon separates hosts. Placeholder — points exim at itself, set it.
+exim_smarthost: "127.0.0.1::25"
 exim_password: "127.0.0.1"
 exim_allowed_senders: "172.17.0.0/24:127.0.0.1"
 local_exim_replicas: 2
 local_exim_pod_anti_affinity: true
+# Relay the notifications service sends the DE's outbound mail through. The
+# defaults point at the in-cluster exim above, unauthenticated and in the clear.
+# Point them at an external relay to bypass exim; authentication needs one of
+# the TLS settings, since Go refuses to send credentials over an unencrypted
+# connection to a remote host. Leave notifications_smtp_ca_cert_file empty
+# unless the relay's certificate chains to something other than
+# de_ca_bundle_configmap, which the pod already trusts through SSL_CERT_FILE.
+notifications_smtp_host: local-exim
+notifications_smtp_port: 25
+notifications_smtp_user: ""
+notifications_smtp_password: ""
+notifications_smtp_use_tls: false
+notifications_smtp_use_ssl: false
+notifications_smtp_local_name: ""
+notifications_smtp_insecure_skip_verify: false
+notifications_smtp_ca_cert_file: ""
 
 # QMS settings
 qms_enabled: true
@@ -298,7 +442,7 @@ jaeger_query_replicas: 2
 # Nodeports
 kifshare_nodeport: 31340
 terrain_nodeport: 31341
-job_status_listener_nodeport: 31342
+job_status_nodeport: 31342
 agave_cb_nodeport: 31343
 
 # K8s Default Variables
@@ -335,6 +479,8 @@ harbor_tls_ca_duration: "8766h"
 harbor_tls_ca_renew_before: "240h"
 harbor_tls_cert_duration: "2160h"
 harbor_tls_cert_renew_before: "240h"
+harbor_tls_cert_pem: ""
+harbor_tls_cert_key_pem: ""
 
 # IRODS CSI Driver Vars
 irods_csi_driver_enabled: true
@@ -395,6 +541,11 @@ longhorn_tolerations:
 
 # OpenEBS local storage provider (provides the openebs-hostpath StorageClass).
 openebs_enabled: false
+# Whether openebs-hostpath becomes the cluster's default StorageClass. Needed
+# when OpenEBS is the only storage provider, because openldap-docker's volume
+# claim template does not name a class. Off by default so that adding OpenEBS
+# to a cluster cannot silently steal the default from an existing provider.
+openebs_default_storage_class: false
 
 # NVIDIA Container Toolkit Vars
 nvidia_container_toolkit_runtime: containerd
@@ -410,15 +561,13 @@ de_db_version: main
 notifications_db_version: main
 metadata_db_version: main
 mgmt_version: main
-qms_version: main
+subscriptions_version: main
 portal_version: main
 de_db_name: de
 notifications_db_name: notifications
 metadata_db_name: metadata
 permissions_db_name: de
 qms_db_name: qms
-qms_automigrate: false
-qms_reinitialize: false
 pg_login_user: postgres
 pg_login_host: localhost
 pg_login_password: Chang3m3
@@ -441,6 +590,7 @@ qms: true
 portal: false
 harbor: true
 keycloak: true
+grafana: false
 install_exts: true
 migrate_release_version: v4.17.0
 migrate_tarball_name: migrate.linux-amd64.tar.gz # or migrate.darwin-amd64.tar.gz
@@ -638,12 +788,16 @@ portal_conductor_url: https://portal-conductor
 portal_conductor_auth_username: "{{ basic_auth_username }}"
 portal_conductor_auth_password: "{{ basic_auth_password }}"
 
-# Directory portal_delete_user_config.yml writes portal-delete-user.json into. The filename is
-# fixed because the DE app descriptor in scripts/appei/portal-delete-user.json refers to it by
-# name. PWD is the invoking shell's cwd; playbook_dir is the fallback because a relative dest
-# resolves against the playbook directory, not the cwd, which would be a surprising place to
-# drop a file full of cleartext passwords.
-portal_delete_user_config_dir: "{{ lookup('env', 'PWD') | default(playbook_dir, true) }}"
+# The two accounts portal-conductor grants ownership of a newly created user's
+# home collection. Both must exist in irods_zone: iRODS rejects a grant to an
+# unknown account with CAT_INVALID_USER, which surfaces as a 500 from
+# /datastore/users *after* the user and its password were created — so a retry
+# looks like it should have worked. "rods" is the stock iRODS administrator and
+# is not present in every zone; check with
+# `select user_name, zone_name from r_user_main` against the ICAT before
+# assuming it is there.
+portal_conductor_irods_admin_user: rods
+portal_conductor_irods_ipcservices_user: ipcservices
 
 # Admin settings
 admin_groups: core-services,dev,staff
@@ -652,16 +806,6 @@ admin_attribute: entitlement
 # Analytics settings
 analytics_enabled: false
 analytics_id: g-id
-
-# NATS Variables
-ca_duration: 8766h # 1 year
-ca_renew_before: 240h # 10 days
-nats_urls: tls://nats
-nats_cmd_pod: nats-box
-nats_server_cert_duration: 8766h # 1 year
-nats_server_cert_renew_before: 240h # 10 days
-nats_client_cert_duration: 8766h # 1 year
-nats_client_cert_renew_before: 240h # 10 days
 
 # Grouper Variables
 grouper_version: v3.0.1-rc01
@@ -677,10 +821,19 @@ grouper_db_name: grouper # actual useful value
 grouper_morph_string: n0tr34l
 grouper_connection_user: GrouperSystem
 grouper_connection_pass: Ch@ng3m3
+# grouper_init refers to these rather than the connection_* pair above, and
+# they name the same account. Without defaults the role fails on an undefined
+# variable, which only stays hidden while every inventory happens to set them.
+grouper_db_user: "{{ grouper_connection_user }}"
+grouper_db_pass: "{{ grouper_connection_pass }}"
+# Rendered into grouper.properties; grouper_env above already defaults this way.
+grouper_environment: "{{ env }}"
 grouper_gsh_image: harbor.cyverse.org/de/grouper # actual useful value
 grouper_gsh_image_version: v3.0.0 # actual useful value
 grouper_ws_replicas: 2
 grouper_loader_replicas: 1
+grouper_ws_pod_anti_affinity: true
+grouper_loader_pod_anti_affinity: true
 grouper_tag: v3.0.0
 grouper_folder_name_prefix: "iplant:de:{{ env }}"
 
@@ -721,6 +874,8 @@ keycloak_log_level: "info"
 keycloak_java_opts: "-server -Xms1024m -Xmx2048m -XX:MetaspaceSize=96m -XX:MaxMetaspaceSize=256m -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true -Dkeycloak.profile.feature.token_exchange=enabled -Djava.security.egd=file:/dev/urandom"
 keycloak_cert_duration: "8766h" # 1 year
 keycloak_cert_renew_before: "240h" # 10 days
+keycloak_cert_pem: ""
+keycloak_cert_key_pem: ""
 keycloak_cpu_request: "200m"
 keycloak_memory_request: "1Gi"
 keycloak_ephemeral_storage_request: "2Gi"
@@ -729,6 +884,62 @@ keycloak_memory_limit: "2Gi"
 keycloak_ephemeral_storage_limit: "2Gi"
 keycloak_proxy_headers: "xforwarded"
 keycloak_http_enabled: "true"
+
+# Grafana Database Configuration
+#
+# These live here rather than in roles/grafana/defaults/main.yml because
+# postgresql_init runs in a different play (hosts: dbms) that never loads the
+# grafana role. Only common, which both roles depend on, is visible to both.
+#
+# grafana_db_user owns the database Grafana keeps its own state in: accounts
+# created through the UI, API keys, and any dashboard edits made in the browser.
+grafana_db_name: grafana
+grafana_db_user: grafana
+grafana_db_password: Ch@ng3M3
+
+# Read-only role Grafana uses to query the DE database for the dashboards. It is
+# granted SELECT on grafana_ro_db_tables and grafana_ro_db_columns and nothing
+# else -- add a table or column here if a new dashboard needs it.
+grafana_ro_db_user: grafana_ro
+grafana_ro_db_password: Ch@ng3M3
+grafana_ro_db_tables:
+  - logins
+  - users
+  - job_types
+
+# Tables granted by column rather than whole, as {table: [columns]}. jobs is
+# here because the rest of it -- submission (full job parameters and input
+# paths), job names, descriptions, result folders -- has no place in a dashboard,
+# and anyone with Explore in Grafana can read whatever this role can.
+grafana_ro_db_columns:
+  jobs:
+    - id
+    - job_type_id
+    - parent_id
+    - user_id
+    - status
+    - start_date
+    - end_date
+    - millicores_reserved
+
+# The dashboards count a user as University of Arizona when they have a verified
+# user portal email address at this domain or one of its subdomains. It's read
+# from the portal database through grafana.ua_users, a view in the DE database
+# that grafana_ro can select from; the portal database itself is left untouched.
+# grafana_portal_fdw_host is the host the database server uses to reach the
+# portal database -- itself, since postgresql_init puts both on groups['dbms'][0].
+grafana_ua_email_domain: arizona.edu
+grafana_portal_fdw_host: localhost
+
+# External access to Grafana through a Gateway, with login through Keycloak.
+# Off by default, which leaves Grafana reachable only by port-forwarding. These
+# live in common because keycloak_config creates the Keycloak client from them
+# as well as the grafana role.
+grafana_external_access: false
+grafana_hostname: replace_me
+grafana_base_uri: "https://{{ grafana_hostname }}"
+grafana_keycloak_client_id: grafana
+grafana_keycloak_client_secret: replace_me
 
 # Gateway API CRD version
 gateway_api_crd_version: v1.5.1  # Keep in step with the Traefik version (v3.7 -> Gateway API v1.5.1)
@@ -747,6 +958,9 @@ traefik_cert_name: "traefik-tls"
 traefik_cert_duration: "2160h"
 traefik_cert_renew_before: "240h"
 
+# Pin Traefik's ClusterIP. Empty means the cluster assigns one, which is what
+# every environment with real DNS wants.
+traefik_cluster_ip: ""
 traefik_http_port: 31380
 traefik_https_port: 31383
 
@@ -808,7 +1022,19 @@ vice_namespace_egress_disallow:
   - 128.196.254.64/32
   - 131.153.56.98/32
 vice_default_time_limit_extension: "4h"
+# The operators app-exposer schedules VICE analyses onto, registered with its
+# admin API by the vice-operator role. app-exposer reads these from the
+# `operators` table and does not discover them, so an operator missing from
+# here is invisible to it however healthy it is — a launch fails with "no
+# operators configured". Each entry needs name, url (how app-exposer reaches
+# the operator, in-cluster) and base_url (the operator's public URL);
+# tls_skip_verify and priority are optional.
+#
+# Empty because QA and prod already have their rows; a deployment building the
+# database from nothing has to list its own.
 vice_operators_values: []
+# Local port for the port-forward the registration runs over.
+vice_operator_registry_local_port: 18100
 vice_operator_cluster_config_secret: cluster-config-secret
 vice_operator_disable_spec_launch: false
 vice_operator_skip_gateway_creation: false
@@ -855,6 +1081,21 @@ vice_operator_ingress_pod_exceptions:
 vice_operator_egress_host_exceptions:
   - "{{ irods_host }}"
   - "{{ registry_hostname }}"
+# CIDRs analyses may reach, for destinations a hostname cannot express. A
+# NetworkPolicy sees the post-DNAT address, so reaching a service by its
+# ClusterIP needs the backing pods' CIDR here, not the ClusterIP — which only
+# comes up where a DE hostname resolves inside the cluster.
+vice_operator_egress_cidr_exceptions: []
+# Mount a private CA into the vice-operator so it can complete OIDC discovery
+# against a Keycloak whose certificate is not signed by a public CA. Also names
+# the ConfigMap the operator mounts into each analysis's vice-proxy sidecar for
+# its back-channel token exchange, so it must live in vice_ns. Empty means both
+# use their image's trust store, which is what an environment with
+# publicly-trusted certificates wants.
+# Defaults to the shared bundle so one setting covers every service; still
+# overridable on its own for an environment that needs vice-operator to differ.
+vice_operator_ca_bundle_configmap: "{{ de_ca_bundle_configmap }}"
+vice_operator_ca_bundle_file: "{{ de_ca_bundle_file }}"
 vice_operator_admin_entitlements: replace_me
 vice_proxy_image: harbor.cyverse.org/de/vice-proxy:latest
 vice_api_keycloak_base_url: "{{ keycloak_server_uri }}"
@@ -895,34 +1136,23 @@ cyverse_repo_base: "git@github.com:cyverse-de"
 # Repos to clone into source_repo_dir (the local dir name == the entry). Most
 # live under cyverse_repo_base; entries in source_repo_urls override the URL.
 source_repos:
+  - ai-sandboxes-ui
   - analyses
   - app-exposer
-  - apply-labels
   - apps
   - async-tasks
   - bulk-typer
-  - check-resource-access
   - clockwork
   - dashboard-aggregator
   - data-info
-  - data-usage-api
-  - de-mailer
   - de-webhooks
   - dewey
-  - discoenv-analyses
-  - discoenv-users
-  - email-requests
-  - event-recorder
   - formation
-  - get-analysis-id
   - group-propagator
   - info-typer
   - infosquito2
   - iplant-groups
-  - jex-adapter
-  - job-status-listener
-  - job-status-recorder
-  - job-status-to-apps-adapter
+  - job-status
   - kifshare
   - maintenance-page
   - metadata
@@ -931,18 +1161,14 @@ source_repos:
   - permissions
   - portal-conductor
   - portal2
-  - qms
-  - qms-adapter
   - requests
   - resource-usage-api
   - search
   - sonora
   - subscriptions
   - terrain
-  - timelord
   - user-info
   - vice-default-backend
-  - vice-status-listener
-# Per-repo clone URL overrides for repos not under cyverse_repo_base.
-source_repo_urls:
-  qms: "git@github.com:cyverse/qms"
+# Per-repo clone URL overrides for repos not under cyverse_repo_base, and for repos whose
+# local directory name differs from the repository's.
+source_repo_urls: {}

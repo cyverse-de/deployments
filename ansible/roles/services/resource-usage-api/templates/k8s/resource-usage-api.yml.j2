@@ -27,26 +27,17 @@ spec:
               topologyKey: kubernetes.io/hostname
 {% endif %}
       restartPolicy: Always
+      # A data usage batch can hold the ICAT database for several minutes, and the
+      # service drains in-flight work on SIGTERM rather than abandoning it partway.
+      terminationGracePeriodSeconds: {{ resource_usage_api_termination_grace_period }}
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: resource-usage-api-configs
           secret:
             secretName: resource-usage-api-configs
             items:
               - key: jobservices.yml
                 path: service.yml
-        - name: nats-client-tls
-          secret:
-            secretName: nats-client-tls
-        - name: nats-services-creds
-          secret:
-            secretName: nats-services-creds
-            items:
-              - key: services.creds
-                path: services.creds
-              - key: services.creds
-                path: service.creds
-        - name: nats-configuration
-          emptyDir: {}
       containers:
         - name: resource-usage-api
           image: harbor.cyverse.org/de/resource-usage-api
@@ -55,49 +46,33 @@ spec:
               cpu: "1m"
               memory: "128Mi"
               ephemeral-storage: "1Gi"
+            # The pod now holds two database pools and runs the data usage batches
+            # alongside the latency-sensitive summary endpoint, so the old 100m
+            # ceiling would throttle requests behind a batch. Measure before
+            # trimming these back.
             limits:
-              cpu: "100m"
-              memory: "256Mi"
+              cpu: "500m"
+              memory: "512Mi"
               ephemeral-storage: "1Gi"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: OTEL_TRACES_EXPORTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_TRACES_EXPORTER
-            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: OTEL_EXPORTER_JAEGER_HTTP_ENDPOINT
-            - name: DISCOENV_NATS_CLUSTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: NATS_URLS
           args:
             - --log-level
             - debug
+            - --subscriptions-base-uri
+            - {{ baseurls_subscriptions }}
           ports:
             - name: listen-port
               containerPort: 60000
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: resource-usage-api-configs
               mountPath: /etc/cyverse/de/configs
-              readOnly: true
-            - name: nats-client-tls
-              mountPath: /etc/nats/tls
-              readOnly: true
-            - name: nats-services-creds
-              mountPath: /etc/nats/creds
-              readOnly: true
-            - name: nats-configuration
-              mountPath: /etc/cyverse/de/env
               readOnly: true
           livenessProbe:
             httpGet:

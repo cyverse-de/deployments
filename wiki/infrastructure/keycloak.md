@@ -4,7 +4,7 @@ title: Keycloak
 description: Keycloak administration for the DE — deployment, health checks, client secret rotation, admin users, impersonation, and diagnosing authentication failures.
 resource: /docs/keycloak.md
 tags: [keycloak, authentication, oidc, ldap, secrets, kubernetes.yml]
-timestamp: 2026-07-29T00:00:00Z
+timestamp: 2026-10-02T00:00:00Z
 ---
 
 Keycloak handles all DE authentication. This page covers common administration tasks:
@@ -19,11 +19,12 @@ configured for the DE realm. The key clients are:
 | Client | ID variable | Secret variable | Used by |
 |---|---|---|---|
 | DE (terrain) | `keycloak_client_id` | `keycloak_client_secret` | [terrain](/services/terrain.md) (user token validation, API calls) |
-| VICE services | `keycloak_vice_client_id` | `keycloak_vice_client_secret` | [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), [jex-adapter](/services/jex-adapter.md), job-status-\*, and most Go services |
+| VICE services | `keycloak_vice_client_id` | `keycloak_vice_client_secret` | [app-exposer](/services/app-exposer.md), [async-tasks](/services/async-tasks.md), job-status, and most Go services |
 | DE admin | `keycloak_admin_client_id` | `keycloak_admin_client_secret` | terrain admin API calls to Keycloak |
 | VICE API | `vice_api_keycloak_client_id` | `vice_api_keycloak_client_secret` | [vice-operator](/services/vice-operator.md) API authentication |
 | VICE operator | `vice_operator_keycloak_client_id` | `vice_operator_keycloak_client_secret` | vice-operator internal auth |
 | Portal/formation | `formation_keycloak_client_id` | `formation_keycloak_client_secret` | [portal-conductor](/services/portal-conductor.md) |
+| Grafana | `grafana_keycloak_client_id` | `grafana_keycloak_client_secret` | [Grafana](/infrastructure/grafana.md) login, when `grafana_external_access` is on |
 
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.
@@ -43,10 +44,11 @@ The role (see `ansible/roles/keycloak_install/tasks/main.yml`):
 - Creates the `keycloak_namespace` namespace (default: `keycloak`) and a `dbuser` Secret
   from `keycloak_db_username` / `keycloak_db_password`; the database host is the first
   member of the `[dbms]` inventory group — see [PostgreSQL](/infrastructure/postgresql.md).
-- Provisions the `kc-tls` certificate via cert-manager. With
-  `cert_manager_provider: selfsigned` it first creates a `kc-selfsigned-ca` CA Certificate
-  and a `kc-ca-issuer` Issuer; with `letsencrypt` it issues `kc-tls` for
-  `keycloak_hostname` from the Let's Encrypt ClusterIssuer. Durations come from
+- Provisions the `kc-tls` certificate via cert-manager, per `keycloak_tls_provider` (default
+  `cert_manager_provider`). With `selfsigned` it first creates a `kc-selfsigned-ca` CA
+  Certificate and a `kc-ca-issuer` Issuer; with `letsencrypt` it issues `kc-tls` for
+  `keycloak_hostname` from the Let's Encrypt ClusterIssuer; with `external` it writes
+  `keycloak_cert_pem` and `keycloak_cert_key_pem` into the `kc-tls` Secret. Durations come from
   `keycloak_cert_duration` (1 year) and `keycloak_cert_renew_before` — see
   [Certificate Management](/playbooks/certificate-management.md).
 - Deploys a single-replica Deployment running
@@ -171,11 +173,18 @@ to determine which services to restart.
 | `vice_api_keycloak_client_secret` | `vice_api_keycloak_client_id` | app-exposer, vice-operator |
 | `vice_operator_keycloak_client_secret` | `vice_operator_keycloak_client_id` | vice-operator |
 | `formation_keycloak_client_secret` | `formation_keycloak_client_id` | portal-conductor |
+| `grafana_keycloak_client_secret` | `grafana_keycloak_client_id` | grafana (see note below) |
 
 > **Note:** The `keycloak_vice_client_secret` is included in the shared `jobservices.yml`
 > config file which is deployed to many services, but only app-exposer actually reads it.
 > You only need to restart services that consume the credentials — not every service that
 > receives the config file.
+
+> **Note:** The Grafana secret is not pushed by `configure-services`. Re-run
+> `grafana.yml` to update the `grafana-oauth` Secret, then
+> `kubectl -n grafana rollout restart deployment/grafana`: Grafana reads the secret from an
+> environment variable at startup, and the Helm release alone won't restart the pod when
+> only the Secret changed.
 
 Example restart for `keycloak_client_secret`:
 
@@ -329,6 +338,30 @@ curl -s -X POST \
   "$KEYCLOAK_URL/auth/admin/realms/$REALM/users/$USER_ID/logout"
 ```
 
+### How long a session lasts
+
+Users being logged out sooner than they expect is a realm setting, not a DE one — sonora
+has no session configuration of its own. Two values govern it, both set by
+`keycloak_config`:
+
+| Variable | Realm field | Default | Effect |
+| --- | --- | --- | --- |
+| `keycloak_config_sso_session_idle_timeout` | `ssoSessionIdleTimeout` | 1800 (30 min) | ends a session left idle this long |
+| `keycloak_config_sso_session_max_lifespan` | `ssoSessionMaxLifespan` | 36000 (10 h) | caps a session however active it is |
+
+The defaults are Keycloak's own, so an environment that sets neither behaves exactly as it
+did before the variables existed. The local deployment raises them to 8 and 24 hours.
+
+The five-minute `accessTokenLifespan` is not what users experience: sonora refreshes that
+token against the session above, so the idle timeout is what they notice. Changing either
+value affects new logins only — sessions already open keep the timeouts they were created
+with, so test by logging out and back in.
+
+If logouts happen while someone is actively working, or after roughly five minutes, this
+is the wrong lever: that means the token refresh itself is failing. Realm event logging is
+off by default, so turn on `eventsEnabled` and look for failing `REFRESH_TOKEN` grants
+before changing timeouts.
+
 ## 7. Keycloak certificate expiry
 
 Keycloak itself has a TLS certificate managed by cert-manager. If it expires, Keycloak
@@ -388,3 +421,5 @@ that user. End the impersonation by logging out of the DE or signing back in as 
 [2] `ansible/roles/keycloak_install/tasks/main.yml` — role that deploys Keycloak (namespace, certs, Deployment, Gateway, admin bootstrap).
 [3] `ansible/kubernetes.yml` — runs the `keycloak_install` role under the `keycloak` tag.
 [4] `ansible/roles/common/defaults/main.yml` — default `keycloak_version` and certificate duration variables.
+[5] `ansible/roles/keycloak_config/defaults/main.yml` — realm settings, including the SSO session timeouts.
+[6] `ansible/roles/keycloak_config/tasks/main.yml` — configures the realm keycloak_install leaves empty.

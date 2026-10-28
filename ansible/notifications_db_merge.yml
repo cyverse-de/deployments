@@ -1,0 +1,29 @@
+---
+# Moves the contents of the standalone notifications database into the DE
+# database. The schema is created by de-database migrations 000055 and 000056;
+# this playbook moves the rows.
+#
+# ORDERING: run this while the service is still pointed at the standalone
+# database, then repoint it. The username-qualification change and the
+# repointing must ship in the SAME deploy:
+#
+#   1. apply de-database migrations 000055 and 000056
+#   2. run this playbook -- the service keeps serving from the standalone
+#      database, which is left untouched
+#   3. deploy notifications with username qualification AND
+#      notifications.db.uri pointed at the DE database, together
+#   4. run this playbook again to sweep up anything recorded between 2 and 3;
+#      it is idempotent, so only the gap rows are added
+#
+# Qualification cannot ship earlier than the repoint: against the standalone
+# database, whose users rows are bare, a qualifying service looks up a username
+# that isn't there, creates a second row, and every listing joins through it --
+# users' existing notifications vanish from their lists. It cannot ship later
+# either, because a service writing bare usernames into the DE database inserts
+# them into the users table the rest of the DE keys off.
+- name: Move the notifications database into the DE database
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  roles:
+    - role: notifications_db_merge

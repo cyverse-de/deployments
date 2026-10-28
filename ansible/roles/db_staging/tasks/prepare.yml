@@ -3,13 +3,17 @@
   block:
     - name: create connection user
       community.postgresql.postgresql_user:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         login_db: "{{ pg_db }}"
         name: "{{ dbms_connection_user }}"
         password: "{{ dbms_connection_pass }}"
+        # Named explicitly because the module reconciles only the attributes it
+        # is given: a role left over without LOGIN keeps its password set and
+        # still cannot connect. See the keycloak role for the failure it causes.
+        role_attr_flags: LOGIN
       when: create_user is defined and create_user
       tags:
         - update-databases

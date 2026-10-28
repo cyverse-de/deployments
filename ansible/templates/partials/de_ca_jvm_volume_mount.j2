@@ -1,0 +1,7 @@
+{# Include at column 0, alongside de_ca_volume_mount.j2, in a JVM service's
+   volumeMounts: list. #}
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca-jvm
+              mountPath: {{ de_ca_truststore_dir }}
+              readOnly: true
+{% endif %}

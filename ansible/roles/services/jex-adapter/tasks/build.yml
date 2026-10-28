@@ -1,9 +1,0 @@
----
-- name: build the jex-adapter image
-  ansible.builtin.include_role:
-    name: build-service
-    tasks_from: main
-  vars:
-    project_name: jex-adapter
-  tags:
-    - build

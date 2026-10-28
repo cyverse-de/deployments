@@ -27,31 +27,20 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
         - name: subscriptions-configs
           secret:
             secretName: subscriptions-configs
             items:
               - key: jobservices.yml
                 path: service.yml
-        - name: nats-client-tls
-          secret:
-            secretName: nats-client-tls
-        - name: nats-services-creds
-          secret:
-            secretName: nats-services-creds
-            items:
-              - key: services.creds
-                path: services.creds
-              - key: services.creds
-                path: service.creds
-        - name: nats-configuration
-          emptyDir: {}
       containers:
         - name: subscriptions
           image: harbor.cyverse.org/de/subscriptions
           args:
             - "--log-level=debug"
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
@@ -62,11 +51,6 @@ spec:
                 secretKeyRef:
                   name: configs
                   key: QMS_DATABASE_URI
-            - name: QMS_NATS_CLUSTER
-              valueFrom:
-                secretKeyRef:
-                  name: configs
-                  key: NATS_URLS
             - name: QMS_USERNAME_SUFFIX
               valueFrom:
                 secretKeyRef:
@@ -92,17 +76,9 @@ spec:
               memory: "256Mi"
               ephemeral-storage: "1Gi"
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
             - name: subscriptions-configs
               mountPath: /etc/cyverse/de/configs
-              readOnly: true
-            - name: nats-client-tls
-              mountPath: /etc/nats/tls
-              readOnly: true
-            - name: nats-services-creds
-              mountPath: /etc/nats/creds
-              readOnly: true
-            - name: nats-configuration
-              mountPath: /etc/cyverse/de/env
               readOnly: true
           ports:
             - name: listen-port

@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/openldap","tag":"harbor.cyverse.org/de/openldap:main@sha256:4bff9cf4b38751d757d8fb419a15470bbfdbf7314163a63ec3589a3f67703c63"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/openldap","tag":"harbor.cyverse.org/de/openldap:main@sha256:91d182e416d6adbe8157ea2887c26e8c7b52c5d8e9c1f6d7953a38fc77dc9334"}]}

@@ -1,0 +1,55 @@
+-- The grafana schema in the DE database: everything the dashboards need from the
+-- user portal database to split usage into University of Arizona and other
+-- users. Nothing is created in the portal database, so its migrations can never
+-- be blocked by these objects; if its schema changes, the foreign tables below
+-- stop matching and only the dashboard panels that use grafana.ua_users fail.
+--
+-- The objects are owned by the admin role this runs as, and the user mapping
+-- belongs to that role too. A view reads foreign tables through its owner's user
+-- mapping, so {{ grafana_ro_db_user }} can select from the view without being
+-- able to read the foreign tables -- and the email addresses in them -- directly.
+--
+-- The view and foreign tables are dropped and recreated on every run so a
+-- change to the column lists or the affiliation rule is always applied.
+
+CREATE SCHEMA IF NOT EXISTS grafana;
+
+CREATE SERVER IF NOT EXISTS grafana_portal
+  FOREIGN DATA WRAPPER postgres_fdw
+  OPTIONS (host %(host)s, port %(port)s, dbname %(dbname)s);
+
+ALTER SERVER grafana_portal
+  OPTIONS (SET host %(host)s, SET port %(port)s, SET dbname %(dbname)s);
+
+CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
+  SERVER grafana_portal
+  OPTIONS (user %(user)s, password %(password)s);
+
+ALTER USER MAPPING FOR CURRENT_USER
+  SERVER grafana_portal
+  OPTIONS (SET user %(user)s, SET password %(password)s);
+
+DROP VIEW IF EXISTS grafana.ua_users;
+DROP FOREIGN TABLE IF EXISTS grafana.portal_users, grafana.portal_email_addresses;
+
+CREATE FOREIGN TABLE grafana.portal_users (
+  id integer NOT NULL,
+  username varchar(150) NOT NULL
+) SERVER grafana_portal OPTIONS (schema_name 'public', table_name 'account_user');
+
+CREATE FOREIGN TABLE grafana.portal_email_addresses (
+  user_id integer NOT NULL,
+  email varchar(254) NOT NULL,
+  verified boolean NOT NULL
+) SERVER grafana_portal OPTIONS (schema_name 'public', table_name 'account_emailaddress');
+
+-- Portal usernames are unqualified; DE usernames carry the uid domain.
+CREATE VIEW grafana.ua_users AS
+SELECT DISTINCT u.username || '@' || %(uid_domain)s AS username
+  FROM grafana.portal_users u
+  JOIN grafana.portal_email_addresses e ON e.user_id = u.id
+ WHERE e.verified
+   AND (lower(e.email) LIKE %(domain_pattern)s OR lower(e.email) LIKE %(subdomain_pattern)s);
+
+GRANT USAGE ON SCHEMA grafana TO {{ grafana_ro_db_user }};
+GRANT SELECT ON grafana.ua_users TO {{ grafana_ro_db_user }};

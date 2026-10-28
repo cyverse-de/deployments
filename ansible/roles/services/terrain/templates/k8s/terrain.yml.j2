@@ -33,6 +33,8 @@ spec:
 {% endif %}
       restartPolicy: Always
       volumes:
+{% include 'partials/de_ca_volume.j2' %}
+{% include 'partials/de_ca_jvm_volume.j2' %}
         - name: signing-keys
           secret:
             secretName: signing-keys
@@ -45,18 +47,7 @@ spec:
             items:
               - key: terrain.properties
                 path: terrain.properties
-        - name: nats-client-tls-pkcs8
-          secret:
-            secretName: nats-client-tls-pkcs8
-            items:
-              - key: tls.pkcs8
-                path: tls.pkcs8
-        - name: nats-client-tls
-          secret:
-            secretName: nats-client-tls
-        - name: nats-services-creds
-          secret:
-            secretName: nats-services-creds
+{% include 'partials/de_ca_jvm_init_container.j2' %}
       containers:
         - name: terrain
           image: harbor.cyverse.org/de/terrain
@@ -73,6 +64,8 @@ spec:
             - --config
             - /etc/iplant/de/terrain.properties
           volumeMounts:
+{% include 'partials/de_ca_volume_mount.j2' %}
+{% include 'partials/de_ca_jvm_volume_mount.j2' %}
             - name: signing-keys
               mountPath: /etc/iplant/crypto/signing_key
               readOnly: true
@@ -82,26 +75,23 @@ spec:
             - name: terrain-configs
               mountPath: /etc/iplant/de
               readOnly: true
-            - name: nats-client-tls-pkcs8
-              mountPath: /etc/nats/tls/pkcs8
-              readOnly: true
-            - name: nats-client-tls
-              mountPath: /etc/nats/tls
-              readOnly: true
-            - name: nats-services-creds
-              mountPath: /etc/nats/creds
-              readOnly: true
           env:
+{% include 'partials/de_ca_env.j2' %}
             - name: TZ
               valueFrom:
                 configMapKeyRef:
                   name: timezone
                   key: timezone
-            - name: JAVA_TOOL_OPTIONS
+            - name: JAVA_TOOL_OPTIONS_BASE
               valueFrom:
                 configMapKeyRef:
                   name: java-tool-options
                   key: high
+            # The image's AOT cache holds code generated on an AVX-512 build host, which crashes the
+            # JVM with SIGILL on the prod workers' pre-AVX2 CPUs. AOTMode=off makes the JVM ignore the
+            # -XX:AOTCache flag in the image's ENTRYPOINT.
+            - name: JAVA_TOOL_OPTIONS
+              value: "$(JAVA_TOOL_OPTIONS_BASE) -XX:AOTMode=off"
             - name: OTEL_TRACES_EXPORTER
               valueFrom:
                 secretKeyRef:
@@ -115,28 +105,26 @@ spec:
           ports:
             - name: listen-port
               containerPort: 60000
+          # The startup probe gates the other two, so they need no delay of their own.
           livenessProbe:
             httpGet:
               path: /
               port: 60000
-            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 10
           startupProbe:
             httpGet:
               path: /
               port: 60000
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            timeoutSeconds: 10
-            failureThreshold: 30
+            periodSeconds: 2
+            timeoutSeconds: 5
+            failureThreshold: 150
           readinessProbe:
             httpGet:
               path: /
               port: 60000
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            timeoutSeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
 ---
 apiVersion: v1
 kind: Service

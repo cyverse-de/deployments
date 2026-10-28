@@ -1,0 +1,4 @@
+---
+ai_sandboxes_ui_enabled: false
+ai_sandboxes_ui_replicas: 1
+ai_sandboxes_ui_pod_anti_affinity: true

@@ -1,0 +1,22 @@
+---
+# A database's locale provider is fixed at creation time, so postgresql_db
+# cannot reconcile one that predates this role — it aborts with "Changing
+# ICU_LOCALE is not supported", which reads like a permissions or version
+# problem rather than "this database is stale". Say so before any work starts.
+#
+# Once per database server: Keycloak's may not be on the same one, and a
+# database absent from the server being queried just does not come back.
+#
+# Deliberately untagged, so it inherits only the play's tags and runs when the
+# postgresql_db tasks it guards do. Those tasks carry no update-databases tag,
+# so a --tags update-databases run never touches a locale provider; tagging
+# this check would abort migration-only runs over a mismatch nothing in scope
+# was going to attempt to reconcile. delegate_to lives in the included file,
+# since an include cannot carry it.
+- name: Check the locale provider on any pre-existing DE databases
+  ansible.builtin.include_tasks: preflight_server.yml
+  when: create_dbs is defined and create_dbs
+  loop: "{{ postgresql_init_preflight_targets }}"
+  loop_control:
+    loop_var: postgresql_init_target
+    label: "{{ postgresql_init_target.host }}"

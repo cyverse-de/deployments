@@ -1,0 +1,39 @@
+---
+# Remove a running discoenv-users deployment from the cluster.
+#
+# discoenv-users has been retired: no deployed DE service consumes its NATS
+# lookups, and the service role has been removed from this repo, so
+# deploy_it.yml and kubernetes.yml no longer manage it. This playbook deletes
+# what an earlier deploy left behind: the discoenv-users Deployment and the
+# discoenv-users-configs secret (the service creates no Kubernetes Service
+# object). Idempotent and safe to re-run — deleting resources that are
+# already gone succeeds silently.
+#
+# Run: ansible-playbook -i <inventory> discoenv_users_cleanup.yml
+
+- name: Clean up the discoenv-users deployment
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ns default from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  tasks:
+    - name: Remove the discoenv-users Deployment
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        name: discoenv-users
+        namespace: "{{ ns }}"
+
+    - name: Remove the discoenv-users-configs secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: discoenv-users-configs
+        namespace: "{{ ns }}"

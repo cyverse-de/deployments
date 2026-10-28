@@ -11,7 +11,7 @@ Existing prose docs (`ansible/docs/*.md`, `ansible/BUILD_DEPLOY.md`,
 `notes/*.md`) can be converted into concept pages under `wiki/`. Migration is
 **copy, not move**: the original stays in place and the wiki page's
 `resource` field points back at it as the canonical source.
-`wiki/infrastructure/postgresql.md`, `wiki/infrastructure/nats.md`, and
+`wiki/infrastructure/postgresql.md`, `wiki/infrastructure/rabbitmq.md`, and
 `wiki/playbooks/build-and-deploy.md` are worked examples of this conversion.
 
 ## When to Use

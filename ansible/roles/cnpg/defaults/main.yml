@@ -1,0 +1,51 @@
+---
+# CloudNativePG operator. Installed from the release manifest rather than the
+# Helm chart because it is a single server-side apply with nothing to template.
+cnpg_operator_version: "1.30.0"
+cnpg_operator_namespace: cnpg-system
+cnpg_operator_manifest: "https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/\
+  release-{{ cnpg_operator_version.split('.')[0:2] | join('.') }}/releases/cnpg-{{ cnpg_operator_version }}.yaml"
+
+cnpg_cluster_name: de-db
+cnpg_namespace: "{{ ns }}"
+
+# One instance: a workstation has nothing to fail over to, and CNPG is happy
+# with a single-instance cluster.
+cnpg_instances: 1
+
+# Empty uses the operator's default image for its bundled PostgreSQL version.
+cnpg_image_name: ""
+
+cnpg_storage_size: 10Gi
+# Empty uses the cluster's default StorageClass.
+cnpg_storage_class: ""
+
+# The DE holds ~37 connections at idle across its services, before any analysis
+# runs. PostgreSQL's own default of 100 leaves very little headroom.
+cnpg_max_connections: 200
+cnpg_parameters: {}
+
+cnpg_resources: {}
+
+# Holds the password postgresql_init authenticates with as pg_login_user.
+# enableSuperuserAccess must be on, or the operator blanks the postgres
+# password and nothing can connect as a superuser.
+cnpg_superuser_secret: "{{ cnpg_cluster_name }}-superuser"
+
+# A Service of our own rather than the operator's <cluster>-rw, for two
+# reasons: the name is stable and matches groups['dbms'][0], so the inventory
+# does not have to change when the database moves into the cluster; and we can
+# pin its ClusterIP, which the operator's own Services do not let us do. The
+# pin is what keeps db_login_host a static inventory value — the control
+# machine reaches the database at that address, pods reach it by name.
+cnpg_service_name: db
+cnpg_service_cluster_ip: ""
+
+cnpg_ready_retries: 60
+cnpg_ready_delay: 10
+
+# How long to wait for the control machine to be able to reach the database
+# Service, after the cluster and its endpoint already report ready. This covers
+# kube-proxy programming the rule for a just-created Service, which is quick but
+# not instant and is not reflected in any object's status.
+cnpg_reachable_timeout: 300

@@ -84,10 +84,15 @@ For each selected service the `build-service` role, entirely on localhost:
 
 ## Prerequisites
 
+- **Ansible** on `PATH`, or the repo's uv-managed Ansible: prefix each
+  command with `uv run` (e.g. `uv run ansible-playbook ...`). See
+  `wiki/playbooks/running-ansible.md`.
 - **Docker** with BuildKit and **skaffold** on `PATH`.
 - The service source repos cloned under `source_repo_dir` (run
   `ansible-playbook clone_sources.yml` if missing — no inventory needed).
 - For **push** builds, a `docker login` to the target registry already in place.
+  Harbor runs in OIDC mode: that login needs the CLI secret from the Harbor
+  UI's User Profile page, not an account password.
   A verify-only (`push_images=false`) build needs no login and no registry.
 - An `-i <inventory>` is required even though every task runs locally — the
   play targets `k8s_controllers[0]`. See **Choosing the Inventory** above; some
@@ -106,9 +111,9 @@ For each selected service the `build-service` role, entirely on localhost:
   whole invocation. For different refs, run them separately.
 - **Committing expectations.** The build **never commits** the changed
   descriptor — review and commit `files/<service>.json` yourself.
-- **Looking for the descriptor in a de-releases checkout.** Builds always
-  **write** into the service role's own `files/` dir, regardless of any
-  `build_json_dir` override (that override only affects where *deploys* read).
+- **Looking for the descriptor anywhere but the role.** Builds write it into the
+  service role's own `files/` dir, which is also where deploys read it from.
+  There is no separate releases checkout.
 - **A release tag won't check out.** Usually a stale clone. Builds auto-fetch
   tags, but re-run `clone_sources.yml` (or `git fetch --tags` in the source repo)
   if a tag still won't resolve.

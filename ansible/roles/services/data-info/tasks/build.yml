@@ -5,5 +5,6 @@
     tasks_from: main
   vars:
     project_name: data-info
+    git_ref: "{{ data_info_git_ref }}"
   tags:
     - build

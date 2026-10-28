@@ -4,20 +4,24 @@
   block:
     - name: Create the portal db user
       community.postgresql.postgresql_user:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
         login_db: "{{ pg_db }}"
         name: "{{ portal_db_user }}"
         password: "{{ portal_db_password }}"
+        # Named explicitly because the module reconciles only the attributes it
+        # is given: a role left over without LOGIN keeps its password set and
+        # still cannot connect. See the keycloak role for the failure it causes.
+        role_attr_flags: LOGIN
       when: create_user is defined and create_user
       tags:
         - update-databases
 
     - name: Create the portal database
       community.postgresql.postgresql_db:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -31,7 +35,7 @@
 
     - name: Grant all privileges to the portal user
       community.postgresql.postgresql_privs:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -46,7 +50,7 @@
 
     - name: Grant the pg_read_server_files privilege to the portal user
       community.postgresql.postgresql_query:
-        login_host: "{{groups['dbms'][0]}}"
+        login_host: "{{ db_login_host }}"
         port: "{{pg_listen_port}}"
         login_user: "{{pg_login_user}}"
         login_password: "{{pg_login_password}}"
@@ -58,7 +62,7 @@
     - name: Install extensions for the portal database
       when: install_exts is defined and install_exts
       community.postgresql.postgresql_ext:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         port: "{{ pg_listen_port }}"
         login_user: "{{ pg_login_user }}"
         login_password: "{{ pg_login_password }}"
@@ -85,7 +89,7 @@
     - name: Run portal repo migrations
       ansible.builtin.command: >
         {{ migrate_installed.stdout }}
-        -database "postgresql://{{ portal_db_user }}:{{ portal_db_password }}@{{ groups['dbms'][0] }}:{{ pg_listen_port }}/{{ portal_db_name }}?sslmode=disable"
+        -database "postgresql://{{ portal_db_user }}:{{ portal_db_password }}@{{ db_login_host }}:{{ pg_listen_port }}/{{ portal_db_name }}?sslmode=disable"
         -path "{{ dbs_dir.path }}/portal2/migrations"
         up
       when: migrate is defined and migrate
@@ -104,7 +108,7 @@
 
     - name: Check for the 'Other' record in account_institution_grid
       community.postgresql.postgresql_query:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ portal_db_user }}"
         login_password: "{{ portal_db_password }}"
@@ -123,7 +127,7 @@
     - name: Insert the Other field into the account_institution_grid table
       when: other_result.rowcount == 0
       community.postgresql.postgresql_query:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ portal_db_user }}"
         login_password: "{{ portal_db_password }}"
@@ -134,7 +138,7 @@
 
     - name: Check for records in account_institution_grid
       community.postgresql.postgresql_query:
-        login_host: "{{ groups['dbms'][0] }}"
+        login_host: "{{ db_login_host }}"
         login_port: "{{ pg_listen_port }}"
         login_user: "{{ portal_db_user }}"
         login_password: "{{ portal_db_password }}"
@@ -156,7 +160,7 @@
         create: true
         insertafter: "EOF"
         mode: "0600"
-        line: "{{ groups['dbms'][0] }}:*:*:{{ portal_db_user }}:{{ portal_db_password }}"
+        line: "{{ db_login_host }}:*:*:{{ portal_db_user }}:{{ portal_db_password }}"
       vars:
         user_home: "{{ lookup('env', 'HOME') }}"
       tags:
@@ -167,7 +171,7 @@
       ansible.builtin.command:
         argv:
           - "psql"
-          - "--host={{ groups['dbms'][0] }}"
+          - "--host={{ db_login_host }}"
           - "--port={{ pg_listen_port }}"
           - "--username={{ portal_db_user }}"
           - "--dbname={{ portal_db_name }}"

@@ -1,0 +1,54 @@
+---
+# Remove a running qms deployment from the cluster.
+#
+# QMS has been merged into the subscriptions service, which now serves the
+# /v1 API terrain calls. The service role has been removed from this repo, so
+# deploy_it.yml and kubernetes.yml no longer manage it. This playbook deletes
+# what an earlier deploy left behind: the qms Deployment, its Service, and the
+# qms-configs secret. Idempotent and safe to re-run — deleting resources that
+# are already gone succeeds silently.
+#
+# Order matters. Terrain resolves the QMS API through terrain.qms.base-uri,
+# whose compiled-in default is http://qms, so terrain must already be running
+# with the config that points it at the subscriptions service before this runs:
+#
+#   ansible-playbook -i <inventory> deploy_it.yml --tags subscriptions
+#   ansible-playbook -i <inventory> deploy_it.yml --tags terrain
+#   ansible-playbook -i <inventory> qms_cleanup.yml
+#
+# Run: ansible-playbook -i <inventory> qms_cleanup.yml
+
+- name: Clean up the qms deployment
+  hosts: k8s_controllers[0]
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    # Defaults-only role; pulls in the ns default from common.
+    - common
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  tasks:
+    - name: Remove the qms Deployment
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        name: qms
+        namespace: "{{ ns }}"
+
+    - name: Remove the qms Service
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        name: qms
+        namespace: "{{ ns }}"
+
+    - name: Remove the qms-configs secret
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: qms-configs
+        namespace: "{{ ns }}"

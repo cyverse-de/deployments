@@ -4,7 +4,7 @@ title: General Operations Runbook
 description: Day-to-day DE cluster operations — health checks, restarts, scaling, rollbacks, config pushes, log access, and node maintenance.
 resource: /docs/ops-runbook.md
 tags: [operations, runbook, kubectl, deploy, rollback, logs, health]
-timestamp: 2026-07-20T00:00:00Z
+timestamp: 2026-09-10T00:00:00Z
 ---
 
 Quick reference for day-to-day DE cluster operations. For topic-specific procedures see:
@@ -24,6 +24,10 @@ export VICE_NS=vice-apps
 export DE_HOST=https://<de_hostname>  # from de_hostname in the inventory
 export RABBITMQ_HOST=<rabbitmq-host>  # from rabbitmq_host in the inventory
 ```
+
+Commands on this page assume an Ansible control environment is already set up;
+see [Running the Ansible Playbooks](/playbooks/running-ansible.md) for the uv,
+system-install, and macOS options.
 
 > **Kubeconfig resolution:** `KUBECONFIG` alone does not guarantee which cluster Ansible will
 > target. An inventory's `group_vars` can pin `kubeconfig` explicitly and silently win over
@@ -55,7 +59,7 @@ Keycloak token or admin credentials):
 curl -s $DE_HOST/terrain/admin/status | jq .
 ```
 
-This returns the health of iRODS, JEX (jex-adapter), Apps, the notification agent, and
+This returns the health of iRODS, JEX, Apps, the notification agent, and
 DataCite as seen by Terrain.
 
 ### Check that cert-manager and Traefik are healthy
@@ -65,19 +69,15 @@ kubectl -n cert-manager get pods
 kubectl -n traefik get pods
 ```
 
-### Check NATS and RabbitMQ
+### Check RabbitMQ
 
 ```bash
-# NATS runs in-cluster
-kubectl -n $NS get pods -l de-app=nats
-
 # RabbitMQ runs externally — check via its management interface
 # (rabbitmq_host from the inventory, management port 15672)
 curl -s -u guest:guest http://$RABBITMQ_HOST:15672/api/overview | jq '{rabbitmq_version, cluster_name}'
 ```
 
-See [NATS](/infrastructure/nats.md) and [RabbitMQ](/infrastructure/rabbitmq.md) for details
-on either broker.
+See [RabbitMQ](/infrastructure/rabbitmq.md) for details on the broker.
 
 ### Check Argo (batch job execution)
 
@@ -105,7 +105,7 @@ To restart all DE services at once (e.g., after a config push):
 kubectl -n $NS rollout restart deployment --all
 ```
 
-> **Note:** Services with `replicas: 1` (e.g., `job-status-recorder`) will have a brief
+> **Note:** Services with `replicas: 1` (e.g., `vice-operator`) will have a brief
 > downtime during the restart. Any AMQP messages delivered during that window are safe —
 > they will be requeued by RabbitMQ and consumed when the service comes back up, assuming
 > the queue's `x-dead-letter-exchange` is configured.
@@ -160,12 +160,11 @@ git -C /path/to/deployments checkout HEAD~1 -- \
 ansible-playbook -i /path/to/inventory deploy_it.yml --tags <service>
 ```
 
-> **`build_json_dir` caveat:** Deploys read descriptors from `build_json_dir`, which
-> inventories may override to a separate `de-releases/builds` checkout (QA does this).
-> If your environment uses that override, restoring the file under `roles/services/` has
-> no effect on the deploy — you also need to update the descriptor in that separate
-> checkout. Check `build_json_dir` in your inventory's group_vars if the rollback doesn't
-> seem to take effect.
+> **Commit the restored descriptor.** Deploys read it from `build_json_dir`, which
+> resolves to the same `roles/services/<service>/files/` directory you just edited, so a
+> local rollback takes effect immediately. It will be undone the next time CI builds that
+> service, though — CI commits the new descriptor to `main` — so a rollback meant to stick
+> has to be committed here too.
 
 ## 5. Deploy a single service update
 

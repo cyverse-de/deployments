@@ -43,7 +43,21 @@
             targetPort: 60000
             nodePort: "{{ terrain_nodeport }}"
 
-- name: Add a job-status-listener nodeport
+# The retired service's NodePort must go away before the new one is created;
+# two Services can't hold the same nodePort. Removable once all deployments
+# have rolled past the job-status merge release.
+- name: Remove the retired job-status-listener nodeport
+  delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Service
+    namespace: "{{ ns }}"
+    name: job-status-listener-svc-nodeport
+
+- name: Add a job-status nodeport
   delegate_to: localhost
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
@@ -53,14 +67,14 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: "job-status-listener-svc-nodeport"
+        name: "job-status-svc-nodeport"
         namespace: "{{ ns }}"
       spec:
         type: NodePort
         selector:
-          de-app: job-status-listener
+          de-app: job-status
         ports:
           - name: http
             port: 80
             targetPort: 60000
-            nodePort: "{{ job_status_listener_nodeport }}"
+            nodePort: "{{ job_status_nodeport }}"

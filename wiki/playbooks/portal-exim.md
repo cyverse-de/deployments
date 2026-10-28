@@ -35,7 +35,10 @@ the manifest against the cluster selected by `kubeconfig`.
 The container is configured entirely through environment variables from the
 inventory (defaults in `roles/common/defaults/main.yml` are placeholders):
 
-* `exim_smarthost` — upstream relay in `host:port` form.
+* `exim_smarthost` — upstream relay, as an exim host list. A single colon
+  separates hosts, so a port needs a second one: `host::port`. Writing
+  `host:25` silently appends a bogus second host named `25`, which exim
+  resolves to `0.0.0.25` and tries on failover.
 * `exim_password` — smarthost credential.
 * `exim_allowed_senders` — colon-separated CIDRs allowed to relay; the role
   prepends `k8s_pods_cidr` and `k8s_services_cidr` so in-cluster pods and

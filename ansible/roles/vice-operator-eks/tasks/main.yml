@@ -1,4 +1,23 @@
 ---
+- name: validate eks_cert_provider
+  ansible.builtin.assert:
+    that: eks_cert_provider in ['letsencrypt', 'external']
+    fail_msg: >-
+      eks_cert_provider must be 'letsencrypt' or 'external',
+      got '{{ eks_cert_provider }}'.
+
+- name: validate external cert file paths
+  when: eks_cert_provider == 'external'
+  ansible.builtin.assert:
+    that:
+      - eks_external_cert_file | length > 0
+      - eks_external_key_file | length > 0
+    fail_msg: >-
+      eks_cert_provider is 'external' but eks_external_cert_file
+      is '{{ eks_external_cert_file }}' and eks_external_key_file
+      is '{{ eks_external_key_file }}'. Both must be non-empty paths
+      to PEM files on the Ansible controller.
+
 - delegate_to: localhost
   environment:
     KUBECONFIG: "{{ kubeconfig }}"

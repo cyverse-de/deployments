@@ -1,0 +1,67 @@
+---
+- name: Stage the notification rows inside the de database
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Refuse to stage into a schema we should not drop
+      ansible.builtin.assert:
+        that:
+          - notifications_db_merge_staging_schema is match('^[a-z_][a-z0-9_]*$')
+          - notifications_db_merge_staging_schema not in ['public', 'metadata', 'permissions']
+        fail_msg: >
+          notifications_db_merge_staging_schema must be a plain lowercase identifier
+          and must not name an existing DE schema; the staging step drops it.
+
+    - name: Create the staging schema in the de database
+      environment:
+        PGPASSWORD: "{{ dbms_connection_pass }}"
+      ansible.builtin.shell:
+        cmd: >
+          psql
+          --host={{ db_login_host }}
+          --port={{ pg_listen_port }}
+          --username={{ dbms_connection_user }}
+          --dbname={{ de_db_name }}
+          --set=ON_ERROR_STOP=1
+          --set=staging={{ notifications_db_merge_staging_schema }}
+          --file=-
+        stdin: "{{ lookup('ansible.builtin.file', 'staging_schema.sql') }}"
+      changed_when: true
+
+    # Streamed rather than restored from the dump: pg_dump qualifies every
+    # object as "public", and rewriting that to another schema means editing a
+    # file that also contains the jsonb payloads.
+    - name: Stream the notification rows into the staging schema
+      environment:
+        PGPASSWORD: "{{ dbms_connection_pass }}"
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          psql --host={{ db_login_host }} --port={{ pg_listen_port }} \
+               --username={{ dbms_connection_user }} --dbname={{ notifications_db_name }} \
+               --set=ON_ERROR_STOP=1 \
+               -c "\copy (SELECT * FROM {{ item }}) TO STDOUT WITH (FORMAT csv)" \
+          | psql --host={{ db_login_host }} --port={{ pg_listen_port }} \
+                 --username={{ dbms_connection_user }} --dbname={{ de_db_name }} \
+                 --set=ON_ERROR_STOP=1 \
+                 -c "\copy {{ notifications_db_merge_staging_schema }}.{{ item }} FROM STDIN WITH (FORMAT csv)"
+        executable: /bin/bash
+      changed_when: true
+      loop:
+        - users
+        - notification_types
+        - notifications
+
+    - name: Analyze the staged tables
+      community.postgresql.postgresql_query:
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+        login_db: "{{ de_db_name }}"
+        query: "ANALYZE {{ notifications_db_merge_staging_schema }}.{{ item }}"
+      changed_when: false
+      loop:
+        - users
+        - notification_types
+        - notifications

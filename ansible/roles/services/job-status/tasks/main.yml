@@ -1,0 +1,62 @@
+---
+- delegate_to: localhost
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  block:
+    - name: create the job-status-configs secret
+      run_once: true
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: job-status-configs
+            namespace: "{{ ns }}"
+          data:
+            job-status.yml: "{{ lookup('template', 'job-status.yml.j2') | b64encode }}"
+      when: load_configs is undefined or (load_configs | bool)
+
+    # job-status replaced the job-status-listener/recorder/to-apps-adapter
+    # services; clean up their leftovers in existing clusters. Removable once
+    # all deployments have rolled past the merge release.
+    - name: Remove the retired job-status pipeline deployments
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ ns }}"
+        name: "{{ item }}"
+      loop:
+        - job-status-listener
+        - job-status-recorder
+        - job-status-to-apps-adapter
+
+    - name: Remove the retired job-status-listener service
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Service
+        namespace: "{{ ns }}"
+        name: job-status-listener
+
+    - name: Remove the retired job-status pipeline config secrets
+      run_once: true
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ns }}"
+        name: "{{ item }}"
+      loop:
+        - job-status-listener-configs
+        - job-status-recorder-configs
+        - job-status-to-apps-adapter-configs
+
+    - ansible.builtin.include_role:
+        name: deploy-service
+        tasks_from: main
+      vars:
+        project_name: job-status

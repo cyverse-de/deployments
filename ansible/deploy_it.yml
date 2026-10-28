@@ -5,6 +5,8 @@
   gather_facts: false
   become: false
   roles:
+    - role: services/ai-sandboxes-ui
+      tags: ai-sandboxes-ui
     - role: services/maintenance-page
       tags: maintenance-page
     - role: services/analyses
@@ -21,34 +23,18 @@
       tags: clockwork
     - role: services/data-info
       tags: data-info
-    - role: services/de-mailer
-      tags: de-mailer
     - role: services/de-webhooks
       tags: de-webhooks
     - role: services/dewey
       tags: dewey
-    - role: services/discoenv-analyses
-      tags: discoenv-analyses
-    - role: services/discoenv-users
-      tags: discoenv-users
-    - role: services/email-requests
-      tags: email-requests
-    - role: services/event-recorder
-      tags: event-recorder
     - role: services/info-typer
       tags: info-typer
     - role: services/infosquito2
       tags: infosquito2
     - role: services/iplant-groups
       tags: iplant-groups
-    - role: services/jex-adapter
-      tags: jex-adapter
-    - role: services/job-status-listener
-      tags: job-status-listener
-    - role: services/job-status-recorder
-      tags: job-status-recorder
-    - role: services/job-status-to-apps-adapter
-      tags: job-status-to-apps-adapter
+    - role: services/job-status
+      tags: job-status
     - role: services/kifshare
       tags: kifshare
     - role: services/metadata
@@ -59,26 +45,16 @@
       tags: openldap-docker
     - role: services/permissions
       tags: permissions
-    - role: services/qms
-      tags: qms
-    - role: services/qms-adapter
-      tags: qms-adapter
     - role: services/requests
       tags: requests
     - role: services/resource-usage-api
       tags: resource-usage-api
-    - role: services/data-usage-api
-      tags: data-usage-api
     - role: services/subscriptions
       tags: subscriptions
-    - role: services/timelord
-      tags: timelord
     - role: services/user-info
       tags: user-info
     - role: services/vice-default-backend
       tags: vice-default-backend
-    - role: services/vice-status-listener
-      tags: vice-status-listener
     - role: services/search
       tags: search
     - role: services/dashboard-aggregator
@@ -97,3 +73,52 @@
       tags: formation
     - role: services/vice-operator
       tags: vice-operator
+
+  # Runs whatever the roles above left behind, including after a failure, so a
+  # broken service is reported alongside the state of everything else rather
+  # than as an abort partway down the list.
+  post_tasks:
+    # With deploy_wait: false the roles only applied their manifests. One wait
+    # covering every Deployment at once replaces the per-service waits they
+    # would otherwise have blocked on individually.
+    - name: Wait for the deployments to become available
+      delegate_to: localhost
+      when: not (deploy_wait | default(true) | bool)
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ ns }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: "{{ deploy_wait_timeout | default(900) }}"
+      register: deploy_wait_result
+      failed_when: false
+
+    - name: Report deployments that never became available
+      delegate_to: localhost
+      when:
+        - not (deploy_wait | default(true) | bool)
+        - deploy_wait_result.resources is defined
+      vars:
+        # availableReplicas is omitted entirely while a Deployment has none,
+        # which is the state worth naming after the wait has already timed out.
+        unavailable: >-
+          {{ deploy_wait_result.resources
+             | selectattr('status.availableReplicas', 'undefined')
+             | map(attribute='metadata.name') | list }}
+      ansible.builtin.debug:
+        msg: >-
+          Deployments with no available replicas:
+          {{ unavailable | join(', ') if unavailable | length > 0 else 'none' }}
+
+    - name: Fail if any service failed to deploy
+      delegate_to: localhost
+      when: deploy_failed_services | default([]) | length > 0
+      ansible.builtin.fail:
+        msg: >-
+          {{ deploy_failed_services | length }} service(s) failed to deploy:
+          {{ deploy_failed_services | join(', ') }}.
+          The rest of the list was deployed; re-run with --tags <service> after fixing.

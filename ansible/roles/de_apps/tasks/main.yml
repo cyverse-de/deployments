@@ -1,0 +1,80 @@
+---
+- name: Import the DE app bundles
+  delegate_to: localhost
+  run_once: true
+  # appei uses requests, which reads its CA bundle from the environment rather
+  # than the system trust store. Built as a whole dict so an unset bundle adds
+  # no variable at all — an empty REQUESTS_CA_BUNDLE would be ignored anyway,
+  # but this keeps the environment honest.
+  environment: "{{ {'REQUESTS_CA_BUNDLE': de_apps_ca_bundle}
+                   if de_apps_ca_bundle | length > 0 else {} }}"
+  block:
+    - name: Require the app import variables
+      ansible.builtin.assert:
+        that:
+          - de_apps_server | length > 0
+          - de_apps_username | length > 0
+          - de_apps_password | length > 0
+        fail_msg: >-
+          de_apps_server, de_apps_username, and de_apps_password must be set to import
+          apps. They default to de_hostname and the portal_bootstrap_user credentials,
+          so setting those in the inventory is usually enough.
+
+    - name: Look for the app bundles
+      ansible.builtin.stat:
+        path: "{{ de_apps_bundle_dir }}/{{ item.file }}"
+      loop: "{{ de_apps_bundles }}"
+      loop_control:
+        label: "{{ item.file }}"
+      register: de_apps_bundle_stats
+
+    - name: Require every bundle to exist
+      ansible.builtin.assert:
+        that: de_apps_bundle_stats.results | rejectattr('stat.exists') | list | length == 0
+        fail_msg: >-
+          missing app bundles in {{ de_apps_bundle_dir }}:
+          {{ de_apps_bundle_stats.results | rejectattr('stat.exists')
+             | map(attribute='item.file') | join(', ') }}
+
+    # Everything below goes through the public DE hostname, so this fails early
+    # and clearly when the ingress or DNS is not up yet, rather than as an
+    # authentication error.
+    - name: Wait for terrain to answer on the DE hostname
+      ansible.builtin.uri:
+        url: "https://{{ de_apps_server }}/terrain/"
+        ca_path: "{{ de_apps_ca_bundle if de_apps_ca_bundle | length > 0 else omit }}"
+        status_code: 200
+      register: de_apps_terrain
+      until: de_apps_terrain is succeeded
+      retries: "{{ de_apps_ready_retries }}"
+      delay: "{{ de_apps_ready_delay }}"
+      changed_when: false
+
+    # Caches a token under ~/.config/cyverse/discoenv/appei/<server>, which is
+    # also where an interactive `appei login` puts it. The password goes through
+    # the environment rather than --password so it stays out of the process
+    # table.
+    - name: "Log in to the DE at {{ de_apps_server }} as {{ de_apps_username }}"
+      ansible.builtin.command:
+        cmd: >-
+          uv run --frozen --project {{ de_apps_appei_project }}
+          appei login --server {{ de_apps_server }} --username {{ de_apps_username }}
+      environment:
+        APPEI_PASSWORD: "{{ de_apps_password }}"
+      changed_when: false
+
+    # appei matches by name and version against the target's listings, so
+    # re-running reuses what is already there instead of creating duplicates.
+    - name: "Import app bundles into {{ de_apps_server }}"
+      ansible.builtin.command:
+        cmd: >-
+          uv run --frozen --project {{ de_apps_appei_project }}
+          appei import --server {{ de_apps_server }}
+          --input {{ de_apps_bundle_dir }}/{{ item.file }}
+          {{ '--feature' if item.feature | default(false) | bool
+             else '--publish' if item.publish | default(false) | bool else '' }}
+      loop: "{{ de_apps_bundles }}"
+      loop_control:
+        label: "{{ item.file }}"
+      register: de_apps_import
+      changed_when: "'Importing ' in de_apps_import.stdout"

@@ -1,0 +1,21 @@
+---
+# Restrict the reconciliation to a single node. Empty means every node in the
+# cluster, which is what a single-node deployment wants.
+local_node_prep_node_name: ""
+
+# Labels the DE's scheduling and image-cache logic keys off of. On a
+# multi-node cluster these come from the k0sctl install flags; on a single
+# node there is nowhere else to set them.
+local_node_prep_labels:
+  analysis: "true"
+  vice: "true"
+  batch: "true"
+  gpu: "true"
+
+# Taints to strip. A single node has to run the DE services and the analyses,
+# and no DE service manifest carries a toleration, so the analysis/vice taints
+# would leave every service Pending.
+local_node_prep_remove_taint_keys:
+  - analysis
+  - vice
+  - gpu

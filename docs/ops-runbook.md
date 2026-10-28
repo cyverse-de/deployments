@@ -20,6 +20,10 @@ export DE_HOST=https://<de_hostname>  # from de_hostname in the inventory
 export RABBITMQ_HOST=<rabbitmq-host>  # from rabbitmq_host in the inventory
 ```
 
+Commands here assume an Ansible control environment is already set up. If `ansible-playbook`
+is not on your `PATH`, prefix each command with `uv run` to use the repo's uv-managed Ansible;
+see [Ansible on the control machine](production-release.md#ansible-on-the-control-machine).
+
 > **Kubeconfig resolution:** `KUBECONFIG` alone does not guarantee which cluster Ansible will
 > target. An inventory's `group_vars` can pin `kubeconfig` explicitly and silently win over
 > your exported env var. Before any `ansible-playbook` or `kubectl` command that mutates a
@@ -62,12 +66,9 @@ kubectl -n cert-manager get pods
 kubectl -n traefik get pods
 ```
 
-### Check NATS and RabbitMQ
+### Check RabbitMQ
 
 ```bash
-# NATS runs in-cluster
-kubectl -n $NS get pods -l de-app=nats
-
 # RabbitMQ runs externally — check via its management interface
 # (rabbitmq_host from the inventory, management port 15672)
 curl -s -u guest:guest http://$RABBITMQ_HOST:15672/api/overview | jq '{rabbitmq_version, cluster_name}'
@@ -160,12 +161,11 @@ git -C /path/to/deployments checkout HEAD~1 -- \
 ansible-playbook -i /path/to/inventory deploy_it.yml --tags <service>
 ```
 
-> **`build_json_dir` caveat:** Deploys read descriptors from `build_json_dir`, which
-> inventories may override to a separate `de-releases/builds` checkout (QA does this).
-> If your environment uses that override, restoring the file under `roles/services/` has
-> no effect on the deploy — you also need to update the descriptor in that separate
-> checkout. Check `build_json_dir` in your inventory's group_vars if the rollback doesn't
-> seem to take effect.
+> **Commit the restored descriptor.** Deploys read it from `build_json_dir`, which
+> resolves to the same `roles/services/<service>/files/` directory you just edited, so a
+> local rollback takes effect immediately. It will be undone the next time CI builds that
+> service, though — CI commits the new descriptor to `main` — so a rollback meant to stick
+> has to be committed here too.
 
 ---
 

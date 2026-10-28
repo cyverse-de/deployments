@@ -1,0 +1,6 @@
+{# Include at column 0; indentation assumes a container's volumeMounts: list. #}
+{% if de_ca_bundle_configmap | default('', true) | length > 0 %}
+            - name: de-ca
+              mountPath: {{ de_ca_bundle_mount_path }}
+              readOnly: true
+{% endif %}

@@ -237,6 +237,17 @@
   timeout: 1000
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    grouper_loader_anti_affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: de-app
+                  operator: In
+                  values:
+                    - grouper-loader
+            topologyKey: kubernetes.io/hostname
   kubernetes.core.k8s:
     state: present
     namespace: "{{ ns }}"
@@ -260,16 +271,7 @@
             labels:
               de-app: grouper-loader
           spec:
-            affinity:
-              podAntiAffinity:
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  - labelSelector:
-                      matchExpressions:
-                        - key: de-app
-                          operator: In
-                          values:
-                            - grouper-loader
-                    topologyKey: kubernetes.io/hostname
+            affinity: "{{ grouper_loader_anti_affinity if grouper_loader_pod_anti_affinity | bool else {} }}"
             restartPolicy: Always
             volumes:
               - name: realm-config
@@ -351,6 +353,17 @@
   timeout: 10000
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
+  vars:
+    grouper_ws_anti_affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: de-app
+                  operator: In
+                  values:
+                    - grouper-ws
+            topologyKey: kubernetes.io/hostname
   kubernetes.core.k8s:
     state: present
     namespace: "{{ ns }}"
@@ -374,16 +387,7 @@
             labels:
               de-app: grouper-ws
           spec:
-            affinity:
-              podAntiAffinity:
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  - labelSelector:
-                      matchExpressions:
-                        - key: de-app
-                          operator: In
-                          values:
-                            - grouper-ws
-                    topologyKey: kubernetes.io/hostname
+            affinity: "{{ grouper_ws_anti_affinity if grouper_ws_pod_anti_affinity | bool else {} }}"
             restartPolicy: Always
             volumes:
               - name: realm-config

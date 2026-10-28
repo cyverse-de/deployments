@@ -19,14 +19,18 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt or self-signed CA) | VICE apps inaccessible if Traefik is directly exposed |
 | User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
-| Traefik default TLS | `traefik` | cert-manager self-signed CA (always) | Internal routing breaks |
-| NATS client/server TLS | `prod` | cert-manager self-signed CA (always) | Services using NATS fail to connect |
+| Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
+| Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
+| EKS Traefik TLS (`*.vice_base_domain`) | `traefik` (EKS) | cert-manager LE or externally provisioned (see section 8) | VICE apps on the EKS cluster inaccessible |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
 
 The `cert_manager_provider` inventory variable (derived from `cert_manager_use_letsencrypt`)
-controls the issuer for the DE UI, VICE, portal, and Keycloak certificates. Internal-only
-certificates (Traefik, NATS, portal-conductor) are always self-signed regardless of this
-setting.
+controls the issuer for the DE UI, VICE, portal, AI Discovery Lab, Harbor, Keycloak, and Grafana
+certificates. Each of those endpoints can override it with its own `*_tls_provider` variable
+(`de_tls_provider`, `user_portal_tls_provider`, `vice_tls_provider`, `ai2s_tls_provider`,
+`harbor_tls_provider`, `keycloak_tls_provider`, `grafana_tls_provider`). Internal-only
+certificates (Traefik and portal-conductor) are always self-signed regardless of these
+settings.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
 certificates for the DE UI and VICE are not directly user-facing — HAProxy presents its
@@ -78,8 +82,8 @@ kubectl -n $NS describe certificate <name>
 Look at the `Status.Conditions` section. If `Ready` is `False`, the `Message` field explains why.
 
 > **Note:** Most certificates are in `$NS`, but Keycloak certificates are in the `keycloak`
-> namespace. Use `kubectl -n keycloak get certificates` for those. NATS certificates are
-> named `nats-client-tls` and `nats-server-tls` in `$NS`.
+> namespace and Grafana's are in the `grafana` namespace. Use
+> `kubectl -n keycloak get certificates` or `kubectl -n grafana get certificates` for those.
 
 ### Decode the actual certificate to see expiry
 
@@ -166,7 +170,7 @@ kubectl -n cert-manager logs -l app=cert-manager --since=1h | grep -i "error\|ac
 
 Some deployments use self-signed CAs managed by cert-manager. The CA certificates
 themselves are also managed as cert-manager `Certificate` objects (e.g., `selfsigned-ca` in
-the DE namespace for NATS, `kc-selfsigned-ca` in the keycloak namespace) and have a 1-year
+`kc-selfsigned-ca` in the keycloak namespace) and have a 1-year
 validity (`8766h`).
 
 ### Check the CA certificates
@@ -230,42 +234,7 @@ openssl x509 -enddate -noout -in /etc/ssl/cyverse.combined
 
 ---
 
-## 6. NATS TLS certificates
-
-NATS uses its own client and server TLS certificates. These are cert-manager-managed
-self-signed certificates. To extract them for debugging or out-of-cluster use, see
-[nats.md](nats.md).
-
-If the NATS certificates expire, services that connect to NATS (subscriptions, terrain,
-app-exposer, jex-adapter, discoenv-analyses, discoenv-users, data-usage-api,
-resource-usage-api) will fail to connect. Symptoms: services log TLS
-handshake errors; NATS-dependent operations silently fail.
-
-To renew:
-
-```bash
-kubectl -n $NS delete secret nats-client-tls nats-server-tls
-# cert-manager will reissue; watch progress:
-kubectl -n $NS get certificate | grep nats -w
-```
-
-After renewal, restart all NATS-connected services so they pick up the new certificates:
-
-```bash
-kubectl -n $NS rollout restart \
-  deployment/app-exposer \
-  deployment/data-usage-api \
-  deployment/discoenv-analyses \
-  deployment/discoenv-users \
-  deployment/jex-adapter \
-  deployment/resource-usage-api \
-  deployment/subscriptions \
-  deployment/terrain
-```
-
----
-
-## 7. What to do when a certificate has already expired
+## 6. What to do when a certificate has already expired
 
 If a cert expired and services are already failing:
 
@@ -280,7 +249,7 @@ For HAProxy-managed external certs, follow step 5.
 
 ---
 
-## 8. cert-manager is not renewing automatically
+## 7. cert-manager is not renewing automatically
 
 If a cert is approaching expiry and cert-manager is not renewing it automatically:
 
@@ -308,3 +277,61 @@ If the request is stuck in a failed state, delete it — cert-manager will creat
 ```bash
 kubectl -n $NS delete certificaterequest <name>
 ```
+
+---
+
+## 8. EKS clusters — externally provisioned certificates
+
+The `vice-operator-eks` role (used by `vice-operator-eks.yml`) supports a second certificate
+mode for EKS clusters where the certificate is supplied by an external authority (for example,
+UITS) rather than issued through Let's Encrypt.
+
+### When to use
+
+Set `eks_cert_provider: external` when:
+
+- The organisation's CA team provides the wildcard certificate for the VICE domain.
+- Let's Encrypt is not permitted or Route 53 DNS-01 is not available.
+
+cert-manager is still installed in this mode (it may be needed for internal self-signed
+certificates), but no Let's Encrypt ClusterIssuer or cert-manager Certificate objects are
+created.
+
+### Configuration
+
+Add the following to your EKS inventory's `group_vars`:
+
+```yaml
+eks_cert_provider: external
+eks_external_cert_file: /path/to/uits-cert-chain.pem
+eks_external_key_file: /path/to/uits-private-key.pem
+```
+
+The PEM files must be readable on the Ansible controller at playbook run time. The certificate
+chain file should contain the leaf certificate followed by any intermediate CA certificates.
+
+### How it works
+
+When `eks_cert_provider` is `external`, the role:
+
+1. Installs cert-manager as usual (Helm chart + CRD wait).
+2. **Skips** creation of the Route 53 credentials Secret and the Let's Encrypt ClusterIssuer.
+3. **Skips** creation of the cert-manager `Certificate` object for Traefik.
+4. **Creates** a `kubernetes.io/tls` Secret named `{{ traefik_cert_name }}` (default:
+   `traefik-tls`) in the Traefik namespace, containing the provided cert and key.
+
+Traefik's Helm values already reference `{{ traefik_cert_name }}` as
+`tlsStore.default.defaultCertificate.secretName`, so no Helm value changes are needed — Traefik
+picks up the externally provided certificate the same way it would a cert-manager-issued one.
+
+### Rotating certificates
+
+To rotate the certificate, update the PEM files on the Ansible controller and re-run the
+playbook:
+
+```bash
+ansible-playbook -i /path/to/inventory vice-operator-eks.yml --tags vice-operator-eks
+```
+
+The `kubernetes.core.k8s` task with `state: present` will update the Secret in place. Traefik
+watches its TLS secret and picks up changes automatically.

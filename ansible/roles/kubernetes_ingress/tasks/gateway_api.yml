@@ -4,90 +4,23 @@
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
   block:
-    - name: Define the self-siged CA certificate for the DE
-      when: cert_manager_provider == 'selfsigned'
-      kubernetes.core.k8s:
-        name: "{{ de_tls_ca_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ de_tls_ca_name }}"
-          spec:
-            isCA: true
-            commonName: "{{ de_tls_ca_name }}"
-            secretName: "{{ de_tls_ca_name }}"
-            duration: "{{ de_tls_ca_duration }}"
-            renewBefore: "{{ de_tls_ca_renew_before }}"
-            privateKey:
-              algorithm: ECDSA
-              size: 256
-            issuerRef:
-              name: default-cluster-issuer
-              kind: ClusterIssuer
-              group: cert-manager.io
-
-    - name: Create the local certificate issuer for the DE
-      when: cert_manager_provider == 'selfsigned'
-      kubernetes.core.k8s:
-        name: "{{ de_tls_issuer_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Issuer
-          metadata:
-            name: "{{ de_tls_issuer_name }}"
-          spec:
-            ca:
-              secretName: "{{ de_tls_ca_name }}"
-
-    - name: Create the locally signed TLS certificate for the DE
-      when: cert_manager_provider == 'selfsigned'
-      kubernetes.core.k8s:
-        name: "{{ de_tls_cert_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ de_tls_cert_name }}"
-          spec:
-            secretName: "{{ de_tls_cert_name }}"
-            duration: "{{ de_tls_cert_duration }}"
-            renewBefore: "{{ de_tls_cert_renew_before }}"
-            issuerRef:
-              name: "{{ de_tls_issuer_name }}"
-              kind: Issuer
-            commonName: "{{ de_hostname }}"
-            dnsNames:
-              - localhost
-              - "{{ de_hostname }}"
-
-    - name: Create the TLS certificate for the DE using letsencrypt
-      when: cert_manager_provider == 'letsencrypt'
-      kubernetes.core.k8s:
-        name: "{{ de_tls_cert_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ de_tls_cert_name }}"
-          spec:
-            secretName: "{{ de_tls_cert_name }}"
-            duration: "{{ de_tls_cert_duration }}"
-            renewBefore: "{{ de_tls_cert_renew_before }}"
-            issuerRef:
-              name: "{{ cert_manager_le_issuer_name }}"
-              kind: ClusterIssuer
-            commonName: "{{ de_hostname }}"
-            dnsNames:
-              - "{{ de_hostname }}"
+    - name: Create the TLS certificate for the DE
+      ansible.builtin.include_role:
+        name: tls_certificate
+      vars:
+        tls_certificate_name: "{{ de_tls_cert_name }}"
+        tls_certificate_provider: "{{ de_tls_provider }}"
+        tls_certificate_namespace: "{{ ns }}"
+        tls_certificate_hostnames:
+          - "{{ de_hostname }}"
+        tls_certificate_duration: "{{ de_tls_cert_duration }}"
+        tls_certificate_renew_before: "{{ de_tls_cert_renew_before }}"
+        tls_certificate_issuer_name: "{{ de_tls_issuer_name }}"
+        tls_certificate_ca_name: "{{ de_tls_ca_name }}"
+        tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
+        tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
+        tls_certificate_pem: "{{ de_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ de_tls_cert_key_pem }}"
 
     - name: Define the gateway for the DE
       kubernetes.core.k8s:
@@ -243,7 +176,7 @@
                   request: "24h"
                   backendRequest: "24h"
               - backendRefs:
-                  - name: job-status-listener
+                  - name: job-status
                     port: 80
                 filters:
                   - type: URLRewrite
@@ -359,7 +292,7 @@
                   request: "24h"
                   backendRequest: "24h"
               - backendRefs:
-                  - name: job-status-listener
+                  - name: job-status
                     port: 80
                 filters:
                   - type: URLRewrite
@@ -407,50 +340,24 @@
       # Add new providers to this list as providers are added so that other provider-specific routes aren't overwritten.
       when: gateway_provider not in ["traefik"]
 
-    - name: Create the locally signed TLS certificate for the user portal
-      when: cert_manager_provider == 'selfsigned'
-      kubernetes.core.k8s:
-        name: "{{ user_portal_tls_cert_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ user_portal_tls_cert_name }}"
-          spec:
-            secretName: "{{ user_portal_tls_cert_name }}"
-            duration: "{{ user_portal_tls_cert_duration }}"
-            renewBefore: "{{ user_portal_tls_cert_renew_before }}"
-            issuerRef:
-              name: "{{ de_tls_issuer_name }}"
-              kind: Issuer
-            commonName: "{{ portal_hostname }}"
-            dnsNames:
-              - localhost
-              - "{{ portal_hostname }}"
-
-    - name: Create the TLS certificate for the user portal using letsencrypt
-      when: cert_manager_provider == 'letsencrypt'
-      kubernetes.core.k8s:
-        name: "{{ user_portal_tls_cert_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ user_portal_tls_cert_name }}"
-          spec:
-            secretName: "{{ user_portal_tls_cert_name }}"
-            duration: "{{ user_portal_tls_cert_duration }}"
-            renewBefore: "{{ user_portal_tls_cert_renew_before }}"
-            issuerRef:
-              name: "{{ cert_manager_le_issuer_name }}"
-              kind: ClusterIssuer
-            commonName: "{{ portal_hostname }}"
-            dnsNames:
-              - "{{ portal_hostname }}"
+    # Shares the DE's self-signed chain.
+    - name: Create the TLS certificate for the user portal
+      ansible.builtin.include_role:
+        name: tls_certificate
+      vars:
+        tls_certificate_name: "{{ user_portal_tls_cert_name }}"
+        tls_certificate_provider: "{{ user_portal_tls_provider }}"
+        tls_certificate_namespace: "{{ ns }}"
+        tls_certificate_hostnames:
+          - "{{ portal_hostname }}"
+        tls_certificate_duration: "{{ user_portal_tls_cert_duration }}"
+        tls_certificate_renew_before: "{{ user_portal_tls_cert_renew_before }}"
+        tls_certificate_issuer_name: "{{ de_tls_issuer_name }}"
+        tls_certificate_ca_name: "{{ de_tls_ca_name }}"
+        tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
+        tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
+        tls_certificate_pem: "{{ user_portal_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ user_portal_tls_cert_key_pem }}"
 
     - name: Define the gateway for the user portal
       kubernetes.core.k8s:
@@ -497,90 +404,96 @@
                   - name: user-portal
                     port: 3000
 
-    - name: Define the self-signed CA certificate for VICE
-      when: cert_manager_provider == 'selfsigned'
-      kubernetes.core.k8s:
-        name: "{{ vice_tls_ca_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ vice_tls_ca_name }}"
-          spec:
-            isCA: true
-            commonName: "{{ vice_tls_ca_name }}"
-            secretName: "{{ vice_tls_ca_name }}"
-            duration: "{{ vice_tls_ca_duration }}"
-            renewBefore: "{{ vice_tls_ca_renew_before }}"
-            privateKey:
-              algorithm: ECDSA
-              size: 256
-            issuerRef:
-              name: default-cluster-issuer
-              kind: ClusterIssuer
-              group: cert-manager.io
+    # --- AI Discovery Lab (ai-sandboxes-ui) ---
+    # Gated on ai_sandboxes_ui_enabled because this service is optional;
+    # the hostname gate prevents creating ingress when the operator has
+    # not chosen a public hostname yet.
+    - name: Create the TLS certificate for the AI Discovery Lab
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
+      ansible.builtin.include_role:
+        name: tls_certificate
+      vars:
+        tls_certificate_name: "{{ ai2s_tls_cert_name }}"
+        tls_certificate_provider: "{{ ai2s_tls_provider }}"
+        tls_certificate_namespace: "{{ ns }}"
+        tls_certificate_hostnames:
+          - "{{ ai2s_hostname }}"
+        tls_certificate_duration: "{{ ai2s_tls_cert_duration }}"
+        tls_certificate_renew_before: "{{ ai2s_tls_cert_renew_before }}"
+        tls_certificate_issuer_name: "{{ de_tls_issuer_name }}"
+        tls_certificate_ca_name: "{{ de_tls_ca_name }}"
+        tls_certificate_ca_duration: "{{ de_tls_ca_duration }}"
+        tls_certificate_ca_renew_before: "{{ de_tls_ca_renew_before }}"
+        tls_certificate_pem: "{{ ai2s_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ ai2s_tls_cert_key_pem }}"
 
-    - name: Create the locally signed certificate issuer for VICE
-      when: cert_manager_provider == 'selfsigned'
+    - name: Define the gateway for the AI Discovery Lab
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
       kubernetes.core.k8s:
-        name: "{{ vice_tls_issuer_name }}"
-        namespace: "{{ ns }}"
         state: present
         definition:
-          apiVersion: cert-manager.io/v1
-          kind: Issuer
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: Gateway
           metadata:
-            name: "{{ vice_tls_issuer_name }}"
+            name: ai-sandboxes-ui
+            namespace: "{{ ns }}"
           spec:
-            ca:
-              secretName: "{{ vice_tls_ca_name }}"
+            gatewayClassName: "{{ gateway_class_name }}"
+            listeners:
+              - hostname: "{{ ai2s_hostname }}"
+                name: ai-sandboxes-ui-https
+                port: 8443
+                protocol: HTTPS
+                tls:
+                  certificateRefs:
+                    - kind: Secret
+                      group: ""
+                      name: "{{ ai2s_tls_cert_name }}"
 
-    - name: Create the locally signed TLS certificate for VICE
-      when: cert_manager_provider == 'selfsigned'
+    - name: Define the route for the AI Discovery Lab
+      when:
+        - ai_sandboxes_ui_enabled | bool
+        - ai2s_hostname not in ['', 'replace_me']
       kubernetes.core.k8s:
-        name: "{{ vice_tls_cert_name }}"
-        namespace: "{{ ns }}"
         state: present
         definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
+          apiVersion: gateway.networking.k8s.io/v1
+          kind: HTTPRoute
           metadata:
-            name: "{{ vice_tls_cert_name }}"
+            name: ai-sandboxes-ui
+            namespace: "{{ ns }}"
           spec:
-            secretName: "{{ vice_tls_cert_name }}"
-            duration: "{{ vice_tls_cert_duration }}"
-            renewBefore: "{{ vice_tls_cert_renew_before }}"
-            issuerRef:
-              name: "{{ vice_tls_issuer_name }}"
-              kind: Issuer
-            commonName: "*.{{ ns }}.svc.cluster.local"
-            dnsNames:
-              - localhost
-              - "{{ vice_wildcard_fqdn }}"
+            hostnames:
+              - "{{ ai2s_hostname }}"
+            parentRefs:
+              - name: ai-sandboxes-ui
+            rules:
+              - backendRefs:
+                  - name: ai-sandboxes-ui
+                    port: 80
 
-    - name: Create the TLS certificate for VICE using letsencrypt
-      when: cert_manager_provider == 'letsencrypt'
-      kubernetes.core.k8s:
-        name: "{{ vice_tls_cert_name }}"
-        namespace: "{{ ns }}"
-        state: present
-        definition:
-          apiVersion: cert-manager.io/v1
-          kind: Certificate
-          metadata:
-            name: "{{ vice_tls_cert_name }}"
-          spec:
-            secretName: "{{ vice_tls_cert_name }}"
-            duration: "{{ vice_tls_cert_duration }}"
-            renewBefore: "{{ vice_tls_cert_renew_before }}"
-            issuerRef:
-              name: "{{ cert_manager_le_issuer_name }}"
-              kind: ClusterIssuer
-            commonName: "{{ vice_wildcard_fqdn }}"
-            dnsNames:
-              - "{{ vice_wildcard_fqdn }}"
+    - name: Create the TLS certificate for VICE
+      ansible.builtin.include_role:
+        name: tls_certificate
+      vars:
+        tls_certificate_name: "{{ vice_tls_cert_name }}"
+        tls_certificate_provider: "{{ vice_tls_provider }}"
+        tls_certificate_namespace: "{{ ns }}"
+        tls_certificate_hostnames:
+          - "{{ vice_wildcard_fqdn }}"
+        tls_certificate_duration: "{{ vice_tls_cert_duration }}"
+        tls_certificate_renew_before: "{{ vice_tls_cert_renew_before }}"
+        tls_certificate_issuer_name: "{{ vice_tls_issuer_name }}"
+        tls_certificate_ca_name: "{{ vice_tls_ca_name }}"
+        tls_certificate_ca_duration: "{{ vice_tls_ca_duration }}"
+        tls_certificate_ca_renew_before: "{{ vice_tls_ca_renew_before }}"
+        tls_certificate_selfsigned_common_name: "*.{{ ns }}.svc.cluster.local"
+        tls_certificate_pem: "{{ vice_tls_cert_pem }}"
+        tls_certificate_key_pem: "{{ vice_tls_cert_key_pem }}"
 
     - name: Define the gateway for VICE
       kubernetes.core.k8s:

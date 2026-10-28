@@ -1,3 +1,0 @@
----
-data_usage_api_replicas: 2
-data_usage_api_pod_anti_affinity: true

@@ -56,18 +56,10 @@ none.
 The Docker images referenced by the tools are not copied; they must be
 pullable from the target cluster.
 
-`uv run appei shred-app --server <server> --id <app-uuid>` permanently deletes
-an app, optionally qualified by `--system-id` (default `de`). Deleting an app
-in the UI only sets its `deleted` flag; the row and its tool reference
-survive, which keeps the tool from being deleted. Shredding removes the row
-outright. It cannot be undone — the exported bundle is the only remaining
-copy.
-
-`uv run appei delete-tool --server <server> --id <tool-uuid>` deletes a tool.
-Terrain refuses while any app still uses it, and a soft-deleted app counts, so
-shred the app first. There is no way to make a public tool private again — the
-API has a publish route and no inverse — so delete and re-import is the only
-path back.
+The bundles a deployment imports by default live in
+`ansible/roles/de_apps/files/apps/`, and `ansible/import_apps.yml` imports them
+with the commands above. Export new bundles into that directory to add to the
+set.
 
 `uv run appei logout --server <server>` deletes a cached token.
 

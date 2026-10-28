@@ -1,0 +1,24 @@
+---
+- name: Drop the staging schema
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Remove the staging schema from the de database
+      community.postgresql.postgresql_schema:
+        name: "{{ notifications_db_merge_staging_schema }}"
+        state: absent
+        cascade_drop: true
+        login_db: "{{ de_db_name }}"
+        login_host: "{{ db_login_host }}"
+        login_port: "{{ pg_listen_port }}"
+        login_user: "{{ pg_login_user }}"
+        login_password: "{{ pg_login_password }}"
+      when: not notifications_db_merge_keep_staging
+
+    - name: Note where the rollback dump was left
+      ansible.builtin.debug:
+        msg: >
+          The standalone notifications database is untouched and a dump of it
+          is at {{ notifications_db_merge_dump_file }}. Neither is removed by
+          this playbook; retire them once the service has been cut over and
+          verified.

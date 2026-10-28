@@ -2,6 +2,38 @@
 
 For an overview of the required repositories, CI builds, and the production deployment process, see [docs/index.md](docs/index.md). For building service images from source, see [BUILD_DEPLOY.md](BUILD_DEPLOY.md).
 
+## Running the Playbooks
+
+The playbooks run from a control machine — your workstation, not a cluster node.
+Three ways to get one, all supported; the wiki page
+[Running the Ansible Playbooks](../wiki/playbooks/running-ansible.md) covers them in full.
+
+**The uv-managed project (recommended).** The repo root is a [uv](https://docs.astral.sh/uv/)
+project: `pyproject.toml` declares Ansible plus the `kubernetes` and `psycopg2-binary`
+libraries the `kubernetes.core` and PostgreSQL modules import, and `uv.lock` pins the
+versions. `uv run` syncs the environment on demand, so there is no install step and no
+activation — prefix any command with it:
+
+```bash
+uv run ansible-playbook -i <inventory> kubernetes.yml
+```
+
+It locates the project by walking up from the working directory, so it works unchanged from
+this `ansible/` directory. For a shell where plain `ansible-playbook` works, activate the
+environment instead:
+
+```bash
+uv sync
+source .venv/bin/activate          # bash/zsh; .venv/bin/activate.fish for fish
+```
+
+**A system Ansible install.** Homebrew, `pipx`, or a distribution package. Install
+`kubernetes` and `psycopg2-binary` into the same interpreter Ansible runs under. The bare
+`ansible-playbook` examples throughout this file assume this setup.
+
+**The macOS system Python.** See [docs/production-release.md](../docs/production-release.md)
+for installing the libraries into `/usr/bin/python3` and pointing Ansible at that interpreter.
+
 ## Required Ansible Collections
 
 - community.crypto
@@ -9,7 +41,10 @@ For an overview of the required repositories, CI builds, and the production depl
 - kubernetes.core
 - ansible.posix
 
-These (and the required roles) can be installed with `ansible-galaxy install -r requirements.yml`.
+These (and the required roles) can be installed with `ansible-galaxy install -r requirements.yml`
+(`uv run ansible-galaxy install -r requirements.yml` under the uv project). Note that the `ansible`
+PyPI package the uv project installs is the full distribution rather than `ansible-core`, so it
+already ships all four collections — under uv, that command is only needed for the Galaxy roles.
 
 ## Required Local Tools
 
@@ -33,10 +68,11 @@ ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
 | notifications             | `dbms_connection_user`  | always          | yes        |
 | metadata                  | `dbms_connection_user`  | always          | yes        |
 | grouper                   | `grouper_connection_user` | `grouper` var | no — Grouper initializes its own schema |
-| qms                       | `dbms_connection_user`  | `qms` var       | yes        |
+| qms                       | `dbms_connection_user`  | `qms` var       | yes — migrations live in the `subscriptions` repo |
 | keycloak                  | `keycloak_db_username`  | `keycloak` var  | no — Keycloak manages its own schema |
 | harbor_core, harbor_clair | `harbor_database_user`  | `harbor` var    | no         |
 | portal                    | `portal_db_user`        | `portal` var    | yes        |
+| grafana                   | `grafana_db_user`       | `grafana` var   | no — Grafana manages its own schema |
 
 The `create_user`, `create_dbs`, `install_exts`, and `migrate` variables control whether database users, the databases
 themselves, extensions, and migrations are handled on a given run. These, the per-service enable flags, and the owner
@@ -49,6 +85,15 @@ down clusters according to a YAML configuration file. We're using stacked contro
 node also acts as an etcd member node. Control nodes do not run workloads and do not show up in the `kubectl get nodes`
 command output.
 
+### Local single-node deployment
+
+`kubernetes.yml` assumes it owns the cluster and the nodes: it runs `k0sctl`, reconfigures each node over SSH, and
+installs PostgreSQL on a database host. To deploy onto a cluster that already exists — a single node on a workstation,
+for example — use `local.yml` instead. It does all of its work through the API server, needs no SSH or sudo, and adds
+three roles that stand in for the pieces that normally live outside the cluster: `local_node_prep` (node labels and
+taints), `local_db_endpoint` (a Service for a database running on the node), and `rabbitmq_k8s` (an in-cluster broker).
+See `wiki/playbooks/local-single-node-deployment.md` for the full runbook.
+
 ## OpenLDAP
 
 The DE uses OpenLDAP with an RFC 2307 schema as its user directory by default. If you don't have an existing LDAP
@@ -59,7 +104,8 @@ DE has not been tested with other LDAP schemas.
 
 The DE and CyVerse Data Store both use RabbitMQ as a message bus. The DE uses it for notifications, and the data store
 uses it to push updates to ElasticSearch for indexing. The `rabbitmq.yml` playbook will install and configure RabbitMQ
-on a single node; see [docs/rabbitmq.md](docs/rabbitmq.md).
+on a single node; see [docs/rabbitmq.md](docs/rabbitmq.md). That playbook acts on a host, so for a deployment with no
+broker host the `rabbitmq_k8s` role runs a single-replica broker in the cluster instead.
 
 ## HTCondor
 
@@ -69,14 +115,54 @@ The `condor.yml` playbook will install and configure a dedicated HTCondor cluste
 
 ## Cert-Manager
 
-The DE uses cert-manager to generate and rotate self-signed TLS certs for use with NATS.
+The DE optionally uses cert-manager to issue and renew the TLS certificates used inside the cluster — the Traefik
+default certificate, the DE UI, VICE wildcard, user portal, Keycloak, Harbor, and Grafana certs. The `cert-manager` role
+installs the chart under the `cert-manager` tag in `kubernetes.yml`, and the `cluster_issuers` role follows it under the
+`cert-issuers` tag to create the self-signed `default-cluster-issuer` plus, when `cert_manager_provider` is
+`letsencrypt`, a Let's Encrypt ClusterIssuer using the ACME dns01 solver against Route53. See [the cert-manager wiki
+page](../wiki/infrastructure/cert-manager.md).
 
-## NATS
+### Choosing a certificate provider
 
-The DE uses NATS in the backend to communicate between some services. By default, NATS is installed in clustered mode
-with 4 replicas. You should be able to connect to any node to communicate with other services using NATS. The `nats`
-role installs NATS via its Helm chart and runs in `kubernetes.yml` under the `nats` tag; see
-[docs/nats.md](docs/nats.md) for retrieving the client/server TLS files.
+`cert_manager_provider` selects where the public-facing endpoint certificates come from, and each endpoint has its own
+`<endpoint>_tls_provider` variable that overrides it. The supported providers are:
+
+- `selfsigned` (the default) - cert-manager creates a CA and an issuer for the endpoint and signs its certificate.
+- `letsencrypt` - cert-manager requests the certificate from the Let's Encrypt ClusterIssuer.
+- `external` - the certificate comes from a third-party CA. The playbooks write the certificate and private key you
+  supply into the endpoint's `kubernetes.io/tls` Secret.
+
+The Traefik default certificate is always issued by cert-manager, whichever provider is selected.
+
+### Externally managed certificates
+
+To use a certificate from a third-party CA for an endpoint, set the endpoint's provider variable to `external` and
+supply the PEM-encoded certificate and private key:
+
+| Endpoint    | Provider variable          | Certificate variable       | Private key variable           | Secret (namespace)                |
+| ----------- | -------------------------- | -------------------------- | ------------------------------ | --------------------------------- |
+| DE UI       | `de_tls_provider`          | `de_tls_cert_pem`          | `de_tls_cert_key_pem`          | `de-tls` (`ns`)                   |
+| User portal | `user_portal_tls_provider` | `user_portal_tls_cert_pem` | `user_portal_tls_cert_key_pem` | `user-portal-tls` (`ns`)          |
+| VICE        | `vice_tls_provider`        | `vice_tls_cert_pem`        | `vice_tls_cert_key_pem`        | `vice-tls` (`ns`)                 |
+| AI2S        | `ai2s_tls_provider`        | `ai2s_tls_cert_pem`        | `ai2s_tls_cert_key_pem`        | `ai-sandboxes-ui-tls` (`ns`)      |
+| Harbor      | `harbor_tls_provider`      | `harbor_tls_cert_pem`      | `harbor_tls_cert_key_pem`      | `harbor-tls` (`harbor_namespace`) |
+| Keycloak    | `keycloak_tls_provider`    | `keycloak_cert_pem`        | `keycloak_cert_key_pem`        | `kc-tls` (`keycloak_namespace`)   |
+| Grafana     | `grafana_tls_provider`     | `grafana_cert_pem`         | `grafana_cert_key_pem`         | `grafana-tls` (`grafana_namespace`) |
+
+The certificate variable should hold the full chain, with the leaf certificate first, followed by any intermediates.
+VICE needs a wildcard certificate that covers `vice_wildcard_fqdn`. The private key is a secret, so keep it in an
+Ansible Vault-encrypted file, or read it from a file on the control machine, rather than putting it in plain inventory:
+
+```yaml
+de_tls_provider: external
+de_tls_cert_pem: "{{ lookup('file', '/secure/path/de.example.org.fullchain.pem') }}"
+de_tls_cert_key_pem: "{{ lookup('file', '/secure/path/de.example.org.key') }}"
+```
+
+Each run replaces the Secret with the supplied certificate and key, so to renew a certificate, update the files and
+rerun the play that manages the endpoint. cert-manager doesn't renew external certificates, so watch their expiry dates.
+If you switch an existing endpoint to `external` from another provider, the play deletes the endpoint's cert-manager
+`Certificate`, so cert-manager no longer overwrites the Secret.
 
 **NOTE** Make sure the `KUBECONFIG` environment variable is set to the correct value in your local shell.
 
@@ -108,6 +194,50 @@ explicitly:
 ```bash
 ansible-playbook -i <inventory> --tags keycloak kubernetes.yml
 ```
+
+## Grafana
+
+Grafana provides metrics dashboards for the DE. It ships with a Postgres datasource pointed at the DE database and two
+dashboards: DE Logins, covering logins and distinct users over time, and DE Resource Usage, covering jobs started and CPU
+hours consumed. Like Keycloak, the role runs in `kubernetes.yml` only when the
+`grafana` tag is passed explicitly, and there is a standalone playbook for deploying it on its own:
+
+```bash
+ansible-playbook -i <inventory> --tags grafana kubernetes.yml
+# or
+ansible-playbook -i <inventory> grafana.yml
+```
+
+Set `grafana: true` and run the database initialization first — Grafana keeps its own state (accounts created through
+the UI, API keys, dashboard edits) in a `grafana` database rather than on a PVC, and queries the DE database through a
+separate read-only role:
+
+```bash
+ansible-playbook -i <inventory> --tags setup-databases kubernetes.yml
+```
+
+By default Grafana is not exposed outside the cluster. Reach it by port-forwarding and logging in as
+`grafana_admin_user`, then create real accounts from there:
+
+```bash
+kubectl -n grafana port-forward svc/grafana 3000:80
+```
+
+To expose it, set `grafana_external_access: true`, `grafana_hostname`, and `grafana_keycloak_client_secret`. The role
+then serves Grafana at `grafana_hostname` through its own Gateway and HTTPRoute, with login through Keycloak limited to
+users whose `entitlement` claim includes one of the `admin_groups`. Everyone let in is a Viewer unless they belong to
+one of `grafana_oauth_admin_groups` or `grafana_oauth_editor_groups`. The hostname needs a DNS record pointing at the
+proxy. The Keycloak client is created automatically only in local deployments; elsewhere, create a confidential client
+named `grafana_keycloak_client_id` (default `grafana`) in the DE realm with the standard flow enabled and the redirect
+URI `https://<grafana_hostname>/*`.
+
+Dashboards live in `roles/grafana/files/dashboards/` and are provisioned from a ConfigMap. To change one, edit it in the
+browser, export the JSON through Share → Export, and write it back over the file.
+
+The datasource is provisioned from the role and pinned per panel, so there is **no datasource picker** in a dashboard's
+top bar. To see which datasource a panel uses, hover the panel title and press `e`; the whole dashboard's wiring is under
+Dashboard settings → JSON Model, and the datasource itself is at Connections → Data sources → DE, where it shows as
+"Provisioned" and read-only. Change it by editing the role, not the UI.
 
 ## Services
 
