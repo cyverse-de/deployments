@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/ai-sandboxes-ui","tag":"harbor.cyverse.org/de/ai-sandboxes-ui:v2026.11.03@sha256:6964a8dc260bd47bda18efd705f3bdb1e0573af82e03da011664174682802013"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/ai-sandboxes-ui","tag":"harbor.cyverse.org/de/ai-sandboxes-ui:v2026.12.01-rc01@sha256:175e40d9e317ecff09f28c5f26cf82780128df8b01ca3bf0299224f12b1f42d5"}]}
