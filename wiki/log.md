@@ -1,5 +1,11 @@
 # Wiki Update Log
 
+## 2026-11-09
+
+* **Update**: [data-info](/services/data-info.md) — records the 1 GiB request and 2 GiB limit
+  from #125, the Go runtime's soft memory limit at 85% of the container's, and the
+  loopback-only pprof listener (`pprofaddr`) and how to take a heap profile through it.
+
 ## 2026-10-17
 
 * **Update**: [data-info](/services/data-info.md) — a job killed mid-drain keeps its paths

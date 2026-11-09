@@ -4,6 +4,8 @@
   and JSON scalars are valid YAML.
 -#}
 port: 60000
+# Loopback only, so reaching it takes kubectl port-forward. Builds without pprof support ignore it.
+pprofaddr: 127.0.0.1:6060
 
 timeouts:
   # The Clojure service gave the two upload routes a 3600s Jetty idle timeout against a 200s
