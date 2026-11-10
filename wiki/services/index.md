@@ -1,5 +1,6 @@
 # services
 
+* [ai-sandbox-authenticator](/services/ai-sandbox-authenticator.md) - Custom Keycloak first-login authenticator that creates CyVerse accounts for AI Sandbox users via portal-conductor, with Portal DB collision checks.
 * [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) - AI Discovery Lab web UI, a Next.js app that authenticates via Keycloak and proxies API calls to terrain.
 * [analyses](/services/analyses.md) - HTTP API over the DE database that serves analysis (job) records to other DE services.
 * [app-exposer](/services/app-exposer.md) - In-cluster API that launches and manages VICE and batch analyses, exposing them via Kubernetes resources and enforcing their time limits.

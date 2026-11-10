@@ -25,6 +25,15 @@ Configuration: the role renders `templates/portal-conductor.json.j2` into the
 mounted at `/etc/cyverse/portal-conductor/portal-conductor.json` and located
 via `PORTAL_CONDUCTOR_CONFIG`.
 
+The `/portal/*` endpoints (`GET /portal/users/{username}/exists`,
+`GET /portal/emails/{email}/exists`, `POST /portal/users/{username}/validate`,
+`POST /portal/users`) have a second consumer besides portal2:
+[ai-sandbox-authenticator](/services/ai-sandbox-authenticator.md), Keycloak's
+first-login provider for the AI Sandboxes IdP, calls them with its own
+configured Basic Auth credentials (set directly on the authenticator's
+execution in the admin console, not through this role) to check for and
+create accounts during federated login.
+
 Runtime: a Deployment with `portal_conductor_replicas` (default 2) serving
 HTTP on 8000 and HTTPS on 8443, with the serving cert/key mounted file-by-file
 from the `portal-conductor-ssl` secret (so the system CA bundle is not
