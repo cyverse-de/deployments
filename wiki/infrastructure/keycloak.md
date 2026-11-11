@@ -29,6 +29,12 @@ configured for the DE realm. The key clients are:
 All of these flow through Ansible inventory variables into Kubernetes Secrets, which are
 mounted into the service pods as config files.
 
+Not every piece of authentication is driven by Ansible, though: the realm's
+first-login flow for the AI Sandboxes IdP runs a custom provider,
+[ai-sandbox-authenticator](/services/ai-sandbox-authenticator.md), which is
+configured by hand in the admin console — see
+[AI Sandbox Authenticator Keycloak Setup](/playbooks/ai-sandbox-authenticator-keycloak-setup.md).
+
 ## Deployment
 
 Keycloak is installed by the `keycloak_install` role, which runs in `kubernetes.yml` under

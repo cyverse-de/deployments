@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/portal-conductor","tag":"harbor.cyverse.org/de/portal-conductor:v2026.11.03-rc04@sha256:e05301b9c5b3c2254a589568f39ca13512842eac409a11859fb3df84d51c68a7"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/portal-conductor","tag":"harbor.cyverse.org/de/portal-conductor:v2026.12.01-rc02@sha256:136e14d307856017029f9511830b6b5021c2b75d4ba907abcb2d65ccbb7bfe46"}]}

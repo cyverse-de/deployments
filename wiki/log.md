@@ -1,5 +1,25 @@
 # Wiki Update Log
 
+## 2026-11-10
+
+* **Add**: [ai-sandbox-authenticator](/services/ai-sandbox-authenticator.md) — new page for
+  the custom Keycloak first-login provider that creates CyVerse accounts for AI Sandbox
+  users via portal-conductor.
+* **Add**: [AI Sandbox Authenticator Keycloak Setup](/playbooks/ai-sandbox-authenticator-keycloak-setup.md)
+  — admin-console steps (IdP mappers, first-login flow, execution config, login theme)
+  that were previously undocumented anywhere.
+* **Update**: [Keycloak](/infrastructure/keycloak.md) — cross-links to the new
+  ai-sandbox-authenticator pages; notes that this piece of authentication config lives in
+  the admin console, not Ansible.
+* **Update**: [portal-conductor](/services/portal-conductor.md) — notes
+  ai-sandbox-authenticator as a second consumer of the `/portal/*` endpoints, alongside portal2.
+
+## 2026-11-09
+
+* **Update**: [data-info](/services/data-info.md) — records the 1 GiB request and 2 GiB limit
+  from #125, the Go runtime's soft memory limit at 85% of the container's, and the
+  loopback-only pprof listener (`pprofaddr`) and how to take a heap profile through it.
+
 ## 2026-07-29
 
 * **Update**: [portal2](/services/portal2.md) — documented the new `portal_de_base_url` var (default `de_base_uri`) feeding `external.deBaseUrl`, which replaces portal2's hardcoded `https://de.cyverse.org/admin/vice` in staff VICE-request notifications; noted it cannot be derived from `portal_terrain_url`, terrain's internal address.
