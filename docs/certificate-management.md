@@ -15,9 +15,9 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | Certificate | Namespace | How issued | What breaks if it expires |
 |---|---|---|---|
 | HAProxy external cert | host filesystem (`/etc/ssl/cyverse.combined`) | External CA (manual renewal) | All external HTTPS access fails |
-| DE UI internal (`de_hostname`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Traefik cannot serve the DE; breaks if no HAProxy in front |
-| VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | VICE apps inaccessible if Traefik is directly exposed |
-| User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
+| DE UI internal (`de_hostname`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Browsers reject the DE UI wherever Traefik terminates TLS, including behind HAProxy in TCP passthrough mode |
+| VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Browsers reject VICE apps wherever Traefik terminates TLS, including behind HAProxy in TCP passthrough mode |
+| User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | Browsers reject the user portal wherever Traefik terminates TLS, including behind HAProxy in TCP passthrough mode |
 | Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Auth fails for all services |
 | Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Grafana unreachable from outside the cluster |
 | Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
@@ -34,8 +34,9 @@ settings.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
 certificates for the DE UI and VICE are not directly user-facing — HAProxy presents its
-own externally-issued certificate. The internal certs still need to be valid for Traefik
-to serve traffic, but browsers never see them.
+own externally-issued certificate. Because HAProxy connects to Traefik with `verify none`,
+an expired internal certificate doesn't interrupt traffic there, but it should still be
+renewed in case Traefik later terminates TLS itself.
 
 Most certificates managed by cert-manager renew **automatically** when they approach the
 configured `renewBefore` threshold (default: 10 days before expiry). Automatic renewal
@@ -197,11 +198,11 @@ Schedule this during a maintenance window.
 
 ---
 
-## 5. HAProxy combined certificate (bare-metal deployments)
+## 5. HAProxy combined certificate
 
-For deployments where the external entry point is HAProxy (not Traefik behind an AWS ALB),
-the combined certificate is managed outside Kubernetes and copied to hosts in the
-`[de_proxy]` inventory group via the `tls_certs_main.yml` playbook.
+For deployments that put HAProxy in front of Traefik to terminate TLS (as CyVerse
+production does), the combined certificate is managed outside Kubernetes and copied to
+hosts in the `[de_proxy]` inventory group via the `tls_certs_main.yml` playbook.
 
 ### Check when the current certificate expires
 
