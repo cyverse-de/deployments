@@ -149,8 +149,7 @@
             secret: "{{ cert_manager_certinext_eab_mac_secret | b64encode }}"
       no_log: true
 
-    # There are no solvers: IT adds the domain validation TXT records to DNS by hand, once per domain, and later
-    # renewals reuse them.
+    # There are no solvers; domain approval is expected to be a manual process for the time being.
     - name: Generate the CertiNext ClusterIssuer
       kubernetes.core.k8s:
         state: present

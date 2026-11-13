@@ -302,10 +302,10 @@ changes are needed. To rotate, update the PEM files and re-run the playbook.
 ## 9. CertiNext certificates (`certinext` provider)
 
 An endpoint whose provider is `certinext` gets its certificate from the `certinext`
-ClusterIssuer, an ACME issuer with external account binding. The issuer has no solvers:
-someone in IT adds the domain validation TXT records to DNS by hand, so the first
-certificate for a domain stays pending until they do. Once those records exist, cert-manager
-renews the certificate automatically with no manual step.
+ClusterIssuer, an ACME issuer with external account binding. The issuer has no solvers
+because the domain verification process is expected to be manual for the time being, so
+the first certificate for a domain stays pending until they do. Once those records exist,
+cert-manager renews the certificate automatically with no manual step.
 
 To see what a pending certificate is waiting for:
 

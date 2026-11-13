@@ -50,10 +50,9 @@ Traefik's — can be issued right away. It creates:
   `cert_manager_certinext_eab_key_id` and `cert_manager_certinext_eab_mac_secret` have been
   set, then writes the MAC secret into a Secret in the `cert-manager` namespace
   (`cert_manager_certinext_eab_secret_name`, key `secret`) for the issuer's
-  `externalAccountBinding` to reference. The issuer has no solvers, because someone in IT adds
-  the domain validation TXT records to DNS by hand. That happens once per domain: the first
+  `externalAccountBinding` to reference. The issuer has no solvers, because the domain
+  verification process is expected to be That happens once per domain: the first
   certificate stays pending until they do, and renewals need no manual step.
-
 A separate namespaced self-signed `default-issuer` is created in the DE namespace (`ns`) by
 `ansible/roles/k8s_de_reqs/tasks/issuers.yml` under the `de-reqs` tag, since it needs the DE
 namespace to exist first.

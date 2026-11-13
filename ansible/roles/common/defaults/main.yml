@@ -211,10 +211,9 @@ cert_manager_le_issuer_acme_server: https://acme-v02.api.letsencrypt.org/directo
 cert_manager_le_issuer_acme_secret_name: letsencrypt-issuer-key
 
 # cert-manager settings for CertiNext. The ClusterIssuer is created when any endpoint's provider is 'certinext'. It uses
-# ACME external account binding (EAB), and it has no solvers because someone in IT adds the domain validation TXT
-# records to DNS by hand. That happens once per domain, so the first certificate stays pending until they do and
-# renewals need no manual step. The key ID and MAC secret come from the CertiNext
-# ACME account; the MAC secret is a secret, so keep it in an Ansible Vault-encrypted file.
+# ACME external account binding (EAB), and it has no solvers because the domain approval process is expectedd to be
+# manual for the time being. The key ID and MAC secret come from the CertiNext ACME account; the MAC secret is a secret,
+# so keep it in an Ansible Vault-encrypted file.
 cert_manager_certinext_issuer_name: certinext
 cert_manager_certinext_issuer_email: "{{ email_dest }}"
 cert_manager_certinext_issuer_acme_server: https://acme-us.certinext.io/v1/directory
