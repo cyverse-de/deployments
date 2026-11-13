@@ -1,5 +1,12 @@
 # Wiki Update Log
 
+## 2026-11-12
+
+* **Update**: [cert-manager](/infrastructure/cert-manager.md),
+  [Certificate Management](/playbooks/certificate-management.md), and
+  [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — new `certinext` certificate provider
+  (ACME with external account binding, one-time manual DNS TXT validation), selectable per endpoint.
+
 ## 2026-11-10
 
 * **Add**: [ai-sandbox-authenticator](/services/ai-sandbox-authenticator.md) — new page for
@@ -19,13 +26,6 @@
 * **Update**: [data-info](/services/data-info.md) — records the 1 GiB request and 2 GiB limit
   from #125, the Go runtime's soft memory limit at 85% of the container's, and the
   loopback-only pprof listener (`pprofaddr`) and how to take a heap profile through it.
-
-## 2026-10-21
-
-* **Update**: [cert-manager](/infrastructure/cert-manager.md),
-  [Certificate Management](/playbooks/certificate-management.md), and
-  [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — new `certinext` certificate provider
-  (ACME with external account binding, one-time manual DNS TXT validation), selectable per endpoint.
 
 ## 2026-10-17
 
