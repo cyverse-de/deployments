@@ -1,5 +1,25 @@
 # Wiki Update Log
 
+## 2026-11-13
+
+* **Update**: [Certificate Management](/playbooks/certificate-management.md) — removed the
+  claim that the DE breaks without HAProxy in front of Traefik, which stopped being true
+  with the move to the Gateway API: Traefik routes VICE hostnames itself instead of relying
+  on the proxy to extract the subdomain. The DE UI, VICE, and user portal rows also no
+  longer say those endpoints are inaccessible when Traefik is exposed directly; they now say
+  an expired certificate is rejected by browsers wherever Traefik terminates TLS, which
+  includes HAProxy in TCP passthrough mode. The
+  HAProxy combined certificate section no longer describes HAProxy as the entry point for
+  every bare-metal deployment, and the inventory no longer says Traefik's internal
+  certificates must be valid behind HAProxy, which connects with `verify none`.
+
+## 2026-11-12
+
+* **Update**: [cert-manager](/infrastructure/cert-manager.md),
+  [Certificate Management](/playbooks/certificate-management.md), and
+  [ai-sandboxes-ui](/services/ai-sandboxes-ui.md) — new `certinext` certificate provider
+  (ACME with external account binding, one-time manual DNS TXT validation), selectable per endpoint.
+
 ## 2026-11-10
 
 * **Add**: [ai-sandbox-authenticator](/services/ai-sandbox-authenticator.md) — new page for

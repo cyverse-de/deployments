@@ -15,11 +15,11 @@ Traefik directly, in which case the cert-manager certificates become user-facing
 | Certificate | Namespace | How issued | What breaks if it expires |
 |---|---|---|---|
 | HAProxy external cert | host filesystem (`/etc/ssl/cyverse.combined`) | External CA (manual renewal) | All external HTTPS access fails |
-| DE UI internal (`de_hostname`) | `prod` | cert-manager (Let's Encrypt or self-signed CA) | Traefik cannot serve the DE; breaks if no HAProxy in front |
-| VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt or self-signed CA) | VICE apps inaccessible if Traefik is directly exposed |
-| User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | User portal inaccessible if directly exposed |
-| Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt or self-signed CA) | Auth fails for all services |
-| Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt or self-signed CA) | Grafana unreachable from outside the cluster |
+| DE UI internal (`de_hostname`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Browsers reject the DE UI wherever Traefik terminates TLS, including behind HAProxy in TCP passthrough mode |
+| VICE wildcard (`*.vice_base_domain`) | `prod` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Browsers reject VICE apps wherever Traefik terminates TLS, including behind HAProxy in TCP passthrough mode |
+| User portal (`portal_hostname`) | `prod` | cert-manager (same issuer as DE UI) | Browsers reject the user portal wherever Traefik terminates TLS, including behind HAProxy in TCP passthrough mode |
+| Keycloak TLS (`keycloak_hostname`) | `keycloak` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Auth fails for all services |
+| Grafana TLS (`grafana_hostname`, only with `grafana_external_access`) | `grafana` | cert-manager (Let's Encrypt, CertiNext, or self-signed CA) | Grafana unreachable from outside the cluster |
 | Traefik default TLS | `traefik` | cert-manager self-signed CA (always, main cluster) | Internal routing breaks |
 | EKS Traefik TLS (`*.vice_base_domain`) | `traefik` (EKS) | cert-manager LE or externally provisioned (see section 8) | VICE apps on the EKS cluster inaccessible |
 | portal-conductor SSL | `prod` | cert-manager self-signed (always) | portal-conductor internal comms break |
@@ -34,8 +34,9 @@ settings.
 
 In deployments where HAProxy terminates TLS (like CyVerse production), the cert-manager
 certificates for the DE UI and VICE are not directly user-facing — HAProxy presents its
-own externally-issued certificate. The internal certs still need to be valid for Traefik
-to serve traffic, but browsers never see them.
+own externally-issued certificate. Because HAProxy connects to Traefik with `verify none`,
+an expired internal certificate doesn't interrupt traffic there, but it should still be
+renewed in case Traefik later terminates TLS itself.
 
 Most certificates managed by cert-manager renew **automatically** when they approach the
 configured `renewBefore` threshold (default: 10 days before expiry). Automatic renewal
@@ -197,11 +198,11 @@ Schedule this during a maintenance window.
 
 ---
 
-## 5. HAProxy combined certificate (bare-metal deployments)
+## 5. HAProxy combined certificate
 
-For deployments where the external entry point is HAProxy (not Traefik behind an AWS ALB),
-the combined certificate is managed outside Kubernetes and copied to hosts in the
-`[de_proxy]` inventory group via the `tls_certs_main.yml` playbook.
+For deployments that put HAProxy in front of Traefik to terminate TLS (as CyVerse
+production does), the combined certificate is managed outside Kubernetes and copied to
+hosts in the `[de_proxy]` inventory group via the `tls_certs_main.yml` playbook.
 
 ### Check when the current certificate expires
 
@@ -335,3 +336,29 @@ ansible-playbook -i /path/to/inventory vice-operator-eks.yml --tags vice-operato
 
 The `kubernetes.core.k8s` task with `state: present` will update the Secret in place. Traefik
 watches its TLS secret and picks up changes automatically.
+
+## 9. CertiNext certificates (`certinext` provider)
+
+An endpoint whose provider is `certinext` gets its certificate from the `certinext`
+ClusterIssuer, an ACME issuer with external account binding. The issuer has no solvers:
+someone in IT adds the domain validation TXT records to DNS by hand, so the first
+certificate for a domain stays pending until they do. Once those records exist, cert-manager
+renews the certificate automatically with no manual step.
+
+To see what a pending certificate is waiting for:
+
+```bash
+kubectl -n $NS describe certificate <name>
+kubectl -n $NS get certificaterequests,orders,challenges
+kubectl -n $NS describe challenge <name>   # shows the DNS record to add
+```
+
+The issuer itself:
+
+```bash
+kubectl describe clusterissuer certinext   # Ready should be True
+```
+
+If it is not `Ready`, check that `cert_manager_certinext_eab_key_id` and
+`cert_manager_certinext_eab_mac_secret` match the CertiNext ACME account and rerun the
+`cert-issuers` tag of `kubernetes.yml`.

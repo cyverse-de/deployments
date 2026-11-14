@@ -4,10 +4,10 @@ tls_certificate_name: ""
 tls_certificate_namespace: ""
 
 # The public hostnames the certificate covers. The first one is the common
-# name of the Let's Encrypt certificate.
+# name of the Let's Encrypt and CertiNext certificates.
 tls_certificate_hostnames: []
 
-# selfsigned | letsencrypt | external. Callers pass their endpoint's
+# selfsigned | letsencrypt | certinext | external. Callers pass their endpoint's
 # <endpoint>_tls_provider; see cert_manager_provider in
 # roles/common/defaults/main.yml.
 tls_certificate_provider: "{{ cert_manager_provider }}"
