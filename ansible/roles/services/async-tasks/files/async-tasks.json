@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/async-tasks","tag":"harbor.cyverse.org/de/async-tasks:v2026.10.06@sha256:b86ed22f152c2b2d3f6ce9b3e87f9d6616190e1ee7d1d02823476953c9e0b76a"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/async-tasks","tag":"harbor.cyverse.org/de/async-tasks:v2026.12.01-rc01@sha256:b40471f5526cc0a62178e14d91d9f33669954aea48b39f4af556ebf1cce3e7bb"}]}
