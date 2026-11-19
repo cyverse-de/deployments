@@ -1,1 +1,1 @@
-{"builds":[{"imageName":"harbor.cyverse.org/de/maintenance-page","tag":"harbor.cyverse.org/de/maintenance-page:v2026.07.07@sha256:8f2de1c4a2db5d61ceefd2d55ea2b3b9f9cdd1dea0a5cdc387d4af26c48d0cb7"}]}
+{"builds":[{"imageName":"harbor.cyverse.org/de/maintenance-page","tag":"harbor.cyverse.org/de/maintenance-page:v2026.12.01-rc01@sha256:b372072995762b54cbe16c9ed15b67f7eac1d2eea230178a7984778aff6243d3"}]}
